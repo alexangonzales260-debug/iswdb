@@ -16,3 +16,6 @@
 ## Sesión 3 — 002/T2–T4: migraciones y tests
 - Se serializaron los tests de BD (vitest fileParallelism:false) porque
   catalog/social/rls comparten la BD local con cleanups globales.
+- T5: types/database.ts se versiona en git (decisión: si el stack local no
+  está arriba en CI/CD, la generación falla). Regenerar con npm run gen:types
+  cuando cambie el esquema.

@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "vitest"
+    "test": "vitest",
+    "gen:types": "supabase gen types typescript --local --schema public > types/database.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.4",
