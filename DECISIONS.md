@@ -10,3 +10,10 @@
 - D8 Idiomas: código/commits inglés, UI/docs español.
 - D9 Las series aportadas por usuarios nacerán con estado pendiente y cola de
      moderación (se materializa en F011, L3).
+- D10 Roles en BD: tabla usuario.rol + función is_admin_or_mod() (SECURITY DEFINER + STABLE).
+     Trigger prevent_self_role_escalation impide auto-escalada.
+- D11 RLS valoracion: lectura pública (anon puede ver notas); escritura solo autenticado + fila propia.
+- D12 validate.sh estricto: tests de BD requieren stack local arriba; sin skipIf.
+     Si BD no disponible, fail fast con mensaje claro.
+- D13 Frontera de datos: datos del dominio (título, descripción) se almacenan ahora;
+     datos derivados de YouTube (duración, thumbnail, fecha publicación) van a caché en F004.

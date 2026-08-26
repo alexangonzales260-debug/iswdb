@@ -9,8 +9,8 @@ participa (serie_id ↔ canal_id N:M, con rol) · usuario · valoracion (UNIQUE(
 
 ## Seguridad (RLS)
 - Catálogo (canal/categoria/serie/episodio): SELECT público; escritura solo rol admin/mod.
-- valoracion: solo usuarios autenticados, una por usuario y serie (F009).
-
+- valoracion: SELECT público (anon+authenticated); escritura solo autenticados,
+  una por usuario y serie (F009).
 ## Failure modes
 - YouTube API caída / cuota agotada → metadatos cacheados en BD; degradar sin romper página.
 - Episodio sin thumbnail → placeholder generado.

@@ -6,9 +6,9 @@
   serie↔canal N:M con rol (participa).
 - MOD-02: Cuando se registra una serie, el sistema deberá aceptar playlist_url y
   estado activa/finalizada.
-- MOD-03: Cuando se registra un episodio, el sistema deberá almacenar SOLO el
-  video_id de YouTube.
-- MOD-04: El sistema deberá pre-crear la tabla valoracion (nota 1–10,
+- MOD-03: Cuando se registra un episodio, el sistema deberá almacenar el 
+  video_id de YouTube y el título del episodio.
+- MOD-04: El sistema deberá pre-crear la tabla valoracion (nota 1–10, 
   UNIQUE(user_id, serie_id)) y el campo moderation_status en serie
   (borrador/pendiente/aprobada/rechazada, por defecto 'aprobada').
 - MOD-05: El sistema deberá permitir lectura pública del catálogo y denegar
@@ -23,6 +23,10 @@
 - [ ] RLS verificado: SELECT ok para anon; INSERT/UPDATE/DELETE denegados.
 - [ ] Tests de las invariantes contra la BD local.
 - [ ] ./validate.sh en verde.
+- [ ] SELECT público de valoracion (anon puede leer notas).
+- [ ] UPDATE de usuario no permite cambiar el propio rol (trigger anti-escalada).
+- [ ] CHECK: si anio_inicio y anio_fin están presentes, anio_fin >= anio_inicio;
+      violación → error de BD. Cubierto por test. 
 
 ## Fuera de alcance
 Datos reales (007), auth (008), cualquier UI (003+).
