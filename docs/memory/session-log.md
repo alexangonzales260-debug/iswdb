@@ -12,3 +12,7 @@
   DOCKER_HOST exportado (unix:///run/user/1000/podman/podman.sock).
 - Se creó supabase/snippets/ con .gitkeep para que supabase start levante Studio.
 - `supabase init` + `supabase start` en verde; instalado @supabase/supabase-js.
+
+## Sesión 3 — 002/T2–T4: migraciones y tests
+- Se serializaron los tests de BD (vitest fileParallelism:false) porque
+  catalog/social/rls comparten la BD local con cleanups globales.

@@ -72,3 +72,14 @@ export async function deleteTestUser(userId: string): Promise<void> {
     console.warn(`GoTrue admin: no se pudo borrar usuario de test ${userId} (${res.status})`)
   }
 }
+
+export async function signInTestUser(email: string, password: string): Promise<SupabaseClient> {
+  const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false }
+  })
+  const { error } = await client.auth.signInWithPassword({ email, password })
+  if (error) {
+    throw new Error(`GoTrue: login falló para ${email}: ${error.message}`)
+  }
+  return client
+}
