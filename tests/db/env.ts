@@ -31,3 +31,44 @@ export function requireLocalDb(): void {
     }
   })
 }
+
+const AUTH_ADMIN_USERS_URL = `${SUPABASE_URL}/auth/v1/admin/users`
+
+function authAdminHeaders(): Record<string, string> {
+  return {
+    apikey: SUPABASE_SERVICE_ROLE_KEY,
+    Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+    'Content-Type': 'application/json'
+  }
+}
+
+export async function createTestUser(email: string, password: string): Promise<string> {
+  // GoTrue en frío (tras db reset) puede responder 504 en las primeras llamadas.
+  let lastError = ''
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const res = await fetch(AUTH_ADMIN_USERS_URL, {
+      method: 'POST',
+      headers: authAdminHeaders(),
+      body: JSON.stringify({ email, password, email_confirm: true })
+    })
+    if (res.ok) {
+      const user = (await res.json()) as { id: string }
+      return user.id
+    }
+    lastError = `(${res.status}): ${await res.text()}`
+    if (attempt < 3) {
+      await new Promise((resolve) => setTimeout(resolve, 2000))
+    }
+  }
+  throw new Error(`GoTrue admin: no se pudo crear usuario ${lastError}`)
+}
+
+export async function deleteTestUser(userId: string): Promise<void> {
+  const res = await fetch(`${AUTH_ADMIN_USERS_URL}/${userId}`, {
+    method: 'DELETE',
+    headers: authAdminHeaders()
+  })
+  if (!res.ok) {
+    console.warn(`GoTrue admin: no se pudo borrar usuario de test ${userId} (${res.status})`)
+  }
+}
