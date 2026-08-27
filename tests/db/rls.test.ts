@@ -63,7 +63,11 @@ beforeAll(async () => {
   clientAdmin2 = await signInTestUser(emails.admin2, TEST_PASSWORD)
 
   const categoria = await unwrap(
-    dbAdmin.from('categoria').insert({ nombre: `cat-rls-${runId}` }).select('id').single()
+    dbAdmin
+      .from('categoria')
+      .insert({ nombre: `cat-rls-${runId}`, slug: `cat-rls-${runId}` })
+      .select('id')
+      .single()
   )
   const serie = await unwrap(
     dbAdmin
@@ -178,7 +182,11 @@ describe('M3 RLS — authenticated normal', () => {
 describe('M3 RLS — admin', () => {
   it('escritura en catálogo ok', async () => {
     const categoria = await unwrap(
-      clientAdmin.from('categoria').insert({ nombre: `cat-rls-admin-${runId}` }).select('id').single()
+      clientAdmin
+        .from('categoria')
+        .insert({ nombre: `cat-rls-admin-${runId}`, slug: `cat-rls-admin-${runId}` })
+        .select('id')
+        .single()
     )
     await unwrap(
       clientAdmin.from('canal').insert({ nombre: 'Canal Admin', handle: `rls-admin-${runId}` })

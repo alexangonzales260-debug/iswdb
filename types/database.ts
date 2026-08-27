@@ -38,16 +38,19 @@ export type Database = {
           created_at: string
           id: string
           nombre: string
+          slug: string
         }
         Insert: {
           created_at?: string
           id?: string
           nombre: string
+          slug: string
         }
         Update: {
           created_at?: string
           id?: string
           nombre?: string
+          slug?: string
         }
         Relationships: []
       }

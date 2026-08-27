@@ -13,8 +13,8 @@ beforeAll(async () => {
   }
 })
 
-async function seedCategoria(nombre: string): Promise<string> {
-  const row = await unwrap(dbAdmin.from('categoria').insert({ nombre }).select('id').single())
+async function seedCategoria(nombre: string, slug: string): Promise<string> {
+  const row = await unwrap(dbAdmin.from('categoria').insert({ nombre, slug }).select('id').single())
   return row.id
 }
 
@@ -26,7 +26,7 @@ async function seedCanal(handle: string): Promise<string> {
 }
 
 async function seedSerie(slug: string): Promise<string> {
-  const categoriaId = await seedCategoria(`cat-${slug}`)
+  const categoriaId = await seedCategoria(`cat-${slug}`, slug)
   const row = await unwrap(
     dbAdmin
       .from('serie')
@@ -49,8 +49,15 @@ async function seedEpisodio(serieId: string, numero: number, videoId: string): P
 }
 
 describe('M1 catálogo — invariants', () => {
+  it('categoria: slug duplicado → error de BD', async () => {
+    await seedCategoria('Cat Minecraft', 'minecraft')
+    await expect(
+      unwrap(dbAdmin.from('categoria').insert({ nombre: 'Cat Minecraft 2', slug: 'minecraft' }))
+    ).rejects.toThrow(/duplicate key/)
+  })
+
   it('serie: slug duplicado → error de BD', async () => {
-    const categoriaId = await seedCategoria('cat-slug-dup')
+    const categoriaId = await seedCategoria('cat-slug-dup', 'gta')
     await unwrap(
       dbAdmin.from('serie').insert({ titulo: 'Serie A', slug: 'slug-dup', categoria_id: categoriaId })
     )
@@ -103,7 +110,7 @@ describe('M1 catálogo — invariants', () => {
   })
 
   it('serie: estado fuera de CHECK → error de BD', async () => {
-    const categoriaId = await seedCategoria('cat-estado')
+    const categoriaId = await seedCategoria('cat-estado', 'roleplay')
     await expect(
       unwrap(
         dbAdmin.from('serie').insert({
@@ -117,7 +124,7 @@ describe('M1 catálogo — invariants', () => {
   })
 
   it('serie: moderation_status fuera de CHECK → error de BD', async () => {
-    const categoriaId = await seedCategoria('cat-moderacion')
+    const categoriaId = await seedCategoria('cat-moderacion', 'anime')
     await expect(
       unwrap(
         dbAdmin.from('serie').insert({
@@ -141,7 +148,7 @@ describe('M1 catálogo — invariants', () => {
   })
 
   it('serie: anio_fin < anio_inicio con ambos presentes → error de BD', async () => {
-    const categoriaId = await seedCategoria('cat-anios')
+    const categoriaId = await seedCategoria('cat-anios', 'terror')
     await expect(
       unwrap(
         dbAdmin.from('serie').insert({

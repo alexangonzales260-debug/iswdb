@@ -12,7 +12,11 @@ let runSlug: string
 
 async function seedSerie(slug: string): Promise<string> {
   const categoria = await unwrap(
-    dbAdmin.from('categoria').insert({ nombre: `cat-${slug}` }).select('id').single()
+    dbAdmin
+      .from('categoria')
+      .insert({ nombre: `cat-${slug}`, slug: `cat-${slug}` })
+      .select('id')
+      .single()
   )
   const serie = await unwrap(
     dbAdmin
