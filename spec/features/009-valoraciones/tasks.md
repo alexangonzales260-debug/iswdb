@@ -20,7 +20,7 @@
   con el fixture ql-* no cambia, verificado numéricamente).
   Criterio: npm test -- --run verde (BD local arriba).
 
-- [ ] T2 — Filmografía de canal a WR
+- [x] T2 — Filmografía de canal a WR
   lib/canales.ts: getCanalByHandle obtiene C (getGlobalMeanRating) y
   byFilmografia compara WR en el tercer criterio (sin valoración → 0,
   último dentro de su grupo anio/estado).
@@ -29,7 +29,7 @@
   cobertura explícita del tercer criterio como WR.
   Criterio: npm test -- --run verde.
 
-- [ ] T3 — Servicios de valoraciones (lectura + escritura)
+- [x] T3 — Servicios de valoraciones (lectura + escritura)
   lib/valoraciones.ts (extender): getDistribucionNotas(serieId) → 10
   entradas { nota, count } con ceros · getValoracionUsuario(serieId, userId)
   → nota | null · valorarSerie(client, userId, serieSlug, nota): serie
@@ -44,7 +44,7 @@
   · eliminar borra · pendiente → rechazo · slug inexistente → rechazo.
   Criterio: npm test -- --run verde.
 
-- [ ] T4 — Server Actions + componentes + ficha
+- [x] T4 — Server Actions + componentes + ficha
   lib/valoraciones-actions.ts (nuevo, "use server"): accionValorar(
   serieSlug, nota) con Zod (nota int 1–10) + requireUser({ next, message })
   (AUTH-06) + valorarSerie + revalidatePath('/', 'layout') · accionEliminar
@@ -61,7 +61,7 @@
   Criterio: lint + typecheck + build verdes; smoke manual en dev (valorar →
   cambiar → eliminar sin recargar; link AUTH-06 sin sesión).
 
-- [ ] T5 — E2E Playwright
+- [x] T5 — E2E Playwright
   e2e/global-setup.ts: helper createAuthUserWithUsuario(email) =
   createAuthUser + insert de la fila public.usuario (FK de valoracion).
   e2e/valoraciones.spec.ts (nuevo; usuario único por ejecución, cleanup
@@ -73,7 +73,7 @@
   Criterio: npm run test:e2e verde; auth/canal/catalogo/ficha sin
   regresiones.
 
-- [ ] T6 — validate.sh + cierre
+- [x] T6 — validate.sh + cierre
   ./validate.sh completo (salida pegada) · ROADMAP.md (009 ✅) ·
   DECISIONS.md (D16 "Derivados sin caché": WR, C e histograma al vuelo;
   aclarar que D13 es thumbnails) · docs/memory/session-log.md (sesión F009)

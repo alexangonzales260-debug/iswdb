@@ -8,7 +8,7 @@
 | 006 | Búsqueda (título, canal)                       | L2    |        |
 | 007 | Seed: 20–30 series reales                      | L1    | ✅     |
 | 008 | Autenticación (email + password)               | L2    | ✅     |
-| 009 | Valoraciones 1–10 + agregados + fórmula WR     | L2    |        |
+| 009 | Valoraciones 1–10 + agregados + fórmula WR     | L2    | ✅     |
 | 010 | Mis series                                     | L1    |        |
 | 011 | Aportes de usuarios + cola de moderación       | L3    |        |
 | 012 | Reseñas                                        | L2    |        |

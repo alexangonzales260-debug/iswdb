@@ -139,3 +139,27 @@
   psql directo (FK cascade).
 - Cierre: ROADMAP 008 ✅ (título corregido a "email + password"),
   validate.sh en verde (66 tests unitarios + 26 E2E), tag F8.
+
+## Sesión 9 — F9: Valoraciones + fórmula WR (F009)
+- F9: Valoraciones 1-10 + fórmula WR (m=10, C=media global). Rankings
+  (top 5, hero, /series, filmografía) ordenan por WR; ficha muestra
+  AVG+conteo+histograma. Server Actions con rechazo server-side de series
+  no aprobadas (VAL-07). Revalidación de layout tras mutación. 92 unit +
+  30 E2E sin regresiones.
+- Interpretación de C aprobada: media aritmética de TODAS las notas de
+  series aprobadas (estilo IMDb; cada valoración pesa igual, series con 0
+  votos no aportan). WR solo ordena, nunca se muestra (VAL-06: AVG+conteo
+  en ficha por transparencia). listSeries pasa a fetch-all + sort WR en TS
+  + slice (PostgREST no ordena el padre por agregados del hijo); sin
+  valoración al final por created_at desc.
+- Hallazgo operativo: tras `npm test -- --run` la BD queda con el fixture
+  del último archivo (cada archivo hace wipe+seed) → el catálogo en dev
+  parece vacío o con series de test. Se restaura con `npx supabase db reset`;
+  `npm run db:seed` a solas falla si el fixture dejó categorías con los
+  mismos slugs y UUIDs aleatorios (FK de los UUIDs fijos del seed). Tras
+  validate.sh (E2E) el cleanup global también deja la BD sin el seed.
+- Hallazgo: la primera ejecución de tests justo tras `db reset` puede fallar
+  por PostgREST frío (hook timeout de 10s en requireLocalDb); basta con
+  re-ejecutar (el mismo motivo de los retries de GoTrue en global-setup).
+- Cierre: D16 añadido (derivados sin caché), ROADMAP 009 ✅, validate.sh
+  en verde, tag F9.

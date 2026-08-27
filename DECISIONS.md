@@ -29,3 +29,8 @@
      routes, no como valores de parámetros dinámicos. El handle visible en la
      UI conserva el @ (p.ej. @canal-uno), pero las URLs internas y canonical
      lo omiten. Helper handleDesdeUrl/handleParaUrl en lib/canales.ts.
+- D16: Los valores derivados (WR, C global, histogramas, conteos) se
+     calculan en lectura server-side, sin caché ni materialización, mientras
+     el catálogo sea pequeño (≤100 series). Si escala, se añade caché/
+     materialización como follow-up, no como requisito inicial. Coherente con
+     D11 (valoracion pública) y D13 (thumbnails derivados).
