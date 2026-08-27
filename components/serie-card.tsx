@@ -17,8 +17,7 @@ export function SerieCard({
   const Titulo = headingLevel === 2 ? 'h2' : 'h3'
 
   return (
-    // TODO: quitar prefetch={false} cuando F004 cree /series/[slug]
-    <Link href={`/series/${serie.slug}`} prefetch={false} className="group block h-full">
+    <Link href={`/series/${serie.slug}`} className="group block h-full">
       <Card className="h-full transition-colors group-hover:bg-accent/60">
         <div className="relative aspect-[2/3] w-full overflow-hidden bg-muted">
           {serie.portada_url ? (

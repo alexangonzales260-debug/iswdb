@@ -26,10 +26,8 @@ function SeccionDestacada({ hero }: { hero: SerieCardData | null }) {
         Serie destacada
       </h2>
       {hero ? (
-        // TODO: quitar prefetch={false} cuando F004 cree /series/[slug]
         <Link
           href={`/series/${hero.slug}`}
-          prefetch={false}
           className="group grid gap-6 rounded-2xl border bg-card p-6 transition-colors hover:bg-accent/40 sm:grid-cols-[180px_1fr]"
         >
           <div className="relative mx-auto aspect-[2/3] w-40 overflow-hidden rounded-xl bg-muted sm:w-full">
