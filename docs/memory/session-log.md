@@ -32,3 +32,31 @@
   antes de las queries), prefetch={false} en enlaces a /series/[slug] hasta
   F004 y heading-order corregido en /series. Scores finales: / 94–99 perf,
   /series 97 perf, A11y/SEO 100 en ambas.
+
+## Sesión 5 — F4: Ficha de serie (F004)
+- F4: Ficha de serie completada. Ruta /series/[slug] (RSC, force-dynamic):
+  portada o placeholder, badges de categoría y estado, años, descripcion,
+  valoración agregada (AVG 1 decimal + conteo o "Sin valoraciones"), enlace
+  externo a playlist, reparto con rol y avatar (placeholder si null) que
+  enlaza a /series?canal=<handle>, episodios agrupados por temporada con
+  headers. Query getSerieBySlug en lib/ (embeds de categoria, participa+canal,
+  valoracion, episodio; agrupación y orden en TS).
+- Decisiones del usuario: episodios como link externo a youtube.com/watch
+  (target=_blank, rel=noopener noreferrer), sin embeds ni iframes; temporadas
+  en listado único con headers; 404 con notFound() para slug inexistente o no
+  aprobada.
+- Hallazgo T1: el bulk insert de PostgREST toma las columnas del primer
+  objeto; keys ausentes en filas posteriores → NULL (no default). Seeds con
+  filas uniformes desde entonces.
+- Hallazgo T3: notFound() dentro de Suspense devuelve HTTP 200 con la UI de
+  not-found (el estado se emite con el shell en streaming); el 404 debe
+  decidirse antes de emitir el shell. notFound() en generateMetadata es
+  ignorado por el runtime (se conserva como defensa, el efectivo es el de la
+  página).
+- Hallazgo T4: next/image sin priority emite loading="lazy" en la portada y
+  LCP simulado se iba a 2.7–3.0 s; con priority (preload + eager) el LCP
+  observado queda en ~215–227 ms. Lighthouse /series/<slug> (mobile):
+  Perf 96–97, A11y 100, SEO 100; LCP simulado ~2.6 s, dominado por el JS del
+  runtime de Next.js (payload 274 KiB), no por código de la feature.
+- Cierre: D13 ajustado (thumbnail derivada, sin caché), ROADMAP 004 ✅,
+  validate.sh en verde (45 tests unitarios + 15 E2E).

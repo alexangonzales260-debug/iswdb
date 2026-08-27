@@ -15,8 +15,10 @@
 - D11 RLS valoracion: lectura pública (anon puede ver notas); escritura solo autenticado + fila propia.
 - D12 validate.sh estricto: tests de BD requieren stack local arriba; sin skipIf.
      Si BD no disponible, fail fast con mensaje claro.
-- D13 Frontera de datos: datos del dominio (título, descripción) se almacenan ahora;
-     datos derivados de YouTube (duración, thumbnail, fecha publicación) van a caché en F004.
+- D13: Thumbnail de episodios se deriva de img.youtube.com/vi/<video_id>/hqdefault.jpg
+     sin caché en BD (cumple D5: solo embed oficial, sin API de YouTube). La caché
+     de metadatos (duración, fecha publicación) se revisita en F007+ si se integra
+     YouTube Data API.
 - D14 shadcn/ui v4 con runtime package (shadcn, tw-animate-css) como dependencias
      del stack UI. Componentes copiados al repo (no dependencia negra).
      Base color: Zinc. Tokens de marca: --color-brand #E85D04,

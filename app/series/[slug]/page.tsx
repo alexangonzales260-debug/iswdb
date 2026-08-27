@@ -71,6 +71,9 @@ function Cabecera({ serie }: { serie: SerieFicha }) {
             src={serie.portada_url}
             alt={`Portada de ${serie.titulo}`}
             fill
+            // LCP de la ficha (FIC-09): imagen above-the-fold; sin priority se
+            // cargaría con loading="lazy" y Lighthouse mide LCP > 2.5s.
+            priority
             sizes="(max-width: 640px) 192px, 220px"
             className="object-cover"
           />
