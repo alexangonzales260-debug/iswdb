@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 import { ExternalLink, Film, ListMusic, Star } from "lucide-react";
 
 import { CastList } from "@/components/cast-list";
@@ -32,6 +31,8 @@ export async function generateMetadata({
   const { slug } = await params;
   const serie = await getSerieBySlug(slug);
   // FIC-04: slug inexistente o serie no aprobada → 404 también en metadata.
+  // El 404 efectivo lo lanza la página: algunos runtimes ignoran notFound()
+  // en generateMetadata.
   if (!serie) notFound();
 
   const title = serie.titulo;
@@ -114,10 +115,7 @@ function Cabecera({ serie }: { serie: SerieFicha }) {
   );
 }
 
-async function ContenidoFicha({ slug }: { slug: string }) {
-  const serie = await getSerieBySlug(slug);
-  if (!serie) notFound();
-
+async function ContenidoFicha({ serie }: { serie: SerieFicha }) {
   return (
     <div className="space-y-10">
       <Cabecera serie={serie} />
@@ -149,34 +147,19 @@ async function ContenidoFicha({ slug }: { slug: string }) {
   );
 }
 
-function SkeletonFicha() {
-  return (
-    <div className="animate-pulse space-y-10" aria-hidden="true">
-      <div className="grid gap-6 sm:grid-cols-[220px_1fr]">
-        <div className="mx-auto aspect-[2/3] w-48 rounded-xl bg-muted sm:w-full" />
-        <div className="space-y-3">
-          <div className="h-5 w-32 rounded bg-muted" />
-          <div className="h-8 w-2/3 rounded bg-muted" />
-          <div className="h-4 w-24 rounded bg-muted" />
-          <div className="h-20 w-full rounded bg-muted" />
-        </div>
-      </div>
-      <div className="space-y-3">
-        <div className="h-6 w-40 rounded bg-muted" />
-        <div className="h-40 w-full rounded bg-muted" />
-      </div>
-    </div>
-  );
-}
-
+// FIC-04: el 404 se decide ANTES de emitir el shell. Un notFound() lanzado
+// dentro de Suspense con la respuesta ya en streaming devolvería HTTP 200 con
+// la UI de not-found (el código de estado se emite con el shell). Por eso la
+// query va aquí y no dentro de un boundary; con una sola consulta indexada el
+// streaming no aporta nada en esta ruta.
 export default async function FichaPage({ params }: FichaPageProps) {
   const { slug } = await params;
+  const serie = await getSerieBySlug(slug);
+  if (!serie) notFound();
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8">
-      <Suspense fallback={<SkeletonFicha />}>
-        <ContenidoFicha slug={slug} />
-      </Suspense>
+      <ContenidoFicha serie={serie} />
     </div>
   );
 }

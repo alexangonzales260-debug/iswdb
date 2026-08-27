@@ -30,6 +30,19 @@ export const FIXTURE = {
   participa: {
     '@canal-uno': ['e2e-02', 'e2e-05', 'e2e-09', 'e2e-13'],
     '@canal-dos': ['e2e-01', 'e2e-09']
+  },
+  // Ficha (F004): e2e-01 con 2 temporadas · e2e-10 con 1 episodio ·
+  // e2e-02 sin episodios (empty state). video_ids estables para los tests.
+  ficha: {
+    slugDosTemporadas: 'e2e-01',
+    slugSinEpisodios: 'e2e-02',
+    playlistUrl: 'https://www.youtube.com/playlist?list=PLe2e0000000000001',
+    videoIds: {
+      'e2e-01-t1e1': 'e2e01t01e001',
+      'e2e-01-t1e2': 'e2e01t01e002',
+      'e2e-01-t2e1': 'e2e01t02e001',
+      'e2e-10-t1e1': 'e2e10t01e001'
+    }
   }
 } as const
 
@@ -110,6 +123,9 @@ async function seed(db: SupabaseClient): Promise<string[]> {
   const canales = await unwrap(db.from('canal').insert([...FIXTURE.canales]).select('id, handle'))
   const canalIdPorHandle = Object.fromEntries(canales.map((c) => [c.handle, c.id]))
 
+  // Filas uniformes: en el bulk insert PostgREST toma las columnas del primer
+  // objeto; keys ausentes en el resto serían NULL (no default). e2e-01
+  // ejercita la ficha completa (FIC-01).
   const filasSerie = Array.from({ length: FIXTURE.totalSeries }, (_, i) => {
     const n = i + 1
     return {
@@ -118,7 +134,11 @@ async function seed(db: SupabaseClient): Promise<string[]> {
       categoria_id: catIdPorSlug[categoriaDe(n)],
       moderation_status: n === FIXTURE.totalSeries ? 'pendiente' : 'aprobada',
       anio_inicio: 2024,
-      created_at: new Date(Date.UTC(2026, 3, n)).toISOString()
+      created_at: new Date(Date.UTC(2026, 3, n)).toISOString(),
+      descripcion: n === 1 ? 'Serie de pruebas para la ficha: dos temporadas y reparto.' : null,
+      estado: n === 1 ? 'finalizada' : 'activa',
+      anio_fin: n === 1 ? 2025 : null,
+      playlist_url: n === 1 ? FIXTURE.ficha.playlistUrl : null
     }
   })
   const series = await unwrap(db.from('serie').insert(filasSerie).select('id, slug'))
@@ -148,6 +168,43 @@ async function seed(db: SupabaseClient): Promise<string[]> {
     notas.map(([userId, nota]) => ({ user_id: userId, serie_id: serieIdPorSlug[slug], nota }))
   )
   await unwrap(db.from('valoracion').insert(filasValoracion))
+
+  // Episodios para la ficha (FIC-02): e2e-01 con 2 temporadas insertadas
+  // fuera de orden (verifica agrupación y ordenamiento en lib/) · e2e-10 con
+  // 1 episodio · e2e-02 sin episodios (empty state). El cleanup cascada desde
+  // serie (on delete cascade).
+  const { videoIds } = FIXTURE.ficha
+  const filasEpisodio = [
+    {
+      serie_id: serieIdPorSlug[slugSerie(1)],
+      temporada: 2,
+      numero: 1,
+      titulo: 'Estreno de la segunda temporada',
+      video_id: videoIds['e2e-01-t2e1']
+    },
+    {
+      serie_id: serieIdPorSlug[slugSerie(1)],
+      temporada: 1,
+      numero: 2,
+      titulo: 'Segundo episodio',
+      video_id: videoIds['e2e-01-t1e2']
+    },
+    {
+      serie_id: serieIdPorSlug[slugSerie(1)],
+      temporada: 1,
+      numero: 1,
+      titulo: 'Piloto',
+      video_id: videoIds['e2e-01-t1e1']
+    },
+    {
+      serie_id: serieIdPorSlug[slugSerie(10)],
+      temporada: 1,
+      numero: 1,
+      titulo: 'Episodio único',
+      video_id: videoIds['e2e-10-t1e1']
+    }
+  ]
+  await unwrap(db.from('episodio').insert(filasEpisodio))
 
   return userIds
 }
