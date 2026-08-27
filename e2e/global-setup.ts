@@ -140,6 +140,16 @@ export async function deleteAuthUserByEmail(email: string): Promise<void> {
   }
 }
 
+// F009 (T5): usuario E2E con fila en public.usuario. createAuthUser solo crea
+// el auth user; la FK de valoracion exige la fila de usuario, y el flujo de
+// valorar no visita /perfil (cuyo self-healing la crearía).
+export async function createAuthUserWithUsuario(email: string): Promise<string> {
+  const userId = await createAuthUser(email)
+  const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+  await unwrap(db.from('usuario').insert({ id: userId }))
+  return userId
+}
+
 async function wipe(db: SupabaseClient): Promise<void> {
   await unwrap(db.from('valoracion').delete().not('id', 'is', null))
   await unwrap(db.from('participa').delete().not('serie_id', 'is', null))
