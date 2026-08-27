@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import Link from "next/link";
-import { ThemeToggle } from "@/components/theme-toggle";
+
+import { Header } from "@/components/header";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -58,36 +58,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="flex min-h-full flex-col">
-        <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur">
-          <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-4 px-4">
-            <div className="flex items-center gap-6">
-              <Link href="/" className="text-lg font-bold tracking-tight">
-                iswdb
-                <span className="text-brand" aria-hidden="true">
-                  •
-                </span>
-              </Link>
-              <nav
-                aria-label="Principal"
-                className="flex items-center gap-4 text-sm font-medium"
-              >
-                <Link
-                  href="/"
-                  className="text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  Inicio
-                </Link>
-                <Link
-                  href="/series"
-                  className="text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  Series
-                </Link>
-              </nav>
-            </div>
-            <ThemeToggle />
-          </div>
-        </header>
+        <Header />
         <main className="flex-1">{children}</main>
         <footer className="border-t py-6">
           <div className="mx-auto w-full max-w-6xl px-4 text-sm text-muted-foreground">
