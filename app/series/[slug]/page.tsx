@@ -5,10 +5,14 @@ import { ExternalLink, Film, ListMusic, Star } from "lucide-react";
 
 import { CastList } from "@/components/cast-list";
 import { EmptyState } from "@/components/empty-state";
+import { RatingHistogram } from "@/components/rating-histogram";
+import { RatingSelector } from "@/components/rating-selector";
 import { SeasonList } from "@/components/season-list";
 import { Badge } from "@/components/ui/badge";
+import { getUser } from "@/lib/auth";
 import { ratingTexto, truncateDescripcion } from "@/lib/format";
 import { getSerieBySlug, type SerieFicha } from "@/lib/series";
+import { getValoracionUsuario } from "@/lib/valoraciones";
 
 // La ficha depende de datos de BD que cambian sin rebuild (seed, moderación);
 // mismo criterio que la home.
@@ -118,10 +122,33 @@ function Cabecera({ serie }: { serie: SerieFicha }) {
   );
 }
 
+// Sección "Valoraciones" (F009, VAL-04): histograma + selector. El AVG y el
+// conteo se conservan en la cabecera (VAL-06). getUser() está cacheado con
+// cache() de React (el header del layout lo llama en el mismo request); la
+// nota actual solo se consulta si hay sesión.
+async function Valoraciones({ serie }: { serie: SerieFicha }) {
+  const user = await getUser();
+  const notaActual = user ? await getValoracionUsuario(serie.id, user.id) : null;
+
+  return (
+    <section className="space-y-4" aria-labelledby="valoraciones-heading">
+      <h2 id="valoraciones-heading" className="text-xl font-semibold tracking-tight">
+        Valoraciones
+      </h2>
+      <div className="grid gap-6 md:grid-cols-2">
+        <RatingHistogram serieId={serie.id} />
+        <RatingSelector serieSlug={serie.slug} notaActual={notaActual} conSesion={user !== null} />
+      </div>
+    </section>
+  );
+}
+
 async function ContenidoFicha({ serie }: { serie: SerieFicha }) {
   return (
     <div className="space-y-10">
       <Cabecera serie={serie} />
+
+      <Valoraciones serie={serie} />
 
       {serie.canales.length > 0 && (
         <section className="space-y-4" aria-labelledby="reparto-heading">
