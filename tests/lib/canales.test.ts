@@ -31,6 +31,9 @@ const CANALES = [
 // anio_inicio/estado variados para ejercitar el orden CAN-01:
 // 2024 activas (fc-02 sin notas, fc-03 con 8.0) → 2024 finalizada (fc-04) →
 // 2023 (fc-01) → anio null (fc-05). fc-06 es pendiente: nunca debe aparecer.
+// El tercer criterio del orden es WR (VAL-05): con este fixture C = 9.0
+// (notas aprobadas 9,9,8,10) → WR fc-04 100/11 ≈ 9.09, fc-01 9.0,
+// fc-03 98/11 ≈ 8.91; fc-02/fc-05 sin notas → 0.
 const FILAS_SERIE = [
   {
     titulo: 'Serie FC 1',
@@ -187,7 +190,12 @@ describe('getCanalByHandle con datos (cliente anon, RLS de lectura pública)', (
     expect(canal?.nombre).toBe('Canal FC Uno')
     expect(canal?.handle).toBe('@iswdb-fc-uno')
     expect(canal?.avatar_url).toBe('https://img.youtube.com/vi/fcuno/avatar.jpg')
-    // anio desc (null al final) → activas antes que finalizadas → rating desc.
+    // Orden CAN-01 con WR (C = 9.0): anio desc (null al final) → activas
+    // antes que finalizadas → WR desc → created_at desc.
+    // 2024 activas: fc-03 (WR ≈ 8.91) > fc-02 (sin notas → 0); 2024
+    // finalizada: fc-04; 2023: fc-01; anio null: fc-05. El orden relativo
+    // coincide con el de AVG en este fixture (anio/estado dominan), pero el
+    // tercer criterio ya es WR (VAL-05), verificado numéricamente arriba.
     expect(canal?.series.map((s) => s.serie.slug)).toEqual([
       'fc-03',
       'fc-02',

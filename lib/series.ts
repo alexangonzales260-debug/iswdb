@@ -70,6 +70,14 @@ function mediaExacta(notas: number[]): number {
   return notas.reduce((suma, n) => suma + n, 0) / notas.length
 }
 
+// WR de una serie a partir de sus notas; null si no tiene valoraciones.
+// Usa la media exacta (sin redondear) para no introducir sesgo en el orden.
+// Compartido por los rankings de series y la filmografía de canal (F009).
+export function wrDeNotas(notas: number[], c: number): number | null {
+  if (notas.length === 0) return null
+  return weightedRating(notas.length, mediaExacta(notas), c)
+}
+
 // C de la fórmula WR (VAL-05): media de TODAS las notas de series aprobadas
 // (cada valoración pesa igual; las series con 0 votos no aportan y las no
 // aprobadas quedan excluidas). Derivado en lectura, sin caché. Sin notas → 0
@@ -104,9 +112,10 @@ function toSerieCard(row: SerieRow): SerieCard {
 type FilaOrdenable = { valoracion: { nota: number }[]; created_at: string }
 
 function wrDeFila(fila: FilaOrdenable, c: number): number | null {
-  const notas = fila.valoracion.map((v) => v.nota)
-  if (notas.length === 0) return null
-  return weightedRating(notas.length, mediaExacta(notas), c)
+  return wrDeNotas(
+    fila.valoracion.map((v) => v.nota),
+    c
+  )
 }
 
 // Orden de rankings (VAL-05): WR desc; sin valoración → 0, que queda al

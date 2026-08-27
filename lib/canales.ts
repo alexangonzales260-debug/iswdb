@@ -1,4 +1,4 @@
-import { toRating, unwrap, type SerieCard } from './series'
+import { getGlobalMeanRating, toRating, unwrap, wrDeNotas, type SerieCard } from './series'
 import { supabaseServer } from './supabase'
 
 // Filmografía de canal (CAN-01): un único query con embeds anidados. El filtro
@@ -75,11 +75,16 @@ function toSerieFilmografia(row: SerieFilmografiaRow): SerieFilmografia {
 }
 
 // Orden CAN-01: anio_inicio desc (null al final) → activas antes que
-// finalizadas → valoración media desc (null → 0) → created_at desc como
-// desempate determinista (patrón de lib/series.ts).
+// finalizadas → WR desc (sin valoración → 0) → created_at desc como
+// desempate determinista (patrón de lib/series.ts). El tercer criterio usa
+// WR (VAL-05), no el AVG redondeado de la tarjeta.
 const RANGO_ESTADO: Record<string, number> = { activa: 0, finalizada: 1 }
 
-function byFilmografia(a: FilmografiaSerie, b: FilmografiaSerie): number {
+// Entrada del comparador: la serie mapeada + su WR exacto (calculado de las
+// notas crudas, no del AVG redondeado) + el rol. El WR se descarta al final.
+type FilmografiaConWr = { rol: string; serie: SerieFilmografia; wr: number | null }
+
+function byFilmografia(a: FilmografiaConWr, b: FilmografiaConWr): number {
   const anioA = a.serie.anio_inicio ?? Number.MIN_SAFE_INTEGER
   const anioB = b.serie.anio_inicio ?? Number.MIN_SAFE_INTEGER
   if (anioA !== anioB) return anioB - anioA
@@ -88,27 +93,39 @@ function byFilmografia(a: FilmografiaSerie, b: FilmografiaSerie): number {
   const rangoB = RANGO_ESTADO[b.serie.estado] ?? Number.MAX_SAFE_INTEGER
   if (rangoA !== rangoB) return rangoA - rangoB
 
-  const diferenciaRating = (b.serie.rating?.average ?? 0) - (a.serie.rating?.average ?? 0)
-  if (diferenciaRating !== 0) return diferenciaRating
+  const diferenciaWr = (b.wr ?? 0) - (a.wr ?? 0)
+  if (diferenciaWr !== 0) return diferenciaWr
 
   return b.serie.created_at.localeCompare(a.serie.created_at)
 }
 
-function toFilmografia(filas: ParticipaFichaRow[]): FilmografiaSerie[] {
+function toFilmografia(filas: ParticipaFichaRow[], c: number): FilmografiaSerie[] {
   return filas
     .filter(
       (fila): fila is ParticipaFichaRow & { serie: SerieFilmografiaRow } => fila.serie !== null
     )
-    .map((fila) => ({ rol: fila.rol, serie: toSerieFilmografia(fila.serie) }))
+    .map((fila) => ({
+      rol: fila.rol,
+      serie: toSerieFilmografia(fila.serie),
+      wr: wrDeNotas(
+        fila.serie.valoracion.map((v) => v.nota),
+        c
+      )
+    }))
     .sort(byFilmografia)
+    .map(({ rol, serie }) => ({ rol, serie }))
 }
 
 // Ficha de canal (CAN-01/CAN-03): null si el handle no existe o si el canal
 // no participa en ninguna serie aprobada → la página responde notFound().
 export async function getCanalByHandle(handle: string): Promise<CanalFichaData | null> {
-  const row = await unwrap(canalFichaQuery(handle).maybeSingle())
+  // C de la fórmula WR (VAL-05) en paralelo con la ficha del canal.
+  const [row, c] = await Promise.all([
+    unwrap(canalFichaQuery(handle).maybeSingle()),
+    getGlobalMeanRating()
+  ])
   if (!row) return null
-  const series = toFilmografia(row.participa)
+  const series = toFilmografia(row.participa, c)
   if (series.length === 0) return null
   return {
     nombre: row.nombre,
