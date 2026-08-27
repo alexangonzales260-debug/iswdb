@@ -1,69 +1,143 @@
 import Image from "next/image";
+import Link from "next/link";
+import { ArrowRight, Clapperboard, Clock, Sparkles, Star } from "lucide-react";
 
-export default function Home() {
+import { CategoryChips } from "@/components/category-chips";
+import { EmptyState } from "@/components/empty-state";
+import { SerieCard } from "@/components/serie-card";
+import { Badge } from "@/components/ui/badge";
+import { getCategorias } from "@/lib/categorias";
+import { getHeroSerie, getLatestSeries, getTopSeries } from "@/lib/series";
+
+export default async function Home() {
+  const [hero, top, latest, categorias] = await Promise.all([
+    getHeroSerie(),
+    getTopSeries(5),
+    getLatestSeries(10),
+    getCategorias(),
+  ]);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className="mx-auto w-full max-w-6xl space-y-10 px-4 py-8">
+      <section className="space-y-2">
+        <h1 className="text-3xl font-bold tracking-tight">
+          Las series de YouTube, en un solo sitio
+        </h1>
+        <p className="text-muted-foreground">
+          Descubre las mejor valoradas, explora por categoría y no pierdas de
+          vista los últimos estrenos.
+        </p>
+      </section>
+
+      <section className="space-y-4" aria-labelledby="destacada-heading">
+        <h2 id="destacada-heading" className="text-xl font-semibold tracking-tight">
+          Serie destacada
+        </h2>
+        {hero ? (
+          <Link
+            href={`/series/${hero.slug}`}
+            className="group grid gap-6 rounded-2xl border bg-card p-6 transition-colors hover:bg-accent/40 sm:grid-cols-[180px_1fr]"
           >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+            <div className="relative mx-auto aspect-[2/3] w-40 overflow-hidden rounded-xl bg-muted sm:w-full">
+              {hero.portada_url ? (
+                <Image
+                  src={hero.portada_url}
+                  alt={`Portada de ${hero.titulo}`}
+                  fill
+                  sizes="180px"
+                  className="object-cover"
+                />
+              ) : (
+                <div className="flex h-full items-center justify-center" aria-hidden="true">
+                  <Clapperboard className="size-10 text-muted-foreground" />
+                </div>
+              )}
+            </div>
+            <div className="flex flex-col gap-3">
+              {hero.categoria && (
+                <Badge variant="secondary" className="w-fit">
+                  {hero.categoria.nombre}
+                </Badge>
+              )}
+              <h3 className="text-2xl font-bold tracking-tight">{hero.titulo}</h3>
+              {hero.rating && (
+                <p className="flex items-center gap-1.5 text-lg">
+                  <Star className="size-5 text-brand" aria-hidden="true" />
+                  <span className="font-semibold">{hero.rating.average.toFixed(1)}</span>
+                  <span className="text-sm text-muted-foreground">
+                    · {hero.rating.count}{" "}
+                    {hero.rating.count === 1 ? "valoración" : "valoraciones"}
+                  </span>
+                </p>
+              )}
+              <p className="text-sm text-muted-foreground">
+                {hero.canales.map((canal) => canal.nombre).join(", ")}
+                {hero.anio_inicio !== null && ` · ${hero.anio_inicio}`}
+              </p>
+              <span className="mt-auto inline-flex items-center gap-1 text-sm font-medium text-brand-accessible dark:text-brand">
+                Ver ficha
+                <ArrowRight
+                  className="size-4 transition-transform group-hover:translate-x-0.5"
+                  aria-hidden="true"
+                />
+              </span>
+            </div>
+          </Link>
+        ) : (
+          <EmptyState
+            icon={Sparkles}
+            title="No hay series destacadas todavía"
+            description="Cuando haya series con valoraciones, la mejor aparecerá aquí."
+          />
+        )}
+      </section>
+
+      <section className="space-y-4" aria-labelledby="top-heading">
+        <h2 id="top-heading" className="text-xl font-semibold tracking-tight">
+          Las mejor valoradas
+        </h2>
+        {top.length > 0 ? (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5">
+            {top.map((serie) => (
+              <SerieCard key={serie.id} serie={serie} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            icon={Star}
+            title="Todavía no hay series valoradas"
+            description="Las series con al menos una valoración aparecerán aquí."
+          />
+        )}
+      </section>
+
+      <section className="space-y-4" aria-labelledby="ultimas-heading">
+        <h2 id="ultimas-heading" className="text-xl font-semibold tracking-tight">
+          Últimas añadidas
+        </h2>
+        {latest.length > 0 ? (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+            {latest.map((serie) => (
+              <SerieCard key={serie.id} serie={serie} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            icon={Clock}
+            title="El catálogo está vacío"
+            description="Las series aparecerán aquí en cuanto se añadan."
+          />
+        )}
+      </section>
+
+      {categorias.length > 0 && (
+        <section className="space-y-4" aria-labelledby="categorias-heading">
+          <h2 id="categorias-heading" className="text-xl font-semibold tracking-tight">
+            Explora por categoría
+          </h2>
+          <CategoryChips categorias={categorias} />
+        </section>
+      )}
     </div>
   );
 }
