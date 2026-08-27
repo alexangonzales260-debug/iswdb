@@ -4,13 +4,8 @@ import { Film, Star } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
+import { ratingTexto } from '@/lib/format'
 import type { SerieCard as SerieCardData } from '@/lib/series'
-
-function ratingTexto(serie: SerieCardData): string {
-  if (!serie.rating) return 'Sin valoraciones'
-  const { average, count } = serie.rating
-  return `${average.toFixed(1)} · ${count} ${count === 1 ? 'valoración' : 'valoraciones'}`
-}
 
 export function SerieCard({
   serie,
@@ -57,7 +52,7 @@ export function SerieCard({
           )}
           <p className="mt-auto flex items-center gap-1 text-sm">
             <Star className="size-3.5 text-brand" aria-hidden="true" />
-            <span>{ratingTexto(serie)}</span>
+            <span>{ratingTexto(serie.rating)}</span>
           </p>
         </CardContent>
       </Card>

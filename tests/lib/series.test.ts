@@ -9,7 +9,13 @@ vi.hoisted(() => {
 })
 
 import { getCategorias } from '@/lib/categorias'
-import { getHeroSerie, getLatestSeries, getTopSeries, listSeries } from '@/lib/series'
+import {
+  getHeroSerie,
+  getLatestSeries,
+  getSerieBySlug,
+  getTopSeries,
+  listSeries
+} from '@/lib/series'
 import { createTestUser, dbAdmin, deleteTestUser, requireLocalDb, unwrap } from '../db/env'
 
 requireLocalDb()
@@ -23,9 +29,13 @@ const CATEGORIAS = [
 ]
 
 const CANALES = [
-  { nombre: 'Canal Uno', handle: '@iswdb-uno' },
-  { nombre: 'Canal Dos', handle: '@iswdb-dos' },
-  { nombre: 'Canal Tres', handle: '@iswdb-tres' }
+  { nombre: 'Canal Uno', handle: '@iswdb-uno', avatar_url: null },
+  {
+    nombre: 'Canal Dos',
+    handle: '@iswdb-dos',
+    avatar_url: 'https://img.youtube.com/vi/canaldos/avatar.jpg'
+  },
+  { nombre: 'Canal Tres', handle: '@iswdb-tres', avatar_url: null }
 ]
 
 // ql-01..ql-06 → minecraft · ql-07..ql-11 → gta · ql-12..ql-16 → roleplay.
@@ -38,6 +48,12 @@ const PARTICIPA: Record<string, string[]> = {
   '@iswdb-uno': ['ql-02', 'ql-05', 'ql-08', 'ql-13'],
   '@iswdb-dos': ['ql-01', 'ql-02', 'ql-10'],
   '@iswdb-tres': ['ql-13']
+}
+
+// Roles explícitos para la ficha (FIC-05): ql-13 con principal/invitado; el
+// resto de participaciones queda en el default 'colaborador' de la BD.
+const ROLES: Record<string, Record<string, string>> = {
+  'ql-13': { '@iswdb-uno': 'principal', '@iswdb-tres': 'invitado' }
 }
 
 function slugSerie(n: number): string {
@@ -100,6 +116,10 @@ describe('queries de catálogo con datos (cliente anon, RLS de lectura pública)
     const canales = await unwrap(dbAdmin.from('canal').insert(CANALES).select('id, handle'))
     const canalIdPorHandle = Object.fromEntries(canales.map((c) => [c.handle, c.id]))
 
+    // Filas uniformes: en el bulk insert PostgREST toma las columnas del
+    // primer objeto; keys ausentes en el resto serían NULL (no default).
+    // ql-01 ejercita la ficha completa (FIC-01): descripcion, estado
+    // finalizada, anio_fin y playlist_url.
     const filasSerie = Array.from({ length: TOTAL_SERIES }, (_, i) => {
       const n = i + 1
       return {
@@ -108,14 +128,22 @@ describe('queries de catálogo con datos (cliente anon, RLS de lectura pública)
         categoria_id: catIdPorSlug[categoriaDe(n)],
         moderation_status: n === TOTAL_SERIES ? 'pendiente' : 'aprobada',
         anio_inicio: 2024,
-        created_at: new Date(Date.UTC(2026, 0, n)).toISOString()
+        created_at: new Date(Date.UTC(2026, 0, n)).toISOString(),
+        descripcion: n === 1 ? 'Serie de pruebas para la ficha: dos temporadas y reparto con rol.' : null,
+        estado: n === 1 ? 'finalizada' : 'activa',
+        anio_fin: n === 1 ? 2025 : null,
+        playlist_url: n === 1 ? 'https://www.youtube.com/playlist?list=PLiswdb00000000001' : null
       }
     })
     const series = await unwrap(dbAdmin.from('serie').insert(filasSerie).select('id, slug'))
     const serieIdPorSlug = Object.fromEntries(series.map((s) => [s.slug, s.id]))
 
     const filasParticipa = Object.entries(PARTICIPA).flatMap(([handle, slugs]) =>
-      slugs.map((slug) => ({ serie_id: serieIdPorSlug[slug], canal_id: canalIdPorHandle[handle] }))
+      slugs.map((slug) => ({
+        serie_id: serieIdPorSlug[slug],
+        canal_id: canalIdPorHandle[handle],
+        rol: ROLES[slug]?.[handle] ?? 'colaborador'
+      }))
     )
     await unwrap(dbAdmin.from('participa').insert(filasParticipa))
 
@@ -145,6 +173,41 @@ describe('queries de catálogo con datos (cliente anon, RLS de lectura pública)
       notas.map(([userId, nota]) => ({ user_id: userId, serie_id: serieIdPorSlug[slug], nota }))
     )
     await unwrap(dbAdmin.from('valoracion').insert(filasValoracion))
+
+    // Episodios para la ficha (FIC-02): ql-01 con 2 temporadas insertadas
+    // FUERA DE ORDEN (verifica agrupación y ordenamiento en lib/) · ql-10 con
+    // 1 episodio · ql-02 sin episodios (empty state).
+    const filasEpisodio = [
+      {
+        serie_id: serieIdPorSlug['ql-01'],
+        temporada: 2,
+        numero: 1,
+        titulo: 'Estreno de la segunda temporada',
+        video_id: 'ql01t02e001'
+      },
+      {
+        serie_id: serieIdPorSlug['ql-01'],
+        temporada: 1,
+        numero: 2,
+        titulo: 'Segundo episodio',
+        video_id: 'ql01t01e002'
+      },
+      {
+        serie_id: serieIdPorSlug['ql-01'],
+        temporada: 1,
+        numero: 1,
+        titulo: 'Piloto',
+        video_id: 'ql01t01e001'
+      },
+      {
+        serie_id: serieIdPorSlug['ql-10'],
+        temporada: 1,
+        numero: 1,
+        titulo: 'Episodio único',
+        video_id: 'ql10t01e001'
+      }
+    ]
+    await unwrap(dbAdmin.from('episodio').insert(filasEpisodio))
   }, 120_000)
 
   afterAll(async () => {
@@ -278,5 +341,80 @@ describe('queries de catálogo con datos (cliente anon, RLS de lectura pública)
       { nombre: 'Minecraft', slug: 'minecraft' },
       { nombre: 'Roleplay', slug: 'roleplay' }
     ])
+  })
+
+  it('getSerieBySlug: ficha completa de ql-01 (campos, canal con rol, temporadas ordenadas)', async () => {
+    const ficha = await getSerieBySlug('ql-01')
+    expect(ficha).toEqual({
+      id: expect.any(String),
+      titulo: 'Serie QL 1',
+      slug: 'ql-01',
+      portada_url: null,
+      descripcion: 'Serie de pruebas para la ficha: dos temporadas y reparto con rol.',
+      estado: 'finalizada',
+      anio_inicio: 2024,
+      anio_fin: 2025,
+      playlist_url: 'https://www.youtube.com/playlist?list=PLiswdb00000000001',
+      categoria: { nombre: 'Minecraft', slug: 'minecraft' },
+      canales: [
+        {
+          nombre: 'Canal Dos',
+          handle: '@iswdb-dos',
+          avatar_url: 'https://img.youtube.com/vi/canaldos/avatar.jpg',
+          rol: 'colaborador'
+        }
+      ],
+      rating: null,
+      temporadas: [
+        {
+          numero: 1,
+          episodios: [
+            { numero: 1, titulo: 'Piloto', video_id: 'ql01t01e001' },
+            { numero: 2, titulo: 'Segundo episodio', video_id: 'ql01t01e002' }
+          ]
+        },
+        {
+          numero: 2,
+          episodios: [
+            { numero: 1, titulo: 'Estreno de la segunda temporada', video_id: 'ql01t02e001' }
+          ]
+        }
+      ]
+    })
+  })
+
+  it('getSerieBySlug: ql-10 con valoración agregada y episodio', async () => {
+    const ficha = await getSerieBySlug('ql-10')
+    expect(ficha?.rating).toEqual({ average: 9.7, count: 3 })
+    expect(ficha?.temporadas).toEqual([
+      {
+        numero: 1,
+        episodios: [{ numero: 1, titulo: 'Episodio único', video_id: 'ql10t01e001' }]
+      }
+    ])
+  })
+
+  it('getSerieBySlug: ql-13 muestra los 2 canales con rol explícito', async () => {
+    const ficha = await getSerieBySlug('ql-13')
+    expect(ficha?.canales).toHaveLength(2)
+    expect(ficha?.canales).toEqual(
+      expect.arrayContaining([
+        { nombre: 'Canal Uno', handle: '@iswdb-uno', avatar_url: null, rol: 'principal' },
+        { nombre: 'Canal Tres', handle: '@iswdb-tres', avatar_url: null, rol: 'invitado' }
+      ])
+    )
+  })
+
+  it('getSerieBySlug: ql-02 sin episodios → temporadas vacías', async () => {
+    const ficha = await getSerieBySlug('ql-02')
+    expect(ficha?.temporadas).toEqual([])
+  })
+
+  it('getSerieBySlug: serie pendiente → null', async () => {
+    expect(await getSerieBySlug('ql-16')).toBeNull()
+  })
+
+  it('getSerieBySlug: slug inexistente → null', async () => {
+    expect(await getSerieBySlug('no-existe')).toBeNull()
   })
 })
