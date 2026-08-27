@@ -1,7 +1,8 @@
 # Constitución ISWDB
 
 ## Stack exacto (añadir algo requiere ADR aprobado)
-- Node 22 LTS · Next.js 15 (App Router) · React 19 · TypeScript 5 strict
+- Node 22 LTS · Next.js 16 (App Router) · React 19 · TypeScript 5 strict
+  - Next 16.3.3 (App Router, React 19, RSC por defecto)
 - Tailwind CSS 4 (único sistema de estilos) · Zod para validación
 - Supabase: Postgres + Auth + Storage (@supabase/ssr, JS v2, CLI local con Docker)
 - Tests: Vitest + Testing Library (unit) · Playwright (E2E flujos críticos)

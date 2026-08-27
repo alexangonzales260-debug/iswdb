@@ -17,3 +17,7 @@
      Si BD no disponible, fail fast con mensaje claro.
 - D13 Frontera de datos: datos del dominio (título, descripción) se almacenan ahora;
      datos derivados de YouTube (duración, thumbnail, fecha publicación) van a caché en F004.
+- D14 shadcn/ui v4 con runtime package (shadcn, tw-animate-css) como dependencias
+     del stack UI. Componentes copiados al repo (no dependencia negra).
+     Base color: Zinc. Tokens de marca: --color-brand #E85D04,
+     --color-brand-accessible #B04A00.

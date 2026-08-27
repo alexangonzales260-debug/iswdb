@@ -12,9 +12,18 @@ function ratingTexto(serie: SerieCardData): string {
   return `${average.toFixed(1)} · ${count} ${count === 1 ? 'valoración' : 'valoraciones'}`
 }
 
-export function SerieCard({ serie }: { serie: SerieCardData }) {
+export function SerieCard({
+  serie,
+  headingLevel = 3
+}: {
+  serie: SerieCardData
+  headingLevel?: 2 | 3
+}) {
+  const Titulo = headingLevel === 2 ? 'h2' : 'h3'
+
   return (
-    <Link href={`/series/${serie.slug}`} className="group block h-full">
+    // TODO: quitar prefetch={false} cuando F004 cree /series/[slug]
+    <Link href={`/series/${serie.slug}`} prefetch={false} className="group block h-full">
       <Card className="h-full transition-colors group-hover:bg-accent/60">
         <div className="relative aspect-[2/3] w-full overflow-hidden bg-muted">
           {serie.portada_url ? (
@@ -32,7 +41,7 @@ export function SerieCard({ serie }: { serie: SerieCardData }) {
           )}
         </div>
         <CardContent className="flex flex-1 flex-col gap-1.5">
-          <h3 className="line-clamp-2 leading-snug font-medium">{serie.titulo}</h3>
+          <Titulo className="line-clamp-2 leading-snug font-medium">{serie.titulo}</Titulo>
           {serie.anio_inicio !== null && (
             <p className="text-xs text-muted-foreground">{serie.anio_inicio}</p>
           )}

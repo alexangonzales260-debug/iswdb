@@ -2,7 +2,7 @@
 |-----|------------------------------------------------|-------|--------|
 | 001 | Scaffold + constitución                        | L1    | hoy    |
 | 002 | Modelo de datos y migraciones                  | L2    | ✅     |
-| 003 | Catálogo público: home + filtros categoría/canal | L2  |        |
+| 003 | Catálogo público: home + filtros categoría/canal | L2  | ✅     |
 | 004 | Ficha de serie + episodios + embed YouTube     | L2    |        |
 | 005 | Ficha de canal ("filmografía" del youtuber)    | L1    |        |
 | 006 | Búsqueda (título, canal)                       | L2    |        |

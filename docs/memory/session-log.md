@@ -22,3 +22,13 @@
 - F2: Modelo de datos y migraciones iniciales completada. 3 migraciones (M1
   catálogo, M2 social, M3 RLS+triggers), 21 tests de BD (invariants + RLS),
   tipos TypeScript generados. Stack: Postgres + RLS + triggers de seguridad.
+
+## Sesión 4 — F3: Catálogo público (F003)
+- F3: Catálogo público completada. Home con hero + top 5 + últimas 10 +
+  chips, página /series con filtros (categoría, canal) + paginación,
+  E2E Playwright con validate.sh, force-dynamic en home para evitar
+  prerenderizado estático.
+- Cierre Lighthouse: streaming con un único Suspense en home (el h1 se emite
+  antes de las queries), prefetch={false} en enlaces a /series/[slug] hasta
+  F004 y heading-order corregido en /series. Scores finales: / 94–99 perf,
+  /series 97 perf, A11y/SEO 100 en ambas.
