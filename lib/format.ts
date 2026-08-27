@@ -13,7 +13,8 @@ export function etiquetaRol(rol: string): string {
 }
 
 // Texto de valoración para tarjetas y ficha: AVG a 1 decimal + conteo, o
-// "Sin valoraciones" con 0 notas (la fórmula WR llega en F009).
+// "Sin valoraciones" con 0 notas. La UI muestra AVG por transparencia
+// (VAL-06); el WR solo ordena los rankings (lib/series.ts).
 export function ratingTexto(rating: SerieRating | null): string {
   if (!rating) return 'Sin valoraciones'
   const { average, count } = rating

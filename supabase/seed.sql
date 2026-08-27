@@ -100,8 +100,8 @@ values
   ('44444444-0000-0000-0000-000000000010', '31 Minutos', '@31minutos', null, '2025-01-11 09:00:00+00')
 on conflict (handle) do nothing;
 
--- created_at explícitos: orden del catálogo y desempate determinista del
--- top 5 (byRatingDesc en lib/series.ts desempata por created_at desc).
+-- created_at explícitos: orden del catálogo y desempate determinista de los
+-- rankings (el orden WR de lib/series.ts desempata por created_at desc).
 insert into public.serie
   (id, titulo, slug, descripcion, portada_url, categoria_id, playlist_url,
    estado, anio_inicio, anio_fin, moderation_status, created_at)

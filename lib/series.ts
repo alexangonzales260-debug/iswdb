@@ -48,11 +48,38 @@ export async function unwrap<T>(p: PromiseLike<PostgrestSingleResponse<T>>): Pro
 }
 
 // AVG con redondeo a 1 decimal; null con 0 notas. Compartido por tarjetas,
-// ficha y filmografía de canal (la fórmula WR llega en F009).
+// ficha y filmografía de canal. Solo para mostrar (VAL-06): los rankings
+// ordenan por WR (weightedRating), no por este AVG redondeado.
 export function toRating(notas: number[]): SerieRating | null {
   if (notas.length === 0) return null
   const average = Math.round((notas.reduce((suma, n) => suma + n, 0) / notas.length) * 10) / 10
   return { average, count: notas.length }
+}
+
+// Fórmula WR estilo IMDb (VAL-05): WR = (v/(v+m))*R + (m/(v+m))*C, con
+// v = nº de votos, r = media de la serie, c = media global y m = votos de
+// confianza. Solo ordena rankings (top 5, hero, /series, filmografía); la
+// UI muestra AVG + conteo (VAL-06).
+export const WR_M = 10
+
+export function weightedRating(v: number, r: number, c: number, m: number = WR_M): number {
+  return (v / (v + m)) * r + (m / (v + m)) * c
+}
+
+function mediaExacta(notas: number[]): number {
+  return notas.reduce((suma, n) => suma + n, 0) / notas.length
+}
+
+// C de la fórmula WR (VAL-05): media de TODAS las notas de series aprobadas
+// (cada valoración pesa igual; las series con 0 votos no aportan y las no
+// aprobadas quedan excluidas). Derivado en lectura, sin caché. Sin notas → 0
+// (los rankings exigen ≥1 valoración y estarían vacíos igualmente).
+export async function getGlobalMeanRating(): Promise<number> {
+  const rows = await unwrap(
+    supabaseServer.from('serie').select('valoracion ( nota )').eq('moderation_status', 'aprobada')
+  )
+  const notas = rows.flatMap((row) => row.valoracion.map((v) => v.nota))
+  return notas.length === 0 ? 0 : mediaExacta(notas)
 }
 
 function toSerieCard(row: SerieRow): SerieCard {
@@ -72,17 +99,37 @@ function toSerieCard(row: SerieRow): SerieCard {
   }
 }
 
-function byRatingDesc(a: SerieCard, b: SerieCard): number {
-  const diferencia = (b.rating?.average ?? 0) - (a.rating?.average ?? 0)
-  if (diferencia !== 0) return diferencia
-  return b.created_at.localeCompare(a.created_at)
+// Fila con lo mínimo para ordenar por WR: notas + created_at (desempate).
+// Tipo estructural: vale SerieRow y cualquier fila con el embed valoracion.
+type FilaOrdenable = { valoracion: { nota: number }[]; created_at: string }
+
+function wrDeFila(fila: FilaOrdenable, c: number): number | null {
+  const notas = fila.valoracion.map((v) => v.nota)
+  if (notas.length === 0) return null
+  return weightedRating(notas.length, mediaExacta(notas), c)
 }
 
-// Opción A (plan 003): AVG(nota) se calcula server-side en TS; PostgREST no
-// puede ordenar el padre por un agregado del hijo. Catálogo pequeño por diseño.
+// Orden de rankings (VAL-05): WR desc; sin valoración → 0, que queda al
+// final porque con nota ≥ 1 y C ≥ 0 todo WR es > 0. Empates por created_at
+// desc (determinista, patrón de F003).
+function byWrDesc(c: number) {
+  return (a: FilaOrdenable, b: FilaOrdenable): number => {
+    const diferencia = (wrDeFila(b, c) ?? 0) - (wrDeFila(a, c) ?? 0)
+    if (diferencia !== 0) return diferencia
+    return b.created_at.localeCompare(a.created_at)
+  }
+}
+
+// Opción A (plan 003) + F009: agregados y orden se calculan server-side en
+// TS; PostgREST no puede ordenar el padre por un agregado del hijo ni por un
+// valor derivado (WR). Catálogo pequeño por diseño.
 export async function getTopSeries(limit = 5): Promise<SerieCard[]> {
-  const rows = await unwrap(serieAprobadaQuery())
-  return rows.map(toSerieCard).filter((serie) => serie.rating !== null).sort(byRatingDesc).slice(0, limit)
+  const [rows, c] = await Promise.all([unwrap(serieAprobadaQuery()), getGlobalMeanRating()])
+  return rows
+    .filter((row) => row.valoracion.length > 0)
+    .sort(byWrDesc(c))
+    .slice(0, limit)
+    .map(toSerieCard)
 }
 
 export async function getHeroSerie(): Promise<SerieCard | null> {
@@ -246,22 +293,6 @@ export async function listSeries(options: ListSeriesOptions = {}): Promise<ListS
     if (serieIdsPorCanal.length === 0) return { series: [], total: 0, totalPages: 0 }
   }
 
-  // Count previo (head): con offset-based, una página fuera de rango devuelve
-  // HTTP 416 en PostgREST; así devolvemos página vacía con el total correcto.
-  let countQuery = supabaseServer
-    .from('serie')
-    .select('id, categoria!inner ( slug )', { count: 'exact', head: true })
-    .eq('moderation_status', 'aprobada')
-  if (options.categoria) countQuery = countQuery.eq('categoria.slug', options.categoria)
-  if (serieIdsPorCanal) countQuery = countQuery.in('id', serieIdsPorCanal)
-
-  const { count, error: countError } = await countQuery
-  if (countError) throw new Error(`listSeries: ${countError.message}`)
-
-  const total = count ?? 0
-  const totalPages = Math.ceil(total / PAGE_SIZE)
-  if (total === 0 || page > totalPages) return { series: [], total, totalPages }
-
   let query = supabaseServer
     .from('serie')
     .select(SERIE_SELECT)
@@ -269,15 +300,23 @@ export async function listSeries(options: ListSeriesOptions = {}): Promise<ListS
   if (options.categoria) query = query.eq('categoria.slug', options.categoria)
   if (serieIdsPorCanal) query = query.in('id', serieIdsPorCanal)
 
-  const desde = (page - 1) * PAGE_SIZE
-  const { data, error } = await query
-    .order('created_at', { ascending: false })
-    .range(desde, desde + PAGE_SIZE - 1)
+  // Orden WR (VAL-05) calculado en TS: PostgREST no ordena por valores
+  // derivados. Fetch-all + sort + slice (catálogo pequeño por diseño); el
+  // total sale del array, sin head-count previo. Con valoración primero
+  // (WR desc); sin valoración al final (created_at desc).
+  const [respuesta, c] = await Promise.all([query, getGlobalMeanRating()])
+  if (respuesta.error) throw new Error(`listSeries: ${respuesta.error.message}`)
+  const rows = respuesta.data ?? []
 
-  if (error) throw new Error(`listSeries: ${error.message}`)
+  const total = rows.length
+  const totalPages = Math.ceil(total / PAGE_SIZE)
+  if (total === 0 || page > totalPages) return { series: [], total, totalPages }
+
+  const desde = (page - 1) * PAGE_SIZE
+  const pagina = rows.sort(byWrDesc(c)).slice(desde, desde + PAGE_SIZE)
 
   return {
-    series: (data ?? []).map(toSerieCard),
+    series: pagina.map(toSerieCard),
     total,
     totalPages
   }

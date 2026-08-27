@@ -162,7 +162,8 @@ describe('queries de catálogo con datos (cliente anon, RLS de lectura pública)
         [u1, 8],
         [u2, 9]
       ],
-      // ql-07 y ql-02 empatan a AVG 8.0: ql-07 es más reciente → va antes.
+      // ql-07 y ql-02 empatan a WR (una única nota de 8 en cada una):
+      // ql-07 es más reciente → va antes.
       'ql-07': [[u1, 8]],
       'ql-02': [[u1, 8]],
       'ql-11': [[u1, 5]],
@@ -227,7 +228,7 @@ describe('queries de catálogo con datos (cliente anon, RLS de lectura pública)
     }
   })
 
-  it('getHeroSerie: la aprobada mejor valorada (AVG 9.7, 3 valoraciones)', async () => {
+  it('getHeroSerie: la aprobada con mayor WR (AVG 9.7, 3 valoraciones)', async () => {
     const hero = await getHeroSerie()
     expect(hero?.slug).toBe('ql-10')
     expect(hero?.rating).toEqual({ average: 9.7, count: 3 })
@@ -237,7 +238,7 @@ describe('queries de catálogo con datos (cliente anon, RLS de lectura pública)
     expect(hero?.portada_url).toBeNull()
   })
 
-  it('getTopSeries(5): AVG desc, empate por created_at desc, mínimo 1 valoración', async () => {
+  it('getTopSeries(5): WR desc, empate por created_at desc, mínimo 1 valoración', async () => {
     const top = await getTopSeries(5)
     expect(top.map((s) => s.slug)).toEqual(['ql-10', 'ql-04', 'ql-13', 'ql-07', 'ql-02'])
     expect(top[3].rating?.average).toBe(8)
@@ -266,49 +267,66 @@ describe('queries de catálogo con datos (cliente anon, RLS de lectura pública)
     ])
   })
 
-  it('listSeries(): página 1 con 12 series, total 15, totalPages 2', async () => {
+  it('listSeries(): página 1 con 12 series, total 15, totalPages 2 (orden WR)', async () => {
     const resultado = await listSeries()
     expect(resultado.series).toHaveLength(12)
     expect(resultado.total).toBe(15)
     expect(resultado.totalPages).toBe(2)
-    expect(resultado.series[0].slug).toBe('ql-15')
+    // Con valoración primero (WR desc): ql-10 > ql-04 > ql-13 > ql-07 > ql-02
+    // > ql-11; sin valoración al final por created_at desc (ql-15 la primera).
+    expect(resultado.series.map((s) => s.slug)).toEqual([
+      'ql-10',
+      'ql-04',
+      'ql-13',
+      'ql-07',
+      'ql-02',
+      'ql-11',
+      'ql-15',
+      'ql-14',
+      'ql-12',
+      'ql-09',
+      'ql-08',
+      'ql-06'
+    ])
     expect(resultado.series.some((s) => s.slug === 'ql-16')).toBe(false)
   })
 
-  it('listSeries({ page: 2 }): 3 series en orden created_at desc', async () => {
+  it('listSeries({ page: 2 }): 3 series sin valoración en orden created_at desc', async () => {
     const resultado = await listSeries({ page: 2 })
-    expect(resultado.series.map((s) => s.slug)).toEqual(['ql-03', 'ql-02', 'ql-01'])
+    expect(resultado.series.map((s) => s.slug)).toEqual(['ql-05', 'ql-03', 'ql-01'])
     expect(resultado.total).toBe(15)
     expect(resultado.totalPages).toBe(2)
   })
 
-  it('listSeries({ categoria }): filtra por categoria.slug', async () => {
+  it('listSeries({ categoria }): filtra por categoria.slug (orden WR)', async () => {
     const resultado = await listSeries({ categoria: 'minecraft' })
     expect(resultado.total).toBe(6)
+    // Valoradas: ql-04 (WR 8.58) > ql-02 (8.45); sin valoración al final.
     expect(resultado.series.map((s) => s.slug)).toEqual([
+      'ql-04',
+      'ql-02',
       'ql-06',
       'ql-05',
-      'ql-04',
       'ql-03',
-      'ql-02',
       'ql-01'
     ])
     expect(resultado.series.every((s) => s.categoria?.slug === 'minecraft')).toBe(true)
   })
 
-  it('listSeries({ canal }): filtra por canal.handle y conserva todos los canales por tarjeta', async () => {
+  it('listSeries({ canal }): filtra por canal.handle y conserva todos los canales por tarjeta (orden WR)', async () => {
     const resultado = await listSeries({ canal: '@iswdb-uno' })
     expect(resultado.total).toBe(4)
-    expect(resultado.series.map((s) => s.slug)).toEqual(['ql-13', 'ql-08', 'ql-05', 'ql-02'])
+    // Valoradas: ql-13 (WR 8.5) > ql-02 (8.45); sin valoración al final.
+    expect(resultado.series.map((s) => s.slug)).toEqual(['ql-13', 'ql-02', 'ql-08', 'ql-05'])
     const ql13 = resultado.series.find((s) => s.slug === 'ql-13')
     expect(ql13?.canales).toHaveLength(2)
     expect(ql13?.rating).toEqual({ average: 8.5, count: 2 })
   })
 
-  it('listSeries({ categoria, canal }): filtros combinados', async () => {
+  it('listSeries({ categoria, canal }): filtros combinados (orden WR)', async () => {
     const resultado = await listSeries({ categoria: 'minecraft', canal: '@iswdb-uno' })
     expect(resultado.total).toBe(2)
-    expect(resultado.series.map((s) => s.slug)).toEqual(['ql-05', 'ql-02'])
+    expect(resultado.series.map((s) => s.slug)).toEqual(['ql-02', 'ql-05'])
   })
 
   it('listSeries: filtros sin resultados → total 0', async () => {
@@ -331,7 +349,7 @@ describe('queries de catálogo con datos (cliente anon, RLS de lectura pública)
 
     const invalida = await listSeries({ page: 0 })
     expect(invalida.series).toHaveLength(12)
-    expect(invalida.series[0].slug).toBe('ql-15')
+    expect(invalida.series[0].slug).toBe('ql-10')
   })
 
   it('getCategorias: 3 categorías ordenadas por nombre', async () => {
