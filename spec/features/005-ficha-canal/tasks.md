@@ -27,7 +27,7 @@
   null · rolDestacado.
   Criterio: `npm test -- --run` verde (suite completa, BD local arriba).
 
-- [ ] T2 — Ruta /canales/[handle] + UI
+- [x] T2 — Ruta /canales/[handle] + UI
   app/canales/[handle]/page.tsx (nuevo, RSC): force-dynamic ·
   generateMetadata (await params → getCanalByHandle → notFound() si null;
   title: nombre, description "<nombre> en ISWDB: N serie(s) como <Rol>."
