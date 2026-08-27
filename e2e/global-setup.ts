@@ -1,8 +1,13 @@
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
+
 import {
   createClient,
   type PostgrestSingleResponse,
   type SupabaseClient
 } from '@supabase/supabase-js'
+
+const execFileAsync = promisify(execFile)
 
 // Claves públicas de desarrollo local de Supabase (no son secretos:
 // las imprime `supabase status` y son iguales en todo proyecto local).
@@ -11,7 +16,7 @@ const SUPABASE_SERVICE_ROLE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY ??
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU'
 
-const TEST_PASSWORD = 'test-password-123'
+export const TEST_PASSWORD = 'test-password-123'
 
 // e2e-01..08 → minecraft · e2e-09..15 → gta · e2e-16 → gta (pendiente).
 // 15 aprobadas (2 páginas de 12) + 1 pendiente que no debe aparecer.
@@ -73,7 +78,7 @@ async function unwrap<T>(p: PromiseLike<PostgrestSingleResponse<T>>): Promise<T>
   return data
 }
 
-async function createAuthUser(email: string): Promise<string> {
+export async function createAuthUser(email: string): Promise<string> {
   // GoTrue en frío (tras db reset) puede responder 554 en las primeras llamadas.
   let lastError = ''
   for (let attempt = 1; attempt <= 3; attempt++) {
@@ -98,7 +103,7 @@ async function createAuthUser(email: string): Promise<string> {
   throw new Error(`GoTrue admin: no se pudo crear usuario ${lastError}`)
 }
 
-async function deleteAuthUser(userId: string): Promise<void> {
+export async function deleteAuthUser(userId: string): Promise<void> {
   const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userId}`, {
     method: 'DELETE',
     headers: {
@@ -108,6 +113,30 @@ async function deleteAuthUser(userId: string): Promise<void> {
   })
   if (!res.ok) {
     console.warn(`GoTrue admin: no se pudo borrar usuario de test ${userId} (${res.status})`)
+  }
+}
+
+// El endpoint /admin/users de GoTrue local (CLI 2.115.0) está roto: los
+// usuarios con email_change NULL (los del seed, insertados por SQL directo)
+// hacen fallar el scan de GoTrue ("converting NULL to string is unsupported")
+// → 500 en cualquier listado. Por eso los usuarios registrados vía UI se
+// limpian directamente en Postgres; la FK cascade cubre public.usuario y
+// valoracion (mismo mecanismo que deleteAuthUser vía API).
+const DB_URL =
+  process.env.SUPABASE_DB_URL ?? 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
+
+export async function deleteAuthUserByEmail(email: string): Promise<void> {
+  const emailEscapado = email.replaceAll("'", "''")
+  try {
+    await execFileAsync('psql', [
+      DB_URL,
+      '-v',
+      'ON_ERROR_STOP=1',
+      '-c',
+      `delete from auth.users where email = '${emailEscapado}'`
+    ])
+  } catch (error) {
+    console.warn(`psql: no se pudo borrar usuario de test ${email}: ${(error as Error).message}`)
   }
 }
 

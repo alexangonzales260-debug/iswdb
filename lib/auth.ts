@@ -28,6 +28,12 @@ export type AuthClient = SupabaseClient<Database>
 export async function createAuthClient(): Promise<AuthClient> {
   const cookieStore = await cookies()
   return createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
+    global: {
+      // Las peticiones de auth no deben cachearse ni memoizarse nunca: la
+      // memoización de fetch de Next reutiliza respuestas GET idénticas dentro
+      // del mismo render (rompió el self-healing de getPerfilData en F008).
+      fetch: (input, init) => fetch(input, { ...init, cache: 'no-store' })
+    },
     cookies: {
       getAll() {
         return cookieStore.getAll()
@@ -159,17 +165,27 @@ async function selectUsuario(client: AuthClient, userId: string) {
 // Datos de perfil (AUTH-03) con self-healing: si el signUp funcionó pero el
 // insert de la fila usuario falló, se crea aquí con la sesión activa
 // (RLS usuario_insert_own: id = auth.uid()).
+//
+// Upsert con ignoreDuplicates (INSERT ... ON CONFLICT DO NOTHING + RETURNING):
+// un solo round-trip crea la fila o devuelve nada si ya existía. El DO NOTHING
+// es deliberado: un DO UPDATE sobreescribiría el rol (p. ej. degradaría a un
+// admin) y dispararía el trigger anti-escalada. El GET de fallback solo ocurre
+// cuando la fila ya existía, así nunca hay dos GET idénticos en el mismo
+// render (la memoización de fetch de Next devolvería la respuesta obsoleta).
 export async function getPerfilData(
   client: AuthClient,
   userId: string,
   email: string
 ): Promise<PerfilData> {
-  let fila = await selectUsuario(client, userId)
-  if (!fila) {
-    const { error } = await client.from('usuario').insert({ id: userId, rol: 'user' })
-    if (error && error.code !== '23505') throw new Error(error.message)
-    fila = await selectUsuario(client, userId)
-  }
+  const { data: creada, error } = await client
+    .from('usuario')
+    .upsert({ id: userId, rol: 'user' }, { onConflict: 'id', ignoreDuplicates: true })
+    .select('rol, created_at')
+    .maybeSingle()
+  if (error) throw new Error(error.message)
+  if (creada) return { email, created_at: creada.created_at, rol: creada.rol }
+
+  const fila = await selectUsuario(client, userId)
   if (!fila) throw new Error('No se pudo obtener ni crear la fila de usuario')
   return { email, created_at: fila.created_at, rol: fila.rol }
 }
