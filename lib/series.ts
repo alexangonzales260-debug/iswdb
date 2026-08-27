@@ -41,15 +41,15 @@ export interface SerieCard {
   rating: SerieRating | null
 }
 
-async function unwrap<T>(p: PromiseLike<PostgrestSingleResponse<T>>): Promise<T> {
+export async function unwrap<T>(p: PromiseLike<PostgrestSingleResponse<T>>): Promise<T> {
   const { data, error } = await p
   if (error) throw new Error(error.message)
   return data
 }
 
-// AVG con redondeo a 1 decimal; null con 0 notas. Compartido por tarjetas y
-// ficha (la fórmula WR llega en F009).
-function toRating(notas: number[]): SerieRating | null {
+// AVG con redondeo a 1 decimal; null con 0 notas. Compartido por tarjetas,
+// ficha y filmografía de canal (la fórmula WR llega en F009).
+export function toRating(notas: number[]): SerieRating | null {
   if (notas.length === 0) return null
   const average = Math.round((notas.reduce((suma, n) => suma + n, 0) / notas.length) * 10) / 10
   return { average, count: notas.length }

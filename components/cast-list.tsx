@@ -2,13 +2,8 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { User } from 'lucide-react'
 
+import { etiquetaRol } from '@/lib/format'
 import type { CanalFicha } from '@/lib/series'
-
-const ETIQUETAS_ROL: Record<string, string> = {
-  principal: 'Principal',
-  colaborador: 'Colaborador',
-  invitado: 'Invitado'
-}
 
 // Reparto (FIC-05): cada canal enlaza al filtro de catálogo de F003.
 export function CastList({ canales }: { canales: CanalFicha[] }) {
@@ -37,7 +32,7 @@ export function CastList({ canales }: { canales: CanalFicha[] }) {
             </div>
             <div className="min-w-0">
               <p className="truncate font-medium">{canal.nombre}</p>
-              <p className="text-xs text-muted-foreground">{ETIQUETAS_ROL[canal.rol] ?? canal.rol}</p>
+              <p className="text-xs text-muted-foreground">{etiquetaRol(canal.rol)}</p>
             </div>
           </Link>
         </li>

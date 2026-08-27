@@ -1,5 +1,17 @@
 import type { SerieRating } from './series'
 
+const ETIQUETAS_ROL: Record<string, string> = {
+  principal: 'Principal',
+  colaborador: 'Colaborador',
+  invitado: 'Invitado'
+}
+
+// Etiqueta visible de rol (FIC-05, CAN-02): capitalizada; un rol desconocido
+// se muestra tal cual.
+export function etiquetaRol(rol: string): string {
+  return ETIQUETAS_ROL[rol] ?? rol
+}
+
 // Texto de valoración para tarjetas y ficha: AVG a 1 decimal + conteo, o
 // "Sin valoraciones" con 0 notas (la fórmula WR llega en F009).
 export function ratingTexto(rating: SerieRating | null): string {
