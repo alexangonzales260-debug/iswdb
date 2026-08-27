@@ -23,3 +23,9 @@
      del stack UI. Componentes copiados al repo (no dependencia negra).
      Base color: Zinc. Tokens de marca: --color-brand #E85D04,
      --color-brand-accessible #B04A00.
+- D15: URLs de fichas de canal usan el formato /canales/<handle> sin el
+     símbolo @ (p.ej. /canales/canal-uno en lugar de /canales/@canal-uno).
+     Next.js 16 trata segmentos que empiezan con @ como slots de parallel
+     routes, no como valores de parámetros dinámicos. El handle visible en la
+     UI conserva el @ (p.ej. @canal-uno), pero las URLs internas y canonical
+     lo omiten. Helper handleDesdeUrl/handleParaUrl en lib/canales.ts.
