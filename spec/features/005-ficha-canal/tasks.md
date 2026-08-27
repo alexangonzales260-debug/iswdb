@@ -52,7 +52,7 @@
   e2e/ficha.spec.ts: href del reparto → '/canales/canal-dos'.
   Criterio: `npm run test:e2e` verde (catálogo + ficha sin regresiones).
 
-- [ ] T4 — Lighthouse + cierre
+- [x] T4 — Lighthouse + cierre
   Seed temporal con avatar real → Lighthouse manual en /canales/<handle>
   (Perf ≥90, SEO 100, A11y ≥95; evidencia pegada) → borrar seed ·
   ./validate.sh completo en verde (evidencia pegada) · ROADMAP.md (005 ✅) ·

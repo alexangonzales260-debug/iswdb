@@ -90,3 +90,7 @@
   con comentario explicativo; el warning dev-only de React 19 no se
   reproduce en ninguna navegación y no existe en el build de producción.
 - Cierre: ROADMAP 005 ✅, validate.sh en verde (54 tests unitarios + 21 E2E).
+  Lighthouse /canales/<handle> (mobile, prod, seed temporal con avatar real):
+  Perf 98, A11y 100, SEO 100, Best Practices 100; LCP 1.3 s (avatar con
+  priority). El warning "upstream image response failed 404" del servidor en
+  E2E es esperado: los video_ids/avatares del fixture son falsos (D13).
