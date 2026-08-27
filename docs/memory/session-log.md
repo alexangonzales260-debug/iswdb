@@ -119,3 +119,23 @@
   tras validate.sh (e2e) el catálogo seed se limpia y se restaura con
   npm run db:seed.
 - Cierre: ROADMAP 007 ✅, validate.sh en verde, tag F7.
+
+## Sesión 8 — F8: Login/Registro (F008)
+- F8: Login/registro con Supabase Auth (email/password). Server Actions +
+  useActionState, header con sesión, /perfil con valoraciones. Fix de
+  self-healing por memoización de fetch de Next.js (upsert ignoreDuplicates).
+  GoTrue local /admin/users roto con email_change NULL → limpieza vía psql.
+- Decisiones aplicadas: solo email/password (OAuth fuera, decisión 1) · sin
+  middleware, guard por página con requireUser() · next validado en la action
+  con /^\/(?!\/)/ (sin open redirect) · avatar con inicial (sin Storage) ·
+  catálogo público anónimo (AUTH-08 verificado en E2E sin sesión).
+- Fix getPerfilData: la memoización de fetch de Next deduplicaba los dos GET
+  idénticos del self-healing dentro del mismo render (el re-select recibía el
+  [] anterior al insert). Upsert con ignoreDuplicates (DO UPDATE degradaría el
+  rol de un admin) + cache:'no-store' en el fetch del cliente auth.
+- E2E: 5 tests nuevos (auth.spec.ts) con usuarios únicos por ejecución y
+  cleanup afterAll; el listado de admin de GoTrue local está roto (scan de
+  email_change NULL en usuarios del seed), así que deleteAuthUserByEmail usa
+  psql directo (FK cascade).
+- Cierre: ROADMAP 008 ✅ (título corregido a "email + password"),
+  validate.sh en verde (66 tests unitarios + 26 E2E), tag F8.

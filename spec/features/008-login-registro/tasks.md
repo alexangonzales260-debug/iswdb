@@ -1,6 +1,6 @@
 # 008 — Login/Registro · Tareas
 
-- [ ] T1 — lib/auth.ts + lib/valoraciones.ts + tests de servidor
+- [x] T1 — lib/auth.ts + lib/valoraciones.ts + tests de servidor
   npm install @supabase/ssr (única dependencia nueva, aprobada).
   lib/auth.ts (nuevo): createAuthClient() con createServerClient de
   @supabase/ssr + await cookies() (getAll/setAll; setAll con try/catch por
@@ -22,7 +22,7 @@
   join serie, orden, vacío sin valoraciones.
   Criterio: npm test -- --run verde (BD local arriba).
 
-- [ ] T2 — Server Actions + /login + /registro
+- [x] T2 — Server Actions + /login + /registro
   lib/auth-actions.ts (nuevo, "use server"): accionRegistro, accionLogin
   (en fallo devuelven { error } sin redirigir, AUTH-02; éxito → next válido
   o /perfil; registro → /perfil?bienvenida=1), accionLogout (signOut +
@@ -38,7 +38,7 @@
   Criterio: lint + typecheck + build verdes; smoke manual (registro →
   perfil; login mal → error sin salir de /login).
 
-- [ ] T3 — /perfil + header con sesión
+- [x] T3 — /perfil + header con sesión
   app/perfil/page.tsx (nuevo, RSC, force-dynamic): requireUser({ next:
   '/perfil' }) → email, fecha de registro (es-ES), badge de rol, "Tus
   valoraciones" (enlace /series/<slug> + nota + fecha) o EmptyState ·
@@ -51,7 +51,7 @@
   Criterio: lint + typecheck + build verdes; smoke manual: header en ambos
   estados, logout → /.
 
-- [ ] T4 — E2E Playwright
+- [x] T4 — E2E Playwright
   e2e/global-setup.ts: exportar createAuthUser/deleteAuthUser (sin cambios
   de fixture).
   e2e/auth.spec.ts (nuevo; usuarios e2e-auth-<runId>@iswdb.local; afterAll
@@ -64,7 +64,7 @@
   Criterio: npm run test:e2e verde; catalogo/ficha/canal sin regresiones =
   evidencia AUTH-08 (catálogo anónimo).
 
-- [ ] T5 — validate.sh + cierre
+- [x] T5 — validate.sh + cierre
   ./validate.sh completo (salida pegada) · ROADMAP.md (008 ✅ + título
   "Autenticación (email + password)") · docs/memory/session-log.md (sesión
   F008) · tag F8 + commit atómico `F8: …`.
