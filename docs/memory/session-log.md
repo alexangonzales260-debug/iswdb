@@ -19,3 +19,6 @@
 - T5: types/database.ts se versiona en git (decisión: si el stack local no
   está arriba en CI/CD, la generación falla). Regenerar con npm run gen:types
   cuando cambie el esquema.
+- F2: Modelo de datos y migraciones iniciales completada. 3 migraciones (M1
+  catálogo, M2 social, M3 RLS+triggers), 21 tests de BD (invariants + RLS),
+  tipos TypeScript generados. Stack: Postgres + RLS + triggers de seguridad.
