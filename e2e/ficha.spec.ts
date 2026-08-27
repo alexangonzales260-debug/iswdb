@@ -85,11 +85,11 @@ test.describe('Ficha de serie', () => {
     await expect(page.getByText('Página no encontrada')).toBeVisible()
   })
 
-  test('reparto: canal con rol y link al filtro', async ({ page }) => {
+  test('reparto: canal con rol y link a la ficha del canal', async ({ page }) => {
     await page.goto(`/series/${SLUG_DOS_TEMPORADAS}`)
     const canal = page.getByRole('link', { name: /Canal Dos/ })
     await expect(canal).toBeVisible()
-    await expect(canal).toHaveAttribute('href', '/series?canal=@canal-dos')
+    await expect(canal).toHaveAttribute('href', '/canales/@canal-dos')
     await expect(page.getByText('Colaborador')).toBeVisible()
   })
 

@@ -49,6 +49,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
+        {/*
+         * Script inline para anti-FOUC del tema (CAT-09).
+         * Next 16 + React 19 generan warning dev-only "Encountered a script tag",
+         * pero este script DEBE ser síncrono antes del paint para evitar flash de tema.
+         * NO usar <Script> de next/script: rompe CAT-09 (probado con Playwright).
+         */}
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="flex min-h-full flex-col">

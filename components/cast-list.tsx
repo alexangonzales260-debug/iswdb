@@ -5,14 +5,14 @@ import { User } from 'lucide-react'
 import { etiquetaRol } from '@/lib/format'
 import type { CanalFicha } from '@/lib/series'
 
-// Reparto (FIC-05): cada canal enlaza al filtro de catálogo de F003.
+// Reparto (FIC-05 → F005): cada canal enlaza a su ficha de canal.
 export function CastList({ canales }: { canales: CanalFicha[] }) {
   return (
     <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
       {canales.map((canal) => (
         <li key={canal.handle}>
           <Link
-            href={`/series?canal=${canal.handle}`}
+            href={`/canales/${canal.handle}`}
             className="group flex h-full flex-col items-center gap-2 rounded-xl border bg-card p-4 text-center transition-colors hover:bg-accent/60"
           >
             <div className="relative size-16 overflow-hidden rounded-full bg-muted">
