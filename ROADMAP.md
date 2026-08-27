@@ -4,7 +4,7 @@
 | 002 | Modelo de datos y migraciones                  | L2    | ✅     |
 | 003 | Catálogo público: home + filtros categoría/canal | L2  | ✅     |
 | 004 | Ficha de serie + episodios + embed YouTube     | L2    | ✅     |
-| 005 | Ficha de canal ("filmografía" del youtuber)    | L1    |        |
+| 005 | Ficha de canal ("filmografía" del youtuber)    | L1    | ✅     |
 | 006 | Búsqueda (título, canal)                       | L2    |        |
 | 007 | Seed: 20–30 series reales                      | L1    |        |
 | 008 | Autenticación (email + OAuth Google)           | L2    |        |

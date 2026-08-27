@@ -60,3 +60,33 @@
   runtime de Next.js (payload 274 KiB), no por código de la feature.
 - Cierre: D13 ajustado (thumbnail derivada, sin caché), ROADMAP 004 ✅,
   validate.sh en verde (45 tests unitarios + 15 E2E).
+
+## Sesión 6 — F5: Ficha de canal (F005)
+- F5: Ficha de canal completada. Ruta /canales/<handle> (RSC, force-dynamic):
+  avatar circular o placeholder, nombre, handle, conteo de series aprobadas,
+  filmografía con SerieCard reutilizado de F003 + badge de rol sobre la
+  portada (pointer-events-none). Query getCanalByHandle en lib/canales.ts
+  (query única: canal + participa(rol, serie!inner(...)) con filtro
+  participa.serie.moderation_status=eq.aprobada; orden en TS: anio_inicio
+  desc con null al final → activas antes que finalizadas → valoración media
+  desc → created_at desc). Metadata dinámica: title, description
+  "<nombre> en ISWDB: N serie(s) como <rol de mayor jerarquía>.", OG con
+  avatar si existe.
+- Hallazgo importante: Next.js trata cualquier segmento de URL que empieza
+  por '@' como slot de parallel routes (isGroupSegment en
+  next/dist/shared/lib/segment.js) → /canales/@<handle> devuelve 404 en dev
+  y prod, en carga HTML y en navegación cliente. Decisión aprobada: URL
+  pública sin '@' (/canales/canal-uno); handleDesdeUrl/handleParaUrl en
+  lib/canales.ts normalizan param↔BD. El handle visible en la UI conserva '@'.
+- Decisión aprobada: CastList (reparto de la ficha de serie) enlaza a
+  /canales/<handle> en lugar del filtro /series?canal=<handle> de F003
+  (cambio sobre FIC-05; la spec de F004 no se edita, queda documentado aquí
+  y en plan.md de F005).
+- next/script no sirve para el script anti-FOUC del tema: strategy="inline"
+  no existe en Next 16.3.3 y beforeInteractive encola el script en
+  self.__next_s (se ejecuta en el bootstrap, después del DOM listo) → la
+  clase .dark no está en DOMContentLoaded y hay flash de tema (verificado
+  con Playwright, A/B). Se conserva el <script> síncrono inline en <head>
+  con comentario explicativo; el warning dev-only de React 19 no se
+  reproduce en ninguna navegación y no existe en el build de producción.
+- Cierre: ROADMAP 005 ✅, validate.sh en verde (54 tests unitarios + 21 E2E).
