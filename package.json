@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest",
     "test:e2e": "playwright test",
+    "db:seed": "psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -v ON_ERROR_STOP=1 -f supabase/seed.sql",
     "gen:types": "supabase gen types typescript --local --schema public > types/database.ts"
   },
   "dependencies": {
