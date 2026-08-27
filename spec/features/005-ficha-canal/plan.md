@@ -22,6 +22,16 @@
 5. **Query única**: canal + participa(rol, serie!inner(...)) filtrando
    participa.serie.moderation_status=eq.aprobada. El filtro de embed elimina
    filas de participa (no la fila del canal); canal con participa vacía → null.
+6. **URL pública sin '@'** (desviación de la ruta literal de la spec,
+   aprobada): Next.js trata cualquier segmento de URL que empieza por '@'
+   como slot de parallel routes (isGroupSegment en
+   next/dist/shared/lib/segment.js) → /canales/@<handle> devuelve 404 en dev
+   y prod, tanto en carga HTML como en navegación cliente (el fetch RSC sí
+   responde, pero el router cliente descarta el segmento). Evidencia: con
+   datos válidos en BD, /canales/@canal-smoke → 404 y /canales/canal-sin-arroba
+   → 200. La ruta es /canales/<handle-sin-arroba>; la página normaliza el
+   param con handleDesdeUrl() y CastList/canonical emiten la URL con
+   handleParaUrl(). El handle visible en la cabecera conserva su '@'.
 
 ## Contexto del repo (hallazgos de planificación)
 - **Modelo F002**: canal(nombre, handle UNIQUE, avatar_url) · participa PK

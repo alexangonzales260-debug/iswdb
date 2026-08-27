@@ -89,7 +89,7 @@ test.describe('Ficha de serie', () => {
     await page.goto(`/series/${SLUG_DOS_TEMPORADAS}`)
     const canal = page.getByRole('link', { name: /Canal Dos/ })
     await expect(canal).toBeVisible()
-    await expect(canal).toHaveAttribute('href', '/canales/@canal-dos')
+    await expect(canal).toHaveAttribute('href', '/canales/canal-dos')
     await expect(page.getByText('Colaborador')).toBeVisible()
   })
 

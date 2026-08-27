@@ -20,17 +20,30 @@ export const FIXTURE = {
     { nombre: 'Minecraft', slug: 'minecraft' },
     { nombre: 'GTA', slug: 'gta' }
   ],
+  // Filas uniformes (bulk insert de PostgREST): avatar_url presente en todas.
+  // F005: Canal Tres solo participa en la pendiente e2e-16 → su ficha es 404.
   canales: [
-    { nombre: 'Canal Uno', handle: '@canal-uno' },
-    { nombre: 'Canal Dos', handle: '@canal-dos' }
+    { nombre: 'Canal Uno', handle: '@canal-uno', avatar_url: null },
+    {
+      nombre: 'Canal Dos',
+      handle: '@canal-dos',
+      avatar_url: 'https://img.youtube.com/vi/canaldos/avatar.jpg'
+    },
+    { nombre: 'Canal Tres', handle: '@canal-tres', avatar_url: null }
   ],
   totalSeries: 16,
   slugPendiente: 'e2e-16',
   heroSlug: 'e2e-10',
   participa: {
     '@canal-uno': ['e2e-02', 'e2e-05', 'e2e-09', 'e2e-13'],
-    '@canal-dos': ['e2e-01', 'e2e-09']
+    '@canal-dos': ['e2e-01', 'e2e-09'],
+    '@canal-tres': ['e2e-16']
   },
+  // Roles explícitos (F005): el resto de participaciones queda en el
+  // default 'colaborador' de la BD.
+  roles: {
+    'e2e-09': { '@canal-uno': 'principal' }
+  } as Record<string, Record<string, string>>,
   // Ficha (F004): e2e-01 con 2 temporadas · e2e-10 con 1 episodio ·
   // e2e-02 sin episodios (empty state). video_ids estables para los tests.
   ficha: {
@@ -133,7 +146,9 @@ async function seed(db: SupabaseClient): Promise<string[]> {
       slug: slugSerie(n),
       categoria_id: catIdPorSlug[categoriaDe(n)],
       moderation_status: n === FIXTURE.totalSeries ? 'pendiente' : 'aprobada',
-      anio_inicio: 2024,
+      // F005: e2e-02 con 2025 hace observable el orden de la filmografía
+      // (anio_inicio desc) en el E2E de la ficha de canal.
+      anio_inicio: n === 2 ? 2025 : 2024,
       created_at: new Date(Date.UTC(2026, 3, n)).toISOString(),
       descripcion: n === 1 ? 'Serie de pruebas para la ficha: dos temporadas y reparto.' : null,
       estado: n === 1 ? 'finalizada' : 'activa',
@@ -145,7 +160,11 @@ async function seed(db: SupabaseClient): Promise<string[]> {
   const serieIdPorSlug = Object.fromEntries(series.map((s) => [s.slug, s.id]))
 
   const filasParticipa = Object.entries(FIXTURE.participa).flatMap(([handle, slugs]) =>
-    slugs.map((slug) => ({ serie_id: serieIdPorSlug[slug], canal_id: canalIdPorHandle[handle] }))
+    slugs.map((slug) => ({
+      serie_id: serieIdPorSlug[slug],
+      canal_id: canalIdPorHandle[handle],
+      rol: FIXTURE.roles[slug]?.[handle] ?? 'colaborador'
+    }))
   )
   await unwrap(db.from('participa').insert(filasParticipa))
 

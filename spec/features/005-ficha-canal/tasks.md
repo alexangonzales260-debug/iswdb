@@ -39,17 +39,17 @@
   <SerieCard> reutilizado · components/cast-list.tsx: Link → /canales/<handle>.
   Criterio: lint + typecheck + build verdes; smoke manual con seed temporal.
 
-- [ ] T3 — E2E Playwright
+- [x] T3 — E2E Playwright
   e2e/global-setup.ts (aditivo): avatar_url en '@canal-dos' · FIXTURE.roles
   con '@canal-uno' principal en e2e-09 · canal '@canal-tres' participando solo
   en e2e-16 (pendiente) · e2e-02 con anio_inicio 2025.
   e2e/canal.spec.ts (nuevo): /series?page=2 → ficha e2e-01 → click en Canal
-  Dos del reparto → /canales/@canal-dos (h1, conteo) · /canales/@canal-uno:
+  Dos del reparto → /canales/canal-dos (h1, conteo) · /canales/canal-uno:
   orden [e2e-02, e2e-13, e2e-09, e2e-05] + badge "Principal" · metadata:
   <title> "Canal Uno · ISWDB", description "Canal Uno en ISWDB: 4 series como
-  Principal.", og:image en @canal-dos · /canales/@canal-tres y
-  /canales/@no-existe → 404.
-  e2e/ficha.spec.ts: href del reparto → '/canales/@canal-dos'.
+  Principal.", og:image en canal-dos · /canales/canal-tres y
+  /canales/no-existe → 404. URLs sin '@' (decisión 6 del plan).
+  e2e/ficha.spec.ts: href del reparto → '/canales/canal-dos'.
   Criterio: `npm run test:e2e` verde (catálogo + ficha sin regresiones).
 
 - [ ] T4 — Lighthouse + cierre

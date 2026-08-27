@@ -5,7 +5,13 @@ import { User } from "lucide-react";
 
 import { SerieCard } from "@/components/serie-card";
 import { Badge } from "@/components/ui/badge";
-import { getCanalByHandle, rolDestacado, type CanalFichaData } from "@/lib/canales";
+import {
+  getCanalByHandle,
+  handleDesdeUrl,
+  handleParaUrl,
+  rolDestacado,
+  type CanalFichaData,
+} from "@/lib/canales";
 import { etiquetaRol } from "@/lib/format";
 
 // La ficha depende de datos de BD que cambian sin rebuild (seed, moderación);
@@ -31,7 +37,7 @@ export async function generateMetadata({
   params,
 }: CanalPageProps): Promise<Metadata> {
   const { handle } = await params;
-  const canal = await getCanalByHandle(handle);
+  const canal = await getCanalByHandle(handleDesdeUrl(handle));
   // CAN-03: handle inexistente o sin series aprobadas → 404 también en
   // metadata. El 404 efectivo lo lanza la página: algunos runtimes ignoran
   // notFound() en generateMetadata.
@@ -39,7 +45,8 @@ export async function generateMetadata({
 
   const title = canal.nombre;
   const description = descripcionMetadata(canal);
-  const url = `/canales/${canal.handle}`;
+  // URL pública sin '@' (ver handleDesdeUrl en lib/canales.ts).
+  const url = `/canales/${handleParaUrl(canal.handle)}`;
 
   return {
     title,
@@ -94,7 +101,7 @@ function Cabecera({ canal }: { canal: CanalFichaData }) {
 // shell); por eso la query va aquí y no dentro de un boundary.
 export default async function CanalPage({ params }: CanalPageProps) {
   const { handle } = await params;
-  const canal = await getCanalByHandle(handle);
+  const canal = await getCanalByHandle(handleDesdeUrl(handle));
   if (!canal) notFound();
 
   return (

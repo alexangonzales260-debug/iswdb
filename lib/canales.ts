@@ -120,6 +120,19 @@ export async function getCanalByHandle(handle: string): Promise<CanalFichaData |
 
 const JERARQUIA_ROL: Record<string, number> = { principal: 0, colaborador: 1, invitado: 2 }
 
+// Los handles de YouTube se almacenan en BD con '@', pero Next.js trata los
+// segmentos de URL que empiezan por '@' como slots de parallel routes
+// (isGroupSegment en next/dist/shared/lib/segment.js) y devuelve 404 en
+// /canales/@<handle>, tanto en dev como en prod. Decisión aprobada (F005):
+// la URL pública va sin '@' (/canales/canal-uno).
+export function handleDesdeUrl(param: string): string {
+  return param.startsWith('@') ? param : `@${param}`
+}
+
+export function handleParaUrl(handle: string): string {
+  return handle.replace(/^@/, '')
+}
+
 // Rol de mayor jerarquía presente en la filmografía (CAN-05):
 // principal > colaborador > invitado. null si la lista está vacía.
 export function rolDestacado(series: Pick<FilmografiaSerie, 'rol'>[]): string | null {
