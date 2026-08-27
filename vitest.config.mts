@@ -1,6 +1,6 @@
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { defineConfig } from 'vitest/config'
+import { configDefaults, defineConfig } from 'vitest/config'
 
 export default defineConfig({
   resolve: {
@@ -11,6 +11,8 @@ export default defineConfig({
   test: {
     // Los tests de BD comparten la misma BD local (cleanups globales);
     // se ejecutan en secuencia para evitar carreras entre archivos.
-    fileParallelism: false
+    fileParallelism: false,
+    // e2e/ es territorio Playwright (npm run test:e2e).
+    exclude: [...configDefaults.exclude, 'e2e/**']
   }
 })

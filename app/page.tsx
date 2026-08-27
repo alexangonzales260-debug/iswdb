@@ -9,6 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import { getCategorias } from "@/lib/categorias";
 import { getHeroSerie, getLatestSeries, getTopSeries } from "@/lib/series";
 
+// La home depende de datos de BD que cambian sin rebuild (seed, moderación);
+// sin esto Next la prerenderiza como estática en el build.
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
   const [hero, top, latest, categorias] = await Promise.all([
     getHeroSerie(),
