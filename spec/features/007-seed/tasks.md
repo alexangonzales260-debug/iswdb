@@ -18,15 +18,16 @@
   Criterio: supabase db reset sin errores · npm run db:seed x2 (idempotente) ·
   conteos correctos vía query.
 
-- [ ] T2 — Reset + verificación visual del usuario
+- [x] T2 — Reset + verificación visual del usuario
   El agente ejecuta supabase db reset, confirma que termina sin errores y
   avisa al usuario. La verificación visual la hace el usuario (como en
   F003/F004/F005): home (hero + top 5 + últimas), /series con 2+ páginas,
   fichas /series/<slug> y /canales/<handle> con datos reales, portadas
   válidas, "Sin valoraciones", empates del top 5 resueltos por created_at.
   Criterio: salida del reset limpia + evidencia visual del usuario.
+  Nota: verificación visual realizada por el usuario y aprobada.
 
-- [ ] T3 — Cierre
+- [x] T3 — Cierre
   ROADMAP.md (007 ✅) · docs/memory/session-log.md (sesión F007) · tag F7 ·
   commit de cierre `F7: …`.
   Criterio: Definition of Done completa.

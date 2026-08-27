@@ -96,3 +96,26 @@
   LCP 1.3 s (avatar con priority). El warning "upstream image response failed
   404" del servidor en E2E es esperado: los video_ids/avatares del fixture
   son falsos (D13).
+
+## Sesión 7 — F7: Seed de series reales (F007)
+- F7: Seed de 24 series reales hispanohablantes (81 episodios, 142
+  valoraciones, 10 canales, 5 categorías) con video_ids verificadas vía
+  oEmbed. Seed idempotente (ON CONFLICT DO NOTHING) ejecutable con
+  supabase db reset. Top 5 con empates intencionales resueltos por
+  created_at desc. 30 usuarios seed sintéticos.
+- Distribución de valoraciones: 6 top (8.5–9.5, 10–20 votos), 12 medias
+  (6.0–8.0, 3–8 votos), 6 con 0–2 votos ("Sin valoraciones"). Empates a 9.5
+  (karmaland/tortillaland) y a 9.0 (squid-craft-games/marbella-vice)
+  resueltos por created_at desc; hero = karmaland.
+- Ajustes sobre la propuesta: willex → @willyrex (nombre real); UHC España
+  fuera (su canal ElRichMC elevaría a 11 canales, límite spec 8–10) y en su
+  lugar Dirty Business (Nexxuz) y Hardcore Salvaje (Willyrex); canales
+  añadidos @huevocartoon y @31minutos para la categoría Animación.
+- Desviación db:seed: `supabase db query --local -f` rechaza ficheros
+  multi-statement ("cannot insert multiple commands into a prepared
+  statement"); el script usa psql del host con ON_ERROR_STOP=1 (documentado
+  en plan.md y tasks.md).
+- Los tests de BD hacen wipe en beforeAll y no dependen del seed (SEED-04);
+  tras validate.sh (e2e) el catálogo seed se limpia y se restaura con
+  npm run db:seed.
+- Cierre: ROADMAP 007 ✅, validate.sh en verde, tag F7.
