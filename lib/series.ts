@@ -3,6 +3,9 @@ import { supabaseServer } from './supabase'
 
 export const PAGE_SIZE = 12
 
+// categoria!inner: necesario para poder filtrar el padre por categoria.slug
+// (sin !inner, PostgREST solo filtra el payload del embed, no las filas).
+// No pierde filas: toda serie tiene categoria (FK NOT NULL) y su lectura es pública.
 const SERIE_SELECT = `
   id,
   titulo,
@@ -10,7 +13,7 @@ const SERIE_SELECT = `
   portada_url,
   anio_inicio,
   created_at,
-  categoria ( nombre, slug ),
+  categoria!inner ( nombre, slug ),
   participa ( canal ( nombre, handle ) ),
   valoracion ( nota )
 ` as const
@@ -125,28 +128,39 @@ export async function listSeries(options: ListSeriesOptions = {}): Promise<ListS
     if (serieIdsPorCanal.length === 0) return { series: [], total: 0, totalPages: 0 }
   }
 
+  // Count previo (head): con offset-based, una página fuera de rango devuelve
+  // HTTP 416 en PostgREST; así devolvemos página vacía con el total correcto.
+  let countQuery = supabaseServer
+    .from('serie')
+    .select('id, categoria!inner ( slug )', { count: 'exact', head: true })
+    .eq('moderation_status', 'aprobada')
+  if (options.categoria) countQuery = countQuery.eq('categoria.slug', options.categoria)
+  if (serieIdsPorCanal) countQuery = countQuery.in('id', serieIdsPorCanal)
+
+  const { count, error: countError } = await countQuery
+  if (countError) throw new Error(`listSeries: ${countError.message}`)
+
+  const total = count ?? 0
+  const totalPages = Math.ceil(total / PAGE_SIZE)
+  if (total === 0 || page > totalPages) return { series: [], total, totalPages }
+
   let query = supabaseServer
     .from('serie')
-    .select(SERIE_SELECT, { count: 'exact' })
+    .select(SERIE_SELECT)
     .eq('moderation_status', 'aprobada')
-  if (options.categoria) {
-    query = query.eq('categoria.slug', options.categoria)
-  }
-  if (serieIdsPorCanal) {
-    query = query.in('id', serieIdsPorCanal)
-  }
+  if (options.categoria) query = query.eq('categoria.slug', options.categoria)
+  if (serieIdsPorCanal) query = query.in('id', serieIdsPorCanal)
 
   const desde = (page - 1) * PAGE_SIZE
-  const { data, error, count } = await query
+  const { data, error } = await query
     .order('created_at', { ascending: false })
     .range(desde, desde + PAGE_SIZE - 1)
 
   if (error) throw new Error(`listSeries: ${error.message}`)
 
-  const total = count ?? 0
   return {
     series: (data ?? []).map(toSerieCard),
     total,
-    totalPages: Math.ceil(total / PAGE_SIZE)
+    totalPages
   }
 }
