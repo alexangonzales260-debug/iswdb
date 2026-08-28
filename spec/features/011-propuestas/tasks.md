@@ -34,7 +34,7 @@
   '/propuesta-enviada' (fuera del try/catch); fallo → { error }.
   Criterio: lint + typecheck verdes.
 
-- [ ] T4 — UI
+- [x] T4 — UI
   app/proponer-serie/page.tsx (RSC force-dynamic, metadata "Proponer serie ·
   ISWDB", getCategorias + EmptyState si vacío) · components/propuesta-form.tsx
   ("use client": useActionState, titulo/descripcion/categoria/canales
