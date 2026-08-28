@@ -150,6 +150,29 @@ export async function createAuthUserWithUsuario(email: string): Promise<string> 
   return userId
 }
 
+// F010 (T6): usuario mod E2E = auth user + fila en public.usuario con rol
+// 'mod' (RLS is_admin_or_mod, D10). Password: TEST_PASSWORD.
+export async function createModUser(email: string): Promise<string> {
+  const userId = await createAuthUser(email)
+  const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+  await unwrap(db.from('usuario').insert({ id: userId, rol: 'mod' }))
+  return userId
+}
+
+// F010 (T6, riesgo 5): restauración del fixture desde admin.spec.ts. El
+// cliente service-role evita RLS; la actualización es idempotente.
+export async function setModerationStatus(slug: string, moderationStatus: string): Promise<void> {
+  const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+  await unwrap(db.from('serie').update({ moderation_status: moderationStatus }).eq('slug', slug))
+}
+
+// F010 (T6): borrado de las series creadas por el E2E de admin; la FK
+// cascada cubre participa, episodio y valoracion.
+export async function deleteSeriesBySlugLike(slugPattern: string): Promise<void> {
+  const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+  await unwrap(db.from('serie').delete().like('slug', slugPattern))
+}
+
 async function wipe(db: SupabaseClient): Promise<void> {
   await unwrap(db.from('valoracion').delete().not('id', 'is', null))
   await unwrap(db.from('participa').delete().not('serie_id', 'is', null))
