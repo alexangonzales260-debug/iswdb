@@ -63,7 +63,17 @@ export function ReseñaForm({ serieSlug, conSesion, haValorado, reseñaPropia }:
     )
   }
 
-  return <ReseñaFormInner serieSlug={serieSlug} reseñaPropia={reseñaPropia} />
+  // key: fuerza el remount al cambiar entre creación ('nueva') y edición (id
+  // de la reseña). Sin él, el useState de contenido y el state de la action
+  // sobreviven a la transición (p. ej. tras eliminar la reseña propia el
+  // textarea conservaría el texto borrado).
+  return (
+    <ReseñaFormInner
+      key={reseñaPropia?.id ?? 'nueva'}
+      serieSlug={serieSlug}
+      reseñaPropia={reseñaPropia}
+    />
+  )
 }
 
 // Creación/edición en un componente aparte: los hooks (useActionState,

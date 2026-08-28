@@ -142,20 +142,22 @@ export async function deleteAuthUserByEmail(email: string): Promise<void> {
 
 // F009 (T5): usuario E2E con fila en public.usuario. createAuthUser solo crea
 // el auth user; la FK de valoracion exige la fila de usuario, y el flujo de
-// valorar no visita /perfil (cuyo self-healing la crearía).
+// valorar no visita /perfil (cuyo self-healing la crearía). El email se
+// desnormaliza en la fila (M6): RES-08 lo muestra truncado como autor de
+// reseñas.
 export async function createAuthUserWithUsuario(email: string): Promise<string> {
   const userId = await createAuthUser(email)
   const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
-  await unwrap(db.from('usuario').insert({ id: userId }))
+  await unwrap(db.from('usuario').insert({ id: userId, email }))
   return userId
 }
 
 // F010 (T6): usuario mod E2E = auth user + fila en public.usuario con rol
-// 'mod' (RLS is_admin_or_mod, D10). Password: TEST_PASSWORD.
+// 'mod' (RLS is_admin_or_mod, D10) y email (M6). Password: TEST_PASSWORD.
 export async function createModUser(email: string): Promise<string> {
   const userId = await createAuthUser(email)
   const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
-  await unwrap(db.from('usuario').insert({ id: userId, rol: 'mod' }))
+  await unwrap(db.from('usuario').insert({ id: userId, rol: 'mod', email }))
   return userId
 }
 
@@ -173,7 +175,21 @@ export async function deleteSeriesBySlugLike(slugPattern: string): Promise<void>
   await unwrap(db.from('serie').delete().like('slug', slugPattern))
 }
 
+// F012 (T4): id del usuario por email (service-role). Para limpiar en
+// afterAll un usuario registrado vía UI (registro → login → reseña), cuyo id
+// no se conoce de antemano. Se consulta public.usuario (M6 desnormalizó el
+// email; usuario.id == auth.users.id) en vez del admin de GoTrue, cuyo
+// listUsers paginado falla en el stack local.
+export async function getUserIdByEmail(email: string): Promise<string | null> {
+  const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+  const fila = await db.from('usuario').select('id').eq('email', email).maybeSingle()
+  if (fila.error) throw new Error(`getUserIdByEmail: ${fila.error.message}`)
+  return fila.data?.id ?? null
+}
+
 async function wipe(db: SupabaseClient): Promise<void> {
+  // reseña primero (F012): depende de usuario y serie.
+  await unwrap(db.from('reseña').delete().not('id', 'is', null))
   await unwrap(db.from('valoracion').delete().not('id', 'is', null))
   await unwrap(db.from('participa').delete().not('serie_id', 'is', null))
   await unwrap(db.from('episodio').delete().not('id', 'is', null))
