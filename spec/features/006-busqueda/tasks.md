@@ -21,7 +21,7 @@
   Criterio: db reset verde; types/database.ts incluye buscar_series y
   buscar_canales; smoke psql con evidencia pegada.
 
-- [ ] T2 — lib/busqueda.ts + tests de servidor
+- [x] T2 — lib/busqueda.ts + tests de servidor
   lib/series.ts: exportar SERIE_SELECT, toSerieCard y byWrDesc (sin cambios
   de lógica) · lib/busqueda.ts (nuevo): buscarSeries(q) → rpc + select
   SERIE_SELECT + orden byWrDesc(getGlobalMeanRating) + toSerieCard ·

@@ -6,7 +6,7 @@ export const PAGE_SIZE = 12
 // categoria!inner: necesario para poder filtrar el padre por categoria.slug
 // (sin !inner, PostgREST solo filtra el payload del embed, no las filas).
 // No pierde filas: toda serie tiene categoria (FK NOT NULL) y su lectura es pública.
-const SERIE_SELECT = `
+export const SERIE_SELECT = `
   id,
   titulo,
   slug,
@@ -90,7 +90,7 @@ export async function getGlobalMeanRating(): Promise<number> {
   return notas.length === 0 ? 0 : mediaExacta(notas)
 }
 
-function toSerieCard(row: SerieRow): SerieCard {
+export function toSerieCard(row: SerieRow): SerieCard {
   return {
     id: row.id,
     titulo: row.titulo,
@@ -121,7 +121,7 @@ function wrDeFila(fila: FilaOrdenable, c: number): number | null {
 // Orden de rankings (VAL-05): WR desc; sin valoración → 0, que queda al
 // final porque con nota ≥ 1 y C ≥ 0 todo WR es > 0. Empates por created_at
 // desc (determinista, patrón de F003).
-function byWrDesc(c: number) {
+export function byWrDesc(c: number) {
   return (a: FilaOrdenable, b: FilaOrdenable): number => {
     const diferencia = (wrDeFila(b, c) ?? 0) - (wrDeFila(a, c) ?? 0)
     if (diferencia !== 0) return diferencia
