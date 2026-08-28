@@ -18,12 +18,15 @@ const createdAuthUserIds: string[] = []
 let runId: number
 let noRowId: string
 let normalId: string
+let modId: string
 let adminId: string
 let admin2Id: string
 let clientNoRow: SupabaseClient
 let clientNormal: SupabaseClient
+let clientMod: SupabaseClient
 let clientAdmin: SupabaseClient
 let clientAdmin2: SupabaseClient
+let categoriaId: string
 let serieId: string
 let targetCanalId: string
 
@@ -40,18 +43,21 @@ beforeAll(async () => {
   const emails = {
     noRow: `rls-norow-${runId}@iswdb.local`,
     normal: `rls-normal-${runId}@iswdb.local`,
+    mod: `rls-mod-${runId}@iswdb.local`,
     admin: `rls-admin-${runId}@iswdb.local`,
     admin2: `rls-admin2-${runId}@iswdb.local`
   }
   noRowId = await createTestUser(emails.noRow, TEST_PASSWORD)
   normalId = await createTestUser(emails.normal, TEST_PASSWORD)
+  modId = await createTestUser(emails.mod, TEST_PASSWORD)
   adminId = await createTestUser(emails.admin, TEST_PASSWORD)
   admin2Id = await createTestUser(emails.admin2, TEST_PASSWORD)
-  createdAuthUserIds.push(noRowId, normalId, adminId, admin2Id)
+  createdAuthUserIds.push(noRowId, normalId, modId, adminId, admin2Id)
 
   await unwrap(
     dbAdmin.from('usuario').insert([
       { id: normalId, rol: 'user' },
+      { id: modId, rol: 'mod' },
       { id: adminId, rol: 'admin' },
       { id: admin2Id, rol: 'admin' }
     ])
@@ -59,6 +65,7 @@ beforeAll(async () => {
 
   clientNoRow = await signInTestUser(emails.noRow, TEST_PASSWORD)
   clientNormal = await signInTestUser(emails.normal, TEST_PASSWORD)
+  clientMod = await signInTestUser(emails.mod, TEST_PASSWORD)
   clientAdmin = await signInTestUser(emails.admin, TEST_PASSWORD)
   clientAdmin2 = await signInTestUser(emails.admin2, TEST_PASSWORD)
 
@@ -69,6 +76,7 @@ beforeAll(async () => {
       .select('id')
       .single()
   )
+  categoriaId = categoria.id
   const serie = await unwrap(
     dbAdmin
       .from('serie')
@@ -85,6 +93,13 @@ beforeAll(async () => {
       .single()
   )
   targetCanalId = canal.id
+  // Fila participa del fixture: objetivo de las pruebas de update/delete de
+  // user (denegado, queda intacta) y de mod (permitido).
+  await unwrap(
+    dbAdmin
+      .from('participa')
+      .insert({ serie_id: serieId, canal_id: targetCanalId, rol: 'colaborador' })
+  )
   await unwrap(
     dbAdmin.from('valoracion').insert({ user_id: adminId, serie_id: serieId, nota: 8 })
   )
@@ -129,6 +144,27 @@ describe('M3 RLS — anon', () => {
     ).rejects.toThrow(denial)
     await expect(
       unwrap(db.from('valoracion').delete().not('id', 'is', null))
+    ).rejects.toThrow(denial)
+  })
+
+  // 010 (ADM-07): completa la cobertura de escritura denegada para anon en
+  // las tablas que faltaban (el test anterior cubría canal y valoracion).
+  it('anon: INSERT en serie/episodio/participa denegados', async () => {
+    const denial = /permission denied|row-level security/i
+    await expect(
+      unwrap(
+        db.from('serie').insert({ titulo: 'X', slug: `rls-anon-${runId}`, categoria_id: categoriaId })
+      )
+    ).rejects.toThrow(denial)
+    await expect(
+      unwrap(
+        db
+          .from('episodio')
+          .insert({ serie_id: serieId, numero: 99, titulo: 'X', video_id: `rls-anon-${runId}` })
+      )
+    ).rejects.toThrow(denial)
+    await expect(
+      unwrap(db.from('participa').insert({ serie_id: serieId, canal_id: targetCanalId }))
     ).rejects.toThrow(denial)
   })
 })
@@ -177,6 +213,60 @@ describe('M3 RLS — authenticated normal', () => {
       )
     ).rejects.toThrow(/row-level security/)
   })
+
+  // 010 (ADM-07): user sin rol mod/admin no puede escribir en el catálogo.
+  // INSERT viola WITH CHECK → error; UPDATE/DELETE no ven filas (USING) → 0
+  // filas afectadas y el estado queda intacto.
+  it('escritura en serie/episodio/participa denegada (is_admin_or_mod = false)', async () => {
+    await expect(
+      unwrap(
+        clientNormal
+          .from('serie')
+          .insert({ titulo: 'Y', slug: `rls-user-${runId}`, categoria_id: categoriaId })
+      )
+    ).rejects.toThrow(/row-level security/)
+    await expect(
+      unwrap(
+        clientNormal
+          .from('episodio')
+          .insert({ serie_id: serieId, numero: 98, titulo: 'Y', video_id: `rls-user-${runId}` })
+      )
+    ).rejects.toThrow(/row-level security/)
+    await expect(
+      unwrap(clientNormal.from('participa').insert({ serie_id: serieId, canal_id: targetCanalId }))
+    ).rejects.toThrow(/row-level security/)
+
+    const { data: updatedSerie } = await clientNormal
+      .from('serie')
+      .update({ titulo: 'hack' })
+      .eq('id', serieId)
+      .select()
+    expect(updatedSerie).toHaveLength(0)
+
+    const { data: updatedParticipa } = await clientNormal
+      .from('participa')
+      .update({ rol: 'invitado' })
+      .eq('serie_id', serieId)
+      .select()
+    expect(updatedParticipa).toHaveLength(0)
+
+    const { data: deletedParticipa } = await clientNormal
+      .from('participa')
+      .delete()
+      .eq('serie_id', serieId)
+      .select()
+    expect(deletedParticipa).toHaveLength(0)
+
+    const fila = await unwrap(
+      dbAdmin
+        .from('participa')
+        .select('rol')
+        .eq('serie_id', serieId)
+        .eq('canal_id', targetCanalId)
+        .single()
+    )
+    expect(fila.rol).toBe('colaborador')
+  })
 })
 
 describe('M3 RLS — admin', () => {
@@ -196,6 +286,78 @@ describe('M3 RLS — admin', () => {
         .from('serie')
         .insert({ titulo: 'Serie Admin', slug: `rls-admin-${runId}`, categoria_id: categoria.id })
     )
+  })
+})
+
+// 010 (ADM-07): el rol mod tiene el mismo permiso de escritura que admin vía
+// is_admin_or_mod(). M3 ya crea las políticas; aquí se cubre explícitamente.
+describe('M3 RLS — mod', () => {
+  it('escritura en catálogo ok (serie, episodio, canal, participa)', async () => {
+    const canal = await unwrap(
+      clientMod
+        .from('canal')
+        .insert({ nombre: 'Canal Mod', handle: `rls-mod-${runId}` })
+        .select('id')
+        .single()
+    )
+    const canalEditado = await unwrap(
+      clientMod.from('canal').update({ nombre: 'Canal Mod editado' }).eq('id', canal.id).select('nombre').single()
+    )
+    expect(canalEditado.nombre).toBe('Canal Mod editado')
+
+    const serie = await unwrap(
+      clientMod
+        .from('serie')
+        .insert({ titulo: 'Serie Mod', slug: `rls-mod-serie-${runId}`, categoria_id: categoriaId })
+        .select('id')
+        .single()
+    )
+    const serieEditada = await unwrap(
+      clientMod.from('serie').update({ titulo: 'Serie Mod editada' }).eq('id', serie.id).select('titulo').single()
+    )
+    expect(serieEditada.titulo).toBe('Serie Mod editada')
+
+    const episodio = await unwrap(
+      clientMod
+        .from('episodio')
+        .insert({
+          serie_id: serie.id,
+          temporada: 1,
+          numero: 1,
+          titulo: 'Episodio mod',
+          video_id: `rls-mod-${runId}`
+        })
+        .select('id')
+        .single()
+    )
+    expect(episodio.id).toBeDefined()
+
+    await unwrap(
+      clientMod
+        .from('participa')
+        .insert({ serie_id: serie.id, canal_id: canal.id, rol: 'colaborador' })
+    )
+  })
+
+  it('update y delete sobre participa existente ok', async () => {
+    const actualizada = await unwrap(
+      clientMod
+        .from('participa')
+        .update({ rol: 'principal' })
+        .eq('serie_id', serieId)
+        .eq('canal_id', targetCanalId)
+        .select('rol')
+        .single()
+    )
+    expect(actualizada.rol).toBe('principal')
+
+    const borrada = await unwrap(
+      clientMod.from('participa').delete().eq('serie_id', serieId).select('canal_id')
+    )
+    expect(borrada).toHaveLength(1)
+
+    const restantes = await unwrap(dbAdmin.from('participa').select('canal_id').eq('serie_id', serieId))
+    expect(restantes).toHaveLength(0)
   })
 })
 
