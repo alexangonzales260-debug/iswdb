@@ -249,6 +249,46 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      buscar_canales: {
+        Args: { q: string }
+        Returns: {
+          avatar_url: string | null
+          created_at: string
+          handle: string
+          id: string
+          nombre: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "canal"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      buscar_series: {
+        Args: { q: string }
+        Returns: {
+          anio_fin: number | null
+          anio_inicio: number | null
+          categoria_id: string
+          created_at: string
+          descripcion: string | null
+          estado: string
+          id: string
+          moderation_status: string
+          playlist_url: string | null
+          portada_url: string | null
+          slug: string
+          titulo: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "serie"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       is_admin_or_mod: { Args: never; Returns: boolean }
     }
     Enums: {
