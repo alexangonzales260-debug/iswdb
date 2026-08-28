@@ -36,7 +36,7 @@
   episodio duplicado en edición → error amigable · user → RLS denegado.
   Criterio: npm test -- --run verde.
 
-- [ ] T4 — lib/admin-actions.ts ("use server")
+- [x] T4 — lib/admin-actions.ts ("use server")
   Guard requireMod en cada action (ADM-04) · accionAprobarSerie /
   accionRechazarSerie → { error? } + revalidatePath('/', 'layout') ·
   accionCrearSerie / accionEditarSerie(slug, …) con useActionState: campos
@@ -44,7 +44,7 @@
   éxito, { error } en fallo.
   Criterio: lint + typecheck verdes; notFound() verificado dentro de action.
 
-- [ ] T5 — UI: layout, páginas y componentes
+- [x] T5 — UI: layout, páginas y componentes
   app/admin/layout.tsx (requireMod, cubre subrutas) · app/admin/page.tsx
   (cola pendientes + listado todas + botón nueva, ADM-01) ·
   app/admin/series/nueva/page.tsx · app/admin/series/[slug]/editar/page.tsx
@@ -54,7 +54,7 @@
   con useTransition).
   Criterio: lint + typecheck + build verdes; smoke manual en dev.
 
-- [ ] T6 — E2E Playwright
+- [x] T6 — E2E Playwright
   e2e/global-setup.ts: createModUser(email) (auth user + fila usuario rol
   'mod'). e2e/admin.spec.ts (corre primero alfabéticamente; restaura al
   salir): anónimo → /admin → 404 · user normal → login → /admin y subruta →
@@ -64,7 +64,7 @@
   afterAll: e2e-16 pendiente, borrar series creadas y usuarios.
   Criterio: npm run test:e2e verde sin regresiones.
 
-- [ ] T7 — validate.sh + cierre
+- [x] T7 — validate.sh + cierre
   ./validate.sh completo (salida pegada) · ROADMAP.md (010 → "Admin:
   moderation dashboard" ✅) · DECISIONS.md (aclarar D9: moderación en 010) ·
   docs/memory/session-log.md (sesión F010) · commit atómico `F10: …` tras

@@ -199,3 +199,26 @@
   patrón F005; LCP 2.6–3.3 s dominado por la portada lazy del grid, mismo
   patrón que /series en F003). Accessibility 100 y SEO 100 consistentes en
   las 5 auditorías; CLS 0.
+
+## Sesión 11 — F10: Admin moderation dashboard (F010)
+- F10: Admin dashboard con moderación y CRUD (crear/editar series con
+  canales y episodios). RLS cubierto por políticas existentes de M3
+  (sin migración). Guard requireMod con notFound() (ADM-04: no revela
+  el panel). crearSerie con compensación (fallo hijo → delete por
+  cascade). editarSerie en pasos secuenciales idempotentes. Robots
+  noindex en /admin. 142 unit + 40 E2E sin regresiones.
+- Hallazgo clave (planificación): PostgREST no soporta inserts anidados
+  (verificado en 16.1: PGRST204 "Could not find the 'episodio' column of
+  'serie'"); la doc confirma que la feature nunca existió. Alternativa
+  aprobada: pasos secuenciales con compensación (all-or-nothing efectivo;
+  ventana residual asumible). El bulk upsert de episodios nuevos necesita
+  defaultToNull:false (Prefer: missing=default) para recibir
+  gen_random_uuid() en vez de NULL.
+- Hallazgo (Next 16.3.3): notFound() dentro de una Server Action sirve un
+  404 HTTP real (action-handler convierte el digest en res.statusCode=404),
+  verificado en el fuente del paquete; sin fallback.
+- E2E: admin.spec.ts corre primero alfabéticamente (workers=1) y su afterAll
+  restaura el fixture exactamente (e2e-16 → pendiente, borrado de series
+  creadas y usuarios); el resto de specs pasa sin regresiones.
+- Cierre: D9 aclarado (la moderación se materializa en F010; F011 queda para
+  aportes de usuarios), ROADMAP 010 ✅, validate.sh en verde, tag F10.
