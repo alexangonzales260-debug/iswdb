@@ -17,7 +17,7 @@
   mod selección pendiente → ok.
   Criterio: npm test -- --run verde sin regresiones (admin, rls, valoraciones).
 
-- [ ] T2 — lib/propuestas.ts + tests
+- [x] T2 — lib/propuestas.ts + tests
   schemaPropuesta Zod (titulo 3-200, descripcion 10-5000 requerida, categoria
   slug, proponente_email opcional válido, playlist_url opcional, canales ≥1
   handle+rol) · crearPropuesta: Zod → categoria id → canales por handle (error
