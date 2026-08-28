@@ -20,17 +20,21 @@
   mod/admin borran cualquier reseña · mod no edita la de otro.
   Criterio: npm test -- --run tests/db/reseñas.test.ts verde (BD local arriba).
 
-- [ ] T2 — Servicios en lib/reseñas.ts + tests
+- [x] T2 — Servicios en lib/reseñas.ts + tests
+  Migración M6 (decisión 11 del plan): public.usuario.email nullable +
+  backfill desde auth.users (el email del autor no existía en el esquema
+  público); seed.sql añade email a las filas de usuario; registrarUsuario y
+  getPerfilData (lib/auth.ts) rellenan la columna.
   lib/reseñas.ts (nuevo): ERRORES_RESEÑA · Zod contenido (trim, 50-2000) ·
   crearReseña(client, serieSlug, contenido): Zod → sesión → serie por slug
   (inexistente o no aprobada → rechazo, estilo VAL-07) → valoración previa
   (RES-02 server-side) → insert (23505 → error amigable de duplicado) ·
   editarReseña(client, reseñaId, contenido): propiedad vía update por id +
   user_id (0 filas → error) · eliminarReseña(client, reseñaId): RLS
-  own_or_mod (0 filas → sin permiso) · getReseñaUsuario(serieId, userId) →
-  { id, contenido } | null · listReseñasSerie(serieId): service-role,
-  created_at desc, embed usuario(id, email).
-  lib/supabase.ts: getSupabaseServiceRole() perezoso (env
+  own_or_mod (0 filas → sin permiso) ·   getReseñaUsuario(client, serieId, userId) → { id, contenido } | null ·
+  listReseñasSerie(clientServiceRole, serieId): created_at desc, embed
+  usuario(id, email), filtro defensivo de nulls.
+  lib/supabase.ts: createServiceRoleClient() perezoso (env
   SUPABASE_SERVICE_ROLE_KEY, server-only). .env.example/.env.local: clave
   demo estándar local.
   tests/db/reseñas.test.ts (extender): crear con valoración previa ok · sin

@@ -229,16 +229,19 @@ export type Database = {
       usuario: {
         Row: {
           created_at: string
+          email: string | null
           id: string
           rol: string
         }
         Insert: {
           created_at?: string
+          email?: string | null
           id: string
           rol?: string
         }
         Update: {
           created_at?: string
+          email?: string | null
           id?: string
           rol?: string
         }

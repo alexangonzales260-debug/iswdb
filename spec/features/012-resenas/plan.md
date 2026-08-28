@@ -18,6 +18,11 @@
 9. Botón "Eliminar" visible para el dueño de la reseña Y mod/admin (RES-04 +
    RES-09 + criterio "user normal no lo ve en reseñas de otros").
 10. Tabla "reseña" (con ñ); identificadores SQL entre comillas dobles.
+11. Email del autor en public.usuario (decisión A, aprobada en Build): la
+    columna no existía (el email vive en auth.users, esquema no expuesto por
+    PostgREST), así que se desnormaliza en usuario vía migración M6 +
+    backfill. El embed usuario(id, email) del plan original no era ejecutable
+    sin esta columna.
 
 ## Decisiones técnicas (justificadas)
 1. **Migración M5 única** (tabla + trigger + índice + grants + RLS en un
@@ -37,15 +42,19 @@
      (using user_id = auth.uid() or public.is_admin_or_mod(); D10).
    - Todos los identificadores con ñ entre comillas dobles en SQL.
    - Tras aplicar: supabase db reset + npm run gen:types.
-2. **Email del autor (RES-08) vs RLS de usuario**: usuario_select_authenticated
-   solo permite leer usuario a authenticated; PostgREST aplica RLS también a
-   los embeds → con cliente anon el embed usuario(email) saldría null en la
-   lista pública. listReseñasSerie usa un cliente service-role nuevo:
-   getSupabaseServiceRole() perezoso en lib/supabase.ts (env
-   SUPABASE_SERVICE_ROLE_KEY, server-only, jamás NEXT_PUBLIC; se añade a
-   .env.example y .env.local la clave demo estándar local, que ya es pública
-   en tests/db/env.ts). No se toca el RLS de usuario (expondría todos los
-   emails del sistema).
+2. **Email del autor (RES-08) vs RLS de usuario**: el email vive en
+   auth.users (esquema no expuesto por PostgREST: config.toml solo expone
+   public/graphql_public) y public.usuario no tenía columna email → el embed
+   del plan original no era ejecutable. Decisión A (aprobada): migración M6
+   añade public.usuario.email (nullable) + backfill desde auth.users;
+   registrarUsuario y getPerfilData lo rellenan para usuarios nuevos; seed.sql
+   incluye el email de los usuarios sintéticos. listReseñasSerie usa un
+   cliente service-role nuevo: createServiceRoleClient() perezoso en
+   lib/supabase.ts (env SUPABASE_SERVICE_ROLE_KEY, server-only, jamás
+   NEXT_PUBLIC; se añade a .env.example y .env.local la clave demo estándar
+   local, que ya es pública en tests/db/env.ts). El RLS de usuario no se toca
+   (sigue ocultando la tabla al anon; el email completo solo lo lee el
+   servidor vía service-role).
 3. **RES-02 y estado de la serie server-side**: RLS no puede expresar "tiene
    valoración" ni "serie aprobada"; crearReseña() comprueba app-side con el
    cliente de sesión: serie por slug (inexistente → error;
@@ -75,8 +84,9 @@
 8. **Zod**: contenido → z.string().trim() con min(50)/max(2000) y mensajes de
    ERRORES_RESEÑA; se almacena el contenido ya trimeado (el CHECK de la BD
    aplica al valor guardado).
-9. **truncarEmail** en lib/format.ts (función pura, test unitario): dos
-   primeras letras del local part (una si es más corto) + '…' + '@' + dominio.
+9. **truncarEmail** en lib/format.ts (función pura, test unitario): inicial
+   del local part + '***' + '@' + dominio (p.ej. "s***@iswdb.local"); sin
+   local part o sin '@' → '***'.
 10. **Rol para el botón Eliminar**: se reutiliza getRolUsuario de lib/admin.ts
     (cliente autenticado). La sección es RSC; el botón necesita un hijo
     cliente → components/reseña-delete-button.tsx (pequeño, useTransition +
@@ -127,10 +137,13 @@
 - Verificación: npm test -- --run tests/db/reseñas.test.ts verde.
 
 ### T2 — Servicios en lib/reseñas.ts + tests
+- Migración M6 (decisión 11): public.usuario.email nullable + backfill desde
+  auth.users; seed.sql añade el email de los usuarios sintéticos;
+  registrarUsuario y getPerfilData (lib/auth.ts) rellenan la columna.
 - lib/reseñas.ts (nuevo): ERRORES_RESEÑA, schema Zod, crearReseña/
   editarReseña/eliminarReseña (cliente de sesión), getReseñaUsuario/
   listReseñasSerie (service-role).
-- lib/supabase.ts: getSupabaseServiceRole() perezoso. .env.example y
+- lib/supabase.ts: createServiceRoleClient() perezoso. .env.example y
   .env.local: SUPABASE_SERVICE_ROLE_KEY.
 - tests/db/reseñas.test.ts (extender): crear con valoración previa ok; sin
   valoración → RES-02; serie no aprobada → rechazo; longitudes inválidas;
@@ -170,7 +183,8 @@
 ## Archivos
 **Crear**
 - spec/features/012-resenas/{spec.md,plan.md,tasks.md}
-- supabase/migrations/<ts>_create_resena_table.sql
+- supabase/migrations/<ts>_create_resena_table.sql (M5)
+- supabase/migrations/<ts>_add_usuario_email.sql (M6)
 - lib/reseñas.ts · lib/reseñas-actions.ts
 - components/reseñas-section.tsx · components/reseña-form.tsx ·
   components/reseña-delete-button.tsx
@@ -178,8 +192,10 @@
 
 **Modificar**
 - lib/supabase.ts (cliente service-role) · lib/format.ts (truncarEmail)
+- lib/auth.ts (registrarUsuario/getPerfilData con email, M6)
+- supabase/seed.sql (email en filas de usuario)
 - app/series/[slug]/page.tsx (sección Reseñas)
-- e2e/global-setup.ts (wipe de reseña)
+- e2e/global-setup.ts (wipe de reseña; helpers con email en T4)
 - .env.example (+ .env.local): SUPABASE_SERVICE_ROLE_KEY
 - types/database.ts (regenerado con gen:types)
 - Al cierre: ROADMAP.md · DECISIONS.md · docs/memory/session-log.md

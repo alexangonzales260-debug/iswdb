@@ -121,10 +121,14 @@ export async function registrarUsuario(
   if (!user || (user.identities ?? []).length === 0 || !data.session) {
     throw new Error(ERRORES_AUTH.emailDuplicado)
   }
-  // Fila en public.usuario con rol 'user' (AUTH-01). RLS usuario_insert_own:
-  // id = auth.uid(). El 23505 cubre la carrera con el self-healing de
-  // getPerfilData: si la fila ya existe, el registro es válido igualmente.
-  const { error: insertError } = await client.from('usuario').insert({ id: user.id, rol: 'user' })
+  // Fila en public.usuario con rol 'user' (AUTH-01) y email desnormalizado
+  // (F012/M6: RES-08 lo necesita en la lista pública de reseñas). RLS
+  // usuario_insert_own: id = auth.uid(). El 23505 cubre la carrera con el
+  // self-healing de getPerfilData: si la fila ya existe, el registro es
+  // válido igualmente.
+  const { error: insertError } = await client
+    .from('usuario')
+    .insert({ id: user.id, rol: 'user', email })
   if (insertError && insertError.code !== '23505') {
     throw new Error(insertError.message)
   }
@@ -169,9 +173,11 @@ async function selectUsuario(client: AuthClient, userId: string) {
 // Upsert con ignoreDuplicates (INSERT ... ON CONFLICT DO NOTHING + RETURNING):
 // un solo round-trip crea la fila o devuelve nada si ya existía. El DO NOTHING
 // es deliberado: un DO UPDATE sobreescribiría el rol (p. ej. degradaría a un
-// admin) y dispararía el trigger anti-escalada. El GET de fallback solo ocurre
-// cuando la fila ya existía, así nunca hay dos GET idénticos en el mismo
-// render (la memoización de fetch de Next devolvería la respuesta obsoleta).
+// admin) y dispararía el trigger anti-escalada. El email (F012/M6) solo se
+// escribe al crear la fila, por el mismo motivo. El GET de fallback solo
+// ocurre cuando la fila ya existía, así nunca hay dos GET idénticos en el
+// mismo render (la memoización de fetch de Next devolvería la respuesta
+// obsoleta).
 export async function getPerfilData(
   client: AuthClient,
   userId: string,
@@ -179,7 +185,7 @@ export async function getPerfilData(
 ): Promise<PerfilData> {
   const { data: creada, error } = await client
     .from('usuario')
-    .upsert({ id: userId, rol: 'user' }, { onConflict: 'id', ignoreDuplicates: true })
+    .upsert({ id: userId, rol: 'user', email }, { onConflict: 'id', ignoreDuplicates: true })
     .select('rol, created_at')
     .maybeSingle()
   if (error) throw new Error(error.message)

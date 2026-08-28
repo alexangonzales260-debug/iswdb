@@ -29,3 +29,12 @@ export function truncateDescripcion(texto: string | null, max = 160): string {
   if (limpio.length <= max) return limpio
   return `${limpio.slice(0, max - 1).trimEnd()}…`
 }
+
+// Email del autor de una reseña truncado para la ficha pública (RES-08):
+// inicial del local part + '***' + '@' + dominio (p.ej. "s***@iswdb.local").
+// Sin local part o sin '@' → '***' (defensa, no debería ocurrir).
+export function truncarEmail(email: string): string {
+  const arroba = email.indexOf('@')
+  if (arroba <= 0) return '***'
+  return `${email[0]}***${email.slice(arroba)}`
+}
