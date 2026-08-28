@@ -30,11 +30,19 @@
    de redirect a /login (a diferencia de requireUser en /perfil): no revelar
    la existencia del panel. Se invoca en app/admin/layout.tsx (cubre todas
    las subrutas) y en cada Server Action (defensa en profundidad).
-3. **crearSerie atómica sin RPC**: un único request PostgREST con inserts
-   anidados — `from('serie').insert({ ...campos, participa: [{ canal_id,
-   rol }], episodio: [{ temporada, numero, titulo, video_id }] })` —
-   PostgREST envuelve todas las mutaciones de un request en una sola
-   transacción (ADM-05).
+3. **crearSerie: pasos secuenciales con compensación** (revisado 27-ago-2026):
+   el plan original asumía inserts anidados de PostgREST en un solo request
+   (`from('serie').insert({ ..., participa: [...], episodio: [...] })`), pero
+   PostgREST NO soporta inserts anidados — verificado empíricamente en el
+   stack local (PostgREST 16.1): PGRST204 "Could not find the 'episodio'
+   column of 'serie'" incluso tras recargar el schema cache; la doc y el
+   changelog oficiales confirman que la feature nunca existió. Alternativa
+   elegida por el usuario: insert serie → insert participa → insert episodio;
+   si falla un paso hijo, se borra la serie recién creada (FK cascade sobre
+   participa/episodio) y se relanza el error → all-or-nothing efectivo.
+   Ventana residual: que la propia compensación falle (serie huérfana sin
+   hijos, limpiable a mano; asumible a escala de catálogo). La transacción
+   SQL real quedaría para una RPC en migración (descartada por ahora).
 4. **editarSerie secuencial e idempotente**: update serie → upsert participa
    (onConflict 'serie_id,canal_id') + delete de canales ausentes → upsert
    episodio (onConflict 'id'; filas nuevas sin id se insertan) + delete de
@@ -124,19 +132,21 @@
   (slug existente) · estado enum · anio_inicio/anio_fin int opcionales
   (fin>=inicio) · playlist_url/portada_url url opcionales · canales[]
   (canal_id existente + rol enum) · episodios[] (temporada/numero int ≥1,
-  titulo mín 1, video_id mín 1; sin duplicados temporada/numero ni video_id).
+  titulo mín 1, video_id mín 1).
 - slugify() + generarSlugUnico(client, titulo): sufijos -2, -3… si ocupa.
-- crearSerie(client, input): categoria slug→id; insert anidado
-  (participa + episodio) en un solo request (transacción, ADM-05); 23505 →
-  error amigable.
+- crearSerie(client, input): categoria slug→id; insert serie → insert
+  participa → insert episodio con COMPENSACIÓN (fallo hijo → delete de la
+  serie por cascade + relanzar error; PostgREST no soporta inserts anidados,
+  ver decisión 3); 23505 → error amigable.
 - editarSerie(client, slug, input): update campos (slug inmutable) → upsert
   participa onConflict 'serie_id,canal_id' + delete ausentes → upsert episodio
   onConflict 'id' + delete ausentes por id.
-- tests/lib/admin.test.ts (extender): crear serie completa en un request
-  (serie + 2 canales + 2 episodios → filas correctas) · titulo duplicado →
-  slug con sufijo · validaciones (titulo vacío, anio_fin<anio_inicio,
-  categoria inexistente) · editar: cambio de campos, añadir/quitar canal (y
-  cambio de rol), añadir/quitar episodio · user → denegado por RLS.
+- tests/lib/admin.test.ts (extender): crear serie completa (serie + 2 canales
+  + 2 episodios) · fallo en episodio → compensación (no queda serie) · titulo
+  duplicado → slug con sufijo · validaciones (titulo vacío,
+  anio_fin<anio_inicio, categoria inexistente) · editar: cambio de campos,
+  añadir/quitar canal (y cambio de rol), añadir/quitar episodio · episodio
+  duplicado en edición → 23505 → error amigable · user → denegado por RLS.
 - Verificación: `npm test -- --run` verde.
 
 ### T4 — lib/admin-actions.ts ("use server")
@@ -202,10 +212,12 @@
 - Al cierre: ROADMAP.md · DECISIONS.md · docs/memory/session-log.md
 
 ## Riesgos técnicos
-1. **Sync participa/episodio en edición**: upsert con onConflict correctos
-   (participa 'serie_id,canal_id'; episodio 'id' para existentes, insert para
-   nuevas). Si el formulario envía temporada/numero duplicados contra filas
-   no enviadas → 23505 → error amigable (no falla en silencio).
+1. **Sync participa/episodio**: crearSerie usa compensación (fallo hijo →
+   delete de la serie por cascade); si la compensación fallara quedaría una
+   serie huérfana sin hijos (limpiable a mano). editarSerie usa upsert con
+   onConflict correctos (participa 'serie_id,canal_id'; episodio 'id' para
+   existentes, insert para nuevas). Duplicados (temporada,numero) o canal
+   repetido → 23505 → error amigable (no falla en silencio).
 2. **RLS con auth.uid() + rol**: is_admin_or_mod() es SECURITY DEFINER STABLE
    (M3, testeada). El usuario mod necesita fila en public.usuario con rol mod:
    en tests/E2E se crea explícitamente; en producción vía SQL (gestión de

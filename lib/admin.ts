@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation'
+import { z } from 'zod'
 import type { AuthClient } from './auth'
 import { unwrap } from './series'
 
@@ -7,7 +8,14 @@ import { unwrap } from './series'
 export type RolUsuario = 'user' | 'mod' | 'admin'
 
 export const ERRORES_ADMIN = {
-  serieNoEncontrada: 'Serie no encontrada'
+  serieNoEncontrada: 'Serie no encontrada',
+  tituloRequerido: 'El título es obligatorio',
+  categoriaNoExiste: 'La categoría no existe',
+  aniosInvalidos: 'El año de fin no puede ser anterior al de inicio',
+  slugDuplicado: 'Ya existe una serie con ese slug',
+  episodioDuplicado: 'Temporada y número de episodio duplicados',
+  canalDuplicado: 'Canal duplicado en la serie',
+  datosInvalidos: 'Revisa los datos del formulario'
 } as const
 
 // Rol de la sesión (D10): null si no hay fila en public.usuario. RLS
@@ -229,4 +237,276 @@ export function aprobarSerie(client: AuthClient, slug: string): Promise<void> {
 
 export function rechazarSerie(client: AuthClient, slug: string): Promise<void> {
   return setModerationStatus(client, slug, 'rechazada')
+}
+
+// ── F010 · CRUD (ADM-05/ADM-06) ────────────────────────────────────────────
+
+export interface CanalDatos {
+  canal_id: string
+  rol: 'principal' | 'colaborador' | 'invitado'
+}
+
+export interface EpisodioDatos {
+  id?: string
+  temporada: number
+  numero: number
+  titulo: string
+  video_id: string
+}
+
+export interface SerieDatos {
+  titulo: string
+  descripcion?: string | null
+  categoria: string
+  estado: 'activa' | 'finalizada'
+  anio_inicio?: number | null
+  anio_fin?: number | null
+  playlist_url?: string | null
+  portada_url?: string | null
+  canales?: CanalDatos[]
+  episodios?: EpisodioDatos[]
+}
+
+// Los formularios envían '' para los campos opcionales vacíos; se normaliza
+// a null antes de validar.
+function vacioANull(valor: unknown): unknown {
+  return valor === '' ? null : valor
+}
+
+const anioSchema = z.preprocess(vacioANull, z.number().int().min(1900).max(2100).nullish())
+
+export const schemaParticipa = z.object({
+  canal_id: z.uuid(),
+  rol: z.enum(['principal', 'colaborador', 'invitado'])
+})
+
+export const schemaEpisodio = z.object({
+  // id presente solo en episodios existentes (edición); los nuevos se insertan.
+  id: z.uuid().optional(),
+  temporada: z.number().int().min(1),
+  numero: z.number().int().min(1),
+  titulo: z.string().min(1, ERRORES_ADMIN.datosInvalidos),
+  video_id: z.string().min(1, ERRORES_ADMIN.datosInvalidos)
+})
+
+export const schemaSerie = z
+  .object({
+    titulo: z.string().trim().min(1, ERRORES_ADMIN.tituloRequerido),
+    descripcion: z.preprocess(vacioANull, z.string().nullish()),
+    categoria: z.string().min(1, ERRORES_ADMIN.categoriaNoExiste),
+    estado: z.enum(['activa', 'finalizada']),
+    anio_inicio: anioSchema,
+    anio_fin: anioSchema,
+    playlist_url: z.preprocess(vacioANull, z.url().nullish()),
+    portada_url: z.preprocess(vacioANull, z.url().nullish()),
+    canales: z.array(schemaParticipa).default([]),
+    episodios: z.array(schemaEpisodio).default([])
+  })
+  .refine(
+    (datos) =>
+      datos.anio_inicio == null || datos.anio_fin == null || datos.anio_fin >= datos.anio_inicio,
+    { message: ERRORES_ADMIN.aniosInvalidos }
+  )
+
+function parsearSerieDatos(datos: SerieDatos): z.output<typeof schemaSerie> {
+  const parsed = schemaSerie.safeParse(datos)
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? ERRORES_ADMIN.datosInvalidos)
+  }
+  return parsed.data
+}
+
+// Slug URL: minúsculas, sin acentos, separadores por guiones.
+export function slugify(texto: string): string {
+  return texto
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+// Slug único autogenerado (ADM-05): base desde el título; si está ocupado,
+// sufijo -2, -3… El constraint unique de serie.slug queda de backstop para
+// carreras (23505 → slugDuplicado).
+export async function generarSlugUnico(client: AuthClient, titulo: string): Promise<string> {
+  const base = slugify(titulo) || 'serie'
+  let candidato = base
+  let sufijo = 2
+  for (;;) {
+    const existente = await unwrap(
+      client.from('serie').select('slug').eq('slug', candidato).maybeSingle()
+    )
+    if (!existente) return candidato
+    candidato = `${base}-${sufijo}`
+    sufijo += 1
+  }
+}
+
+// 23505 (violación de unique) → error amigable según el constraint;
+// cualquier otro error se propaga con su mensaje original.
+function errorEscritura(error: { message: string; code?: string }): Error {
+  if (error.code === '23505') {
+    if (error.message.includes('serie_slug_key')) return new Error(ERRORES_ADMIN.slugDuplicado)
+    if (error.message.includes('episodio')) return new Error(ERRORES_ADMIN.episodioDuplicado)
+    if (error.message.includes('participa')) return new Error(ERRORES_ADMIN.canalDuplicado)
+  }
+  return new Error(error.message)
+}
+
+async function categoriaPorSlug(client: AuthClient, slug: string): Promise<string> {
+  const categoria = await unwrap(
+    client.from('categoria').select('id').eq('slug', slug).maybeSingle()
+  )
+  if (!categoria) throw new Error(ERRORES_ADMIN.categoriaNoExiste)
+  return categoria.id
+}
+
+export interface SerieCreada {
+  id: string
+  slug: string
+}
+
+// Crea la serie con sus canales (participa) y episodios (ADM-05) en pasos
+// secuenciales CON COMPENSACIÓN: PostgREST no soporta inserts anidados
+// (verificado en 16.1: PGRST204), así que no hay transacción de un solo
+// request. Si falla un insert hijo, se borra la serie recién creada (FK
+// cascade sobre participa/episodio) y se relanza el error → all-or-nothing
+// efectivo. Ventana residual: que la propia compensación falle (quedaría una
+// serie huérfana sin hijos, limpiable a mano; asumible a escala de catálogo).
+export async function crearSerie(client: AuthClient, datos: SerieDatos): Promise<SerieCreada> {
+  const parsed = parsearSerieDatos(datos)
+  const categoriaId = await categoriaPorSlug(client, parsed.categoria)
+  const slug = await generarSlugUnico(client, parsed.titulo)
+
+  const { data, error } = await client
+    .from('serie')
+    .insert({
+      titulo: parsed.titulo,
+      slug,
+      descripcion: parsed.descripcion ?? null,
+      categoria_id: categoriaId,
+      estado: parsed.estado,
+      anio_inicio: parsed.anio_inicio ?? null,
+      anio_fin: parsed.anio_fin ?? null,
+      playlist_url: parsed.playlist_url ?? null,
+      portada_url: parsed.portada_url ?? null
+    })
+    .select('id, slug')
+  if (error) throw errorEscritura(error)
+  const fila = data?.[0]
+  if (!fila) throw new Error(ERRORES_ADMIN.datosInvalidos)
+
+  try {
+    if (parsed.canales.length > 0) {
+      const { error: errorParticipa } = await client.from('participa').insert(
+        parsed.canales.map(({ canal_id, rol }) => ({ serie_id: fila.id, canal_id, rol }))
+      )
+      if (errorParticipa) throw errorParticipa
+    }
+    if (parsed.episodios.length > 0) {
+      const { error: errorEpisodio } = await client.from('episodio').insert(
+        parsed.episodios.map(({ temporada, numero, titulo, video_id }) => ({
+          serie_id: fila.id,
+          temporada,
+          numero,
+          titulo,
+          video_id
+        }))
+      )
+      if (errorEpisodio) throw errorEpisodio
+    }
+  } catch (error) {
+    // Compensación: borrar la serie (cascade borra participa y episodio).
+    await client.from('serie').delete().eq('id', fila.id)
+    if (typeof error === 'object' && error !== null && 'message' in error) {
+      throw errorEscritura(error as { message: string; code?: string })
+    }
+    throw error
+  }
+  return fila
+}
+
+// Edita campos básicos (slug INMUTABLE) y sincroniza canales/episodios en
+// pasos secuenciales idempotentes (decisión 4 del plan): update de serie →
+// delete de participa ausentes + upsert del resto → delete de episodios
+// ausentes + upsert del resto. Cada paso es idempotente y reintentable; un
+// fallo parcial deja estado consistente (riesgo 1 del plan).
+export async function editarSerie(
+  client: AuthClient,
+  slug: string,
+  datos: SerieDatos
+): Promise<void> {
+  const parsed = parsearSerieDatos(datos)
+
+  // Lectura pública (serie_select_public): resuelve el id; para un no-mod el
+  // update posterior no verá la fila por RLS → mismo error que inexistente.
+  const serie = await unwrap(client.from('serie').select('id').eq('slug', slug).maybeSingle())
+  if (!serie) throw new Error(ERRORES_ADMIN.serieNoEncontrada)
+  const categoriaId = await categoriaPorSlug(client, parsed.categoria)
+
+  const { data: actualizadas, error: errorUpdate } = await client
+    .from('serie')
+    .update({
+      titulo: parsed.titulo,
+      descripcion: parsed.descripcion ?? null,
+      categoria_id: categoriaId,
+      estado: parsed.estado,
+      anio_inicio: parsed.anio_inicio ?? null,
+      anio_fin: parsed.anio_fin ?? null,
+      playlist_url: parsed.playlist_url ?? null,
+      portada_url: parsed.portada_url ?? null
+    })
+    .eq('id', serie.id)
+    .select('id')
+  if (errorUpdate) throw errorEscritura(errorUpdate)
+  if ((actualizadas ?? []).length === 0) throw new Error(ERRORES_ADMIN.serieNoEncontrada)
+
+  // participa: borrar canales ausentes; upsert del resto (onConflict en la PK
+  // serie_id,canal_id → crea nuevos y actualiza el rol de los existentes).
+  const canalIds = parsed.canales.map((canal) => canal.canal_id)
+  let borradoParticipa = client.from('participa').delete().eq('serie_id', serie.id)
+  if (canalIds.length > 0) {
+    borradoParticipa = borradoParticipa.not('canal_id', 'in', `(${canalIds.join(',')})`)
+  }
+  const { error: errorBorradoParticipa } = await borradoParticipa
+  if (errorBorradoParticipa) throw new Error(errorBorradoParticipa.message)
+
+  if (parsed.canales.length > 0) {
+    const { error: errorParticipa } = await client.from('participa').upsert(
+      parsed.canales.map(({ canal_id, rol }) => ({ serie_id: serie.id, canal_id, rol })),
+      { onConflict: 'serie_id,canal_id' }
+    )
+    if (errorParticipa) throw errorEscritura(errorParticipa)
+  }
+
+  // episodio: borrar por id los ausentes; upsert del resto (onConflict id →
+  // actualiza los existentes con id e inserta los nuevos sin id).
+  const idsEpisodios = parsed.episodios
+    .filter((episodio): episodio is EpisodioDatos & { id: string } => Boolean(episodio.id))
+    .map((episodio) => episodio.id)
+  let borradoEpisodio = client.from('episodio').delete().eq('serie_id', serie.id)
+  if (idsEpisodios.length > 0) {
+    borradoEpisodio = borradoEpisodio.not('id', 'in', `(${idsEpisodios.join(',')})`)
+  }
+  const { error: errorBorradoEpisodio } = await borradoEpisodio
+  if (errorBorradoEpisodio) throw new Error(errorBorradoEpisodio.message)
+
+  if (parsed.episodios.length > 0) {
+    // defaultToNull:false → Prefer: missing=default: a las filas nuevas (sin
+    // id) PostgREST les aplica gen_random_uuid() en vez de NULL en el bulk.
+    const { error: errorEpisodio } = await client.from('episodio').upsert(
+      parsed.episodios.map((episodio) => ({
+        ...(episodio.id ? { id: episodio.id } : {}),
+        serie_id: serie.id,
+        temporada: episodio.temporada,
+        numero: episodio.numero,
+        titulo: episodio.titulo,
+        video_id: episodio.video_id
+      })),
+      { onConflict: 'id', defaultToNull: false }
+    )
+    if (errorEpisodio) throw errorEscritura(errorEpisodio)
+  }
 }

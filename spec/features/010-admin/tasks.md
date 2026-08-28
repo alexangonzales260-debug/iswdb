@@ -21,18 +21,19 @@
   anon → error RLS.
   Criterio: npm test -- --run verde.
 
-- [ ] T3 — lib/admin.ts: crearSerie/editarSerie + Zod
+- [x] T3 — lib/admin.ts: crearSerie/editarSerie + Zod
   serieAdminSchema Zod (titulo mín 1, categoria slug existente, estado enum,
   años opcionales fin>=inicio, urls opcionales, canales[] canal_id+rol,
-  episodios[] temporada/numero/titulo/video_id sin duplicados) · slugify +
-  generarSlugUnico (sufijos -2, -3…) · crearSerie: insert anidado
-  participa+episodio en un request (transacción, ADM-05; 23505 → error
-  amigable) · editarSerie: update campos (slug inmutable) → upsert/delete
-  participa (onConflict serie_id,canal_id) → upsert/delete episodio
-  (onConflict id).
-  tests/lib/admin.test.ts (extender): creación completa en un request ·
-  titulo duplicado → slug con sufijo · validaciones · edición campos +
-  altas/bajas de canales y episodios · user → RLS denegado.
+  episodios[] temporada/numero/titulo/video_id) · slugify + generarSlugUnico
+  (sufijos -2, -3…) · crearSerie: insert serie → participa → episodio con
+  COMPENSACIÓN (fallo hijo → delete serie por cascade; PostgREST no soporta
+  inserts anidados, PGRST204 verificado; 23505 → error amigable) ·
+  editarSerie: update campos (slug inmutable) → upsert/delete participa
+  (onConflict serie_id,canal_id) → upsert/delete episodio (onConflict id).
+  tests/lib/admin.test.ts (extender): creación completa · fallo en episodio →
+  compensación (no queda serie) · titulo duplicado → slug con sufijo ·
+  validaciones · edición campos + altas/bajas de canales y episodios ·
+  episodio duplicado en edición → error amigable · user → RLS denegado.
   Criterio: npm test -- --run verde.
 
 - [ ] T4 — lib/admin-actions.ts ("use server")

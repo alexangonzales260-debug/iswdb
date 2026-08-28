@@ -11,13 +11,17 @@ vi.hoisted(() => {
 
 import {
   aprobarSerie,
+  crearSerie,
+  editarSerie,
   ERRORES_ADMIN,
   getRolUsuario,
   getSerieParaEditar,
   listSeriesPendientes,
   listTodasSeries,
   rechazarSerie,
-  requireMod
+  requireMod,
+  slugify,
+  type SerieDatos
 } from '@/lib/admin'
 import { listCanales } from '@/lib/canales'
 import {
@@ -41,6 +45,9 @@ let modId: string
 let userId: string
 let clientMod: SupabaseClient
 let clientUser: SupabaseClient
+let categoriaId: string
+let canalUnoId: string
+let canalDosId: string
 const createdAuthUserIds: string[] = []
 
 function slugDe(n: number): string {
@@ -77,6 +84,7 @@ beforeAll(async () => {
       .select('id')
       .single()
   )
+  categoriaId = categoria.id
   const canales = await unwrap(
     dbAdmin
       .from('canal')
@@ -91,6 +99,8 @@ beforeAll(async () => {
       .select('id, handle')
   )
   const canalIdPorHandle = Object.fromEntries(canales.map((c) => [c.handle, c.id]))
+  canalUnoId = canalIdPorHandle[`adm-canal-uno-${runId}`]
+  canalDosId = canalIdPorHandle[`adm-canal-dos-${runId}`]
 
   // created_at explícitos: orden FIFO de la cola (asc) y listado desc.
   const series = await unwrap(
@@ -179,6 +189,7 @@ afterAll(async () => {
     await deleteTestUser(id)
   }
   await unwrap(dbAdmin.from('serie').delete().like('slug', `adm-%${runId}`))
+  await unwrap(dbAdmin.from('serie').delete().like('slug', `serie-crud-${runId}%`))
   await unwrap(dbAdmin.from('canal').delete().like('handle', `adm-canal-%${runId}`))
   await unwrap(dbAdmin.from('categoria').delete().like('slug', `cat-adm-%${runId}`))
 })
@@ -328,5 +339,258 @@ describe('moderación (ADM-02/ADM-03)', () => {
     await expect(aprobarSerie(clientMod, `adm-noexiste-${runId}`)).rejects.toThrow(
       ERRORES_ADMIN.serieNoEncontrada
     )
+  })
+})
+
+describe('slugify', () => {
+  it('minúsculas, sin acentos, separadores por guiones', () => {
+    expect(slugify('¡Hola, Mundo!')).toBe('hola-mundo')
+    expect(slugify('  Árbol  de Ñandú ')).toBe('arbol-de-nandu')
+    expect(slugify('Serie   con   espacios')).toBe('serie-con-espacios')
+  })
+})
+
+// Datos válidos de serie para el CRUD; el titulo por defecto genera el slug
+// serie-crud-<runId> (las pruebas de creación dependen del orden: la primera
+// crea el slug base y la segunda ejercita el sufijo -2).
+function datosSerie(overrides: Partial<SerieDatos> = {}): SerieDatos {
+  return {
+    titulo: `Serie CRUD ${runId}`,
+    descripcion: 'Descripción de prueba',
+    categoria: `cat-adm-${runId}`,
+    estado: 'activa',
+    anio_inicio: 2024,
+    anio_fin: null,
+    playlist_url: `https://www.youtube.com/playlist?list=PLadm${runId}`,
+    portada_url: null,
+    canales: [],
+    episodios: [],
+    ...overrides
+  }
+}
+
+describe('crearSerie (ADM-05)', () => {
+  it('mod: crea serie + canales + episodios (compensación ante fallo)', async () => {
+    const creada = await crearSerie(
+      clientMod,
+      datosSerie({
+        canales: [
+          { canal_id: canalUnoId, rol: 'principal' },
+          { canal_id: canalDosId, rol: 'colaborador' }
+        ],
+        episodios: [
+          { temporada: 1, numero: 1, titulo: 'Piloto CRUD', video_id: `crud-t1e1-${runId}` },
+          { temporada: 1, numero: 2, titulo: 'Segundo CRUD', video_id: `crud-t1e2-${runId}` }
+        ]
+      })
+    )
+    expect(creada.slug).toBe(`serie-crud-${runId}`)
+
+    const fila = await unwrap(
+      dbAdmin.from('serie').select('*').eq('id', creada.id).single()
+    )
+    expect(fila.titulo).toBe(`Serie CRUD ${runId}`)
+    expect(fila.estado).toBe('activa')
+    expect(fila.moderation_status).toBe('aprobada')
+    expect(fila.anio_inicio).toBe(2024)
+    expect(fila.anio_fin).toBeNull()
+    expect(fila.categoria_id).toBe(categoriaId)
+    expect(fila.playlist_url).toContain('youtube.com/playlist')
+
+    const participa = await unwrap(
+      dbAdmin.from('participa').select('canal_id, rol').eq('serie_id', creada.id)
+    )
+    expect(participa).toHaveLength(2)
+    expect(participa).toEqual(
+      expect.arrayContaining([
+        { canal_id: canalUnoId, rol: 'principal' },
+        { canal_id: canalDosId, rol: 'colaborador' }
+      ])
+    )
+
+    const episodios = await unwrap(
+      dbAdmin
+        .from('episodio')
+        .select('temporada, numero, titulo, video_id')
+        .eq('serie_id', creada.id)
+        .order('numero')
+    )
+    expect(episodios.map((e) => e.titulo)).toEqual(['Piloto CRUD', 'Segundo CRUD'])
+    expect(episodios[0].video_id).toBe(`crud-t1e1-${runId}`)
+  })
+
+  it('titulo duplicado → slug con sufijo -2', async () => {
+    const creada = await crearSerie(clientMod, datosSerie())
+    expect(creada.slug).toBe(`serie-crud-${runId}-2`)
+  })
+
+  it('episodio duplicado → error amigable y compensación (no queda serie huérfana)', async () => {
+    const titulo = `Serie Compensada ${runId}`
+    await expect(
+      crearSerie(
+        clientMod,
+        datosSerie({
+          titulo,
+          canales: [{ canal_id: canalUnoId, rol: 'principal' }],
+          episodios: [
+            { temporada: 1, numero: 1, titulo: 'Dup A', video_id: `crud-comp-a-${runId}` },
+            { temporada: 1, numero: 1, titulo: 'Dup B', video_id: `crud-comp-b-${runId}` }
+          ]
+        })
+      )
+    ).rejects.toThrow(ERRORES_ADMIN.episodioDuplicado)
+    // Compensación: ni la serie ni sus hijos quedan en la BD.
+    const fila = await unwrap(
+      dbAdmin.from('serie').select('id').eq('slug', slugify(titulo)).maybeSingle()
+    )
+    expect(fila).toBeNull()
+  })
+
+  it('título vacío → error de validación', async () => {
+    await expect(crearSerie(clientMod, datosSerie({ titulo: '' }))).rejects.toThrow(
+      ERRORES_ADMIN.tituloRequerido
+    )
+    await expect(crearSerie(clientMod, datosSerie({ titulo: '   ' }))).rejects.toThrow(
+      ERRORES_ADMIN.tituloRequerido
+    )
+  })
+
+  it('anio_fin < anio_inicio → error de validación', async () => {
+    await expect(
+      crearSerie(clientMod, datosSerie({ anio_inicio: 2024, anio_fin: 2020 }))
+    ).rejects.toThrow(ERRORES_ADMIN.aniosInvalidos)
+  })
+
+  it('categoria inexistente → error', async () => {
+    await expect(
+      crearSerie(clientMod, datosSerie({ categoria: `cat-noexiste-${runId}` }))
+    ).rejects.toThrow(ERRORES_ADMIN.categoriaNoExiste)
+  })
+
+  it('user → denegado por RLS (no se crea nada)', async () => {
+    await expect(
+      crearSerie(clientUser, datosSerie({ titulo: `Serie CRUD User ${runId}` }))
+    ).rejects.toThrow(/row-level security/i)
+    const fila = await unwrap(
+      dbAdmin.from('serie').select('id').eq('slug', `serie-crud-user-${runId}`).maybeSingle()
+    )
+    expect(fila).toBeNull()
+  })
+})
+
+describe('editarSerie (ADM-06)', () => {
+  const slugCrud = () => `serie-crud-${runId}`
+
+  it('mod: cambia campos + altas/bajas de canales y episodios (slug inmutable)', async () => {
+    const antes = await getSerieParaEditar(clientMod, slugCrud())
+    expect(antes).not.toBeNull()
+    if (!antes) return
+    const piloto = antes.episodios.find((e) => e.temporada === 1 && e.numero === 1)
+    expect(piloto).toBeDefined()
+    if (!piloto) return
+
+    await editarSerie(
+      clientMod,
+      slugCrud(),
+      datosSerie({
+        titulo: `Serie CRUD editada ${runId}`,
+        descripcion: 'Descripción editada',
+        estado: 'finalizada',
+        anio_inicio: 2024,
+        anio_fin: 2025,
+        // Quita canal-dos y cambia el rol de canal-uno.
+        canales: [{ canal_id: canalUnoId, rol: 'invitado' }],
+        // Mantiene t1e1 (con id, cambia titulo), quita t1e2, añade t2e1 nueva.
+        episodios: [
+          {
+            id: piloto.id,
+            temporada: 1,
+            numero: 1,
+            titulo: 'Piloto editado',
+            video_id: piloto.video_id
+          },
+          { temporada: 2, numero: 1, titulo: 'Estreno T2 CRUD', video_id: `crud-t2e1-${runId}` }
+        ]
+      })
+    )
+
+    const fila = await unwrap(dbAdmin.from('serie').select('*').eq('slug', slugCrud()).single())
+    expect(fila.titulo).toBe(`Serie CRUD editada ${runId}`)
+    expect(fila.slug).toBe(slugCrud())
+    expect(fila.descripcion).toBe('Descripción editada')
+    expect(fila.estado).toBe('finalizada')
+    expect(fila.anio_fin).toBe(2025)
+
+    const participa = await unwrap(
+      dbAdmin.from('participa').select('canal_id, rol').eq('serie_id', fila.id)
+    )
+    expect(participa).toEqual([{ canal_id: canalUnoId, rol: 'invitado' }])
+
+    const episodios = await unwrap(
+      dbAdmin
+        .from('episodio')
+        .select('id, temporada, numero, titulo')
+        .eq('serie_id', fila.id)
+        .order('temporada')
+        .order('numero')
+    )
+    expect(episodios).toHaveLength(2)
+    // El episodio mantenido conserva su id (update, no delete+insert).
+    expect(episodios[0].id).toBe(piloto.id)
+    expect(episodios[0].titulo).toBe('Piloto editado')
+    expect(episodios[1]).toMatchObject({ temporada: 2, numero: 1, titulo: 'Estreno T2 CRUD' })
+  })
+
+  it('episodio duplicado (temporada,numero) → 23505 → error amigable, episodios intactos', async () => {
+    const antes = await getSerieParaEditar(clientMod, slugCrud())
+    expect(antes).not.toBeNull()
+    if (!antes) return
+
+    await expect(
+      editarSerie(
+        clientMod,
+        slugCrud(),
+        datosSerie({
+          titulo: antes.titulo,
+          estado: antes.estado as 'activa' | 'finalizada',
+          canales: antes.canales.map((c) => ({
+            canal_id: c.canal_id,
+            rol: c.rol as 'principal' | 'colaborador' | 'invitado'
+          })),
+          // Episodios existentes (con id) + 2 nuevos con igual temporada/número.
+          episodios: [
+            ...antes.episodios.map((e) => ({
+              id: e.id,
+              temporada: e.temporada,
+              numero: e.numero,
+              titulo: e.titulo,
+              video_id: e.video_id
+            })),
+            { temporada: 3, numero: 1, titulo: 'Duplicado A', video_id: `crud-dup-a-${runId}` },
+            { temporada: 3, numero: 1, titulo: 'Duplicado B', video_id: `crud-dup-b-${runId}` }
+          ]
+        })
+      )
+    ).rejects.toThrow(ERRORES_ADMIN.episodioDuplicado)
+
+    // El upsert fallido es atómico (un solo request): episodios sin cambios.
+    const despues = await getSerieParaEditar(clientMod, slugCrud())
+    expect(despues?.episodios.map((e) => `${e.temporada}x${e.numero}:${e.titulo}`)).toEqual(
+      antes.episodios.map((e) => `${e.temporada}x${e.numero}:${e.titulo}`)
+    )
+  })
+
+  it('user → denegado por RLS (0 filas en update, serie intacta)', async () => {
+    await expect(
+      editarSerie(clientUser, slugCrud(), datosSerie({ titulo: 'Hack' }))
+    ).rejects.toThrow(ERRORES_ADMIN.serieNoEncontrada)
+    const fila = await unwrap(dbAdmin.from('serie').select('titulo').eq('slug', slugCrud()).single())
+    expect(fila.titulo).toBe(`Serie CRUD editada ${runId}`)
+  })
+
+  it('slug inexistente → error', async () => {
+    await expect(
+      editarSerie(clientMod, `serie-noexiste-${runId}`, datosSerie())
+    ).rejects.toThrow(ERRORES_ADMIN.serieNoEncontrada)
   })
 })
