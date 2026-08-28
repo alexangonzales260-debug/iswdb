@@ -9,7 +9,7 @@
   denegado. Las políticas ya existen en M3 → no se crea migración.
   Criterio: npm test -- --run verde (BD local arriba).
 
-- [ ] T2 — lib/admin.ts: lecturas + moderación
+- [x] T2 — lib/admin.ts: lecturas + moderación
   getRolUsuario(client, userId) · requireMod() (sin sesión o rol ∉ {mod,admin}
   → notFound(), ADM-04) · listSeriesPendientes (created_at asc) ·
   listTodasSeries (con moderation_status, created_at desc) · getSerieParaEditar

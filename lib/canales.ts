@@ -56,6 +56,24 @@ export interface CanalFichaData {
   series: FilmografiaSerie[]
 }
 
+export interface CanalOption {
+  id: string
+  nombre: string
+  handle: string
+  avatar_url: string | null
+}
+
+// Listado completo de canales para el select del formulario de admin (010):
+// lectura pública (canal_select_public), ordenado por nombre.
+export async function listCanales(): Promise<CanalOption[]> {
+  return unwrap(
+    supabaseServer
+      .from('canal')
+      .select('id, nombre, handle, avatar_url')
+      .order('nombre', { ascending: true })
+  )
+}
+
 function toSerieFilmografia(row: SerieFilmografiaRow): SerieFilmografia {
   return {
     id: row.id,
