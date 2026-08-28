@@ -128,6 +128,48 @@ export type Database = {
           },
         ]
       }
+      reseña: {
+        Row: {
+          contenido: string
+          created_at: string
+          id: string
+          serie_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          contenido: string
+          created_at?: string
+          id?: string
+          serie_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          contenido?: string
+          created_at?: string
+          id?: string
+          serie_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reseña_serie_id_fkey"
+            columns: ["serie_id"]
+            isOneToOne: false
+            referencedRelation: "serie"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reseña_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "usuario"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       serie: {
         Row: {
           anio_fin: number | null
