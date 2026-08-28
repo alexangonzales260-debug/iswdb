@@ -222,3 +222,26 @@
   creadas y usuarios); el resto de specs pasa sin regresiones.
 - Cierre: D9 aclarado (la moderación se materializa en F010; F011 queda para
   aportes de usuarios), ROADMAP 010 ✅, validate.sh en verde, tag F10.
+
+## Sesión 12 — F12: Reseñas (F012)
+- F12: Reseñas 50-2000 chars con publicación directa (sin cola de
+  moderación). Requiere valoración previa (server-side). Mod/admin puede
+  eliminar cualquier reseña. Migración M5 (tabla reseña) + M6 (usuario.email
+  para embed) + M7 (restricción de usuario_select_authenticated que exponía
+  emails). Email del autor leído vía service-role, truncado server-side.
+  Fix de remount del form con key. 182 unit + 46 E2E sin regresiones.
+- Hallazgo (seguridad): usuario_select_authenticated (M3) usaba `using (true)`;
+  al añadir usuario.email (M6) exponía el email de todos los usuarios a
+  cualquier cuenta autenticada vía API raw. M7 restringe el SELECT a la fila
+  propia o mod/admin; la app solo lee la fila propia y la lista pública de
+  reseñas usa service-role, así que nada se rompió (182 tests verdes).
+- Hallazgo (stack local): el admin de GoTrue responde 500 en /admin/users
+  ("sql: Scan error on column index 8, name email_change: converting NULL to
+  string is unsupported") — listUsers inservible; el helper E2E
+  getUserIdByEmail consulta public.usuario en su vez.
+- Hallazgo (E2E): getByRole de Playwright matchea el accessible name por
+  subcadena ('Eliminar' cazaba 'Eliminar valoración' → exact:true). Además,
+  pipear la salida de playwright a grep/head que termina antes deja
+  ejecuciones huérfanas que contaminan la BD entre runs; salida a archivo.
+- Cierre: D18 añadido, ROADMAP 012 ✅, validate.sh en verde (182 unit + 46
+  E2E), tag F12.

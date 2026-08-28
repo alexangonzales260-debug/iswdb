@@ -49,7 +49,7 @@
   límite).
   Criterio: npm test -- --run verde.
 
-- [ ] T3 — Server Actions + componentes + ficha
+- [x] T3 — Server Actions + componentes + ficha
   lib/reseñas-actions.ts (nuevo, "use server"): accionCrearReseña(serieSlug,
   prev, formData) / accionEditarReseña(serieSlug, reseñaId, prev, formData)
   con Zod + requireUser({ next, message }) (AUTH-06) + servicio +
@@ -72,7 +72,7 @@
   Criterio: lint + typecheck + build verdes; smoke manual en dev (crear/
   editar/eliminar con sesión; estados RES-05/RES-06; botón mod).
 
-- [ ] T4 — E2E Playwright
+- [x] T4 — E2E Playwright
   e2e/global-setup.ts: añadir reseña al wipe().
   e2e/resenas.spec.ts (nuevo; usuarios únicos por ejecución, cleanup
   deleteAuthUser → cascade): flujo login → ficha e2e-01 → mensaje RES-06 +

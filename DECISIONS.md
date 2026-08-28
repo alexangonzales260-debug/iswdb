@@ -40,3 +40,10 @@
      public.buscar_canales) con extensión unaccent e ILIKE, SECURITY INVOKER
      y search_path fijado. El escape de comodines (%/_/\) vive en SQL.
      Filtrado en BD (no fetch-all) por escalabilidad; RLS intacto vía invoker.
+- D18: Reseñas con publicación directa (sin moderation_status). El autor
+     debe haber valorado la serie (check server-side). Mod/admin puede borrar
+     cualquier reseña (RLS delete_own_or_mod). El email del autor se lee vía
+     service-role y se trunca server-side (truncarEmail) para no exponerlo al
+     cliente. usuario.email se añadió como columna denormalizada (M6) para el
+     embed, y usuario_select_authenticated se restringió (M7) para no filtrar
+     emails ajenos.
