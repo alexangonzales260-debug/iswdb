@@ -36,7 +36,7 @@
   (Canal BS Dos/Tres → []) y acentos ('cafe canal' → Café Canal).
   Criterio: `npm test -- --run` verde (suite completa, BD local arriba).
 
-- [ ] T3 — Ruta /buscar + barra del header
+- [x] T3 — Ruta /buscar + barra del header
   app/buscar/page.tsx (nuevo, RSC): force-dynamic · searchParams Promise ·
   generateMetadata title `Búsqueda: <q>` (sin q → "Buscar") + description +
   canonical/OG · sin q → hint "Busca por título de serie o nombre de canal"

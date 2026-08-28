@@ -1,7 +1,9 @@
 import Link from 'next/link'
+import { Search } from 'lucide-react'
 
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { getUser } from '@/lib/auth'
 import { accionLogout } from '@/lib/auth-actions'
 
@@ -13,7 +15,7 @@ export async function Header() {
 
   return (
     <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur">
-      <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-4 px-4">
+      <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2 sm:h-14 sm:flex-nowrap sm:py-0">
         <div className="flex items-center gap-6">
           <Link href="/" className="text-lg font-bold tracking-tight">
             iswdb
@@ -39,6 +41,31 @@ export async function Header() {
             </Link>
           </nav>
         </div>
+        {/* BUS-06: búsqueda como formulario GET puro de servidor (cero JS
+            cliente), sin prefill. En móvil baja a una segunda fila
+            (order-last + w-full); desde sm queda entre el nav y la cuenta. */}
+        <form
+          action="/buscar"
+          role="search"
+          className="order-last w-full sm:order-none sm:w-44 md:w-56"
+        >
+          <label htmlFor="busqueda-header" className="sr-only">
+            Buscar
+          </label>
+          <div className="relative">
+            <Search
+              className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+              aria-hidden="true"
+            />
+            <Input
+              id="busqueda-header"
+              type="search"
+              name="q"
+              placeholder="Buscar series o canales"
+              className="h-9 pl-8"
+            />
+          </div>
+        </form>
         <div className="flex items-center gap-3">
           {user ? (
             <>
