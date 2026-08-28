@@ -380,6 +380,30 @@ describe('M5 RLS — mod/admin (reseña_delete_own_or_mod, D10)', () => {
   }, 30_000)
 })
 
+describe('M7 RLS — usuario: SELECT solo fila propia (email protegido)', () => {
+  it('anon: SELECT en usuario denegado (sin grant ni política)', async () => {
+    const { error } = await db.from('usuario').select('id, email').eq('id', escritorId)
+    expect(error).not.toBeNull()
+  })
+
+  it('user lee su fila con email; la de otro → 0 filas', async () => {
+    const propia = await unwrap(
+      clientEscritor.from('usuario').select('id, email').eq('id', escritorId).single()
+    )
+    expect(propia.email).toBe(emailDe('escritor'))
+
+    const { data: ajenas } = await clientEscritor.from('usuario').select('id').eq('id', otroId)
+    expect(ajenas).toHaveLength(0)
+  }, 30_000)
+
+  it('mod lee cualquier fila (moderación, is_admin_or_mod)', async () => {
+    const fila = await unwrap(
+      clientMod.from('usuario').select('email').eq('id', escritorId).single()
+    )
+    expect(fila.email).toBe(emailDe('escritor'))
+  }, 30_000)
+})
+
 // ── F012 · Servicios (lib/reseñas.ts) ──────────────────────────────────────
 // Clientes con sesión en memoria (signInTestUser): RLS con auth.uid() real
 // sin request context de Next. dbAdmin hace de cliente service-role en las
