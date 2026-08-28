@@ -49,7 +49,7 @@
   JS cliente (BUS-06).
   Criterio: lint + typecheck + build verdes; smoke manual con seed temporal.
 
-- [ ] T4 — E2E Playwright
+- [x] T4 — E2E Playwright
   e2e/busqueda.spec.ts (nuevo; sin cambios en el fixture global): / → barra
   del header con 'Canal Dos' → /buscar?q=… → sección "Series" (Serie e2e 1,
   Serie e2e 9) + sección "Canales" (link /canales/canal-dos) → click en
