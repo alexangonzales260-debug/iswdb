@@ -55,7 +55,8 @@ const SERIE_ADMIN_SELECT = `
   slug,
   moderation_status,
   created_at,
-  categoria ( nombre, slug )
+  categoria ( nombre, slug ),
+  participa ( canal ( nombre, handle ) )
 ` as const
 
 export interface SerieAdmin {
@@ -65,6 +66,7 @@ export interface SerieAdmin {
   moderation_status: string
   created_at: string
   categoria: { nombre: string; slug: string } | null
+  canales: { nombre: string; handle: string }[]
 }
 
 function serieAdminQuery(client: AuthClient) {
@@ -80,7 +82,10 @@ function toSerieAdmin(row: SerieAdminRow): SerieAdmin {
     slug: row.slug,
     moderation_status: row.moderation_status,
     created_at: row.created_at,
-    categoria: row.categoria ? { nombre: row.categoria.nombre, slug: row.categoria.slug } : null
+    categoria: row.categoria ? { nombre: row.categoria.nombre, slug: row.categoria.slug } : null,
+    canales: row.participa
+      .map((p) => p.canal)
+      .filter((canal): canal is NonNullable<typeof canal> => canal !== null)
   }
 }
 

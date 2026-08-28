@@ -230,6 +230,8 @@ describe('listSeriesPendientes (ADM-01)', () => {
     expect(pendientes[0].titulo).toBe('Serie ADM Dos')
     expect(pendientes[0].moderation_status).toBe('pendiente')
     expect(pendientes[0].categoria?.slug).toBe(`cat-adm-${runId}`)
+    // El fixture solo da canales a la serie aprobada (slugDe(1)).
+    expect(pendientes[0].canales).toEqual([])
   })
 
   // M3: serie_select_public usa `using (true)` — la lectura de pendientes es
@@ -250,6 +252,13 @@ describe('listTodasSeries (ADM-01)', () => {
       'rechazada',
       'pendiente',
       'aprobada'
+    ])
+    // La aprobada (slugDe(1)) es la única del fixture con canales; el orden
+    // del embed participa no está garantizado por PostgREST → sort en la aserción.
+    const aprobada = todas.find((s) => s.slug === slugDe(1))
+    expect(aprobada?.canales.map((c) => c.nombre).sort()).toEqual([
+      'Canal ADM Dos',
+      'Canal ADM Uno'
     ])
   })
 })
