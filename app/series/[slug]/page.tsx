@@ -7,6 +7,7 @@ import { CastList } from "@/components/cast-list";
 import { EmptyState } from "@/components/empty-state";
 import { RatingHistogram } from "@/components/rating-histogram";
 import { RatingSelector } from "@/components/rating-selector";
+import { ReseñasSection } from "@/components/reseñas-section";
 import { SeasonList } from "@/components/season-list";
 import { Badge } from "@/components/ui/badge";
 import { getUser } from "@/lib/auth";
@@ -149,6 +150,8 @@ async function ContenidoFicha({ serie }: { serie: SerieFicha }) {
       <Cabecera serie={serie} />
 
       <Valoraciones serie={serie} />
+
+      <ReseñasSection serieId={serie.id} serieSlug={serie.slug} />
 
       {serie.canales.length > 0 && (
         <section className="space-y-4" aria-labelledby="reparto-heading">
