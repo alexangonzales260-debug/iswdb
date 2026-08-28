@@ -28,7 +28,7 @@
   vacío/corto → Zod · email inválido → Zod.
   Criterio: npm test -- --run verde.
 
-- [ ] T3 — lib/propuestas-actions.ts ("use server")
+- [x] T3 — lib/propuestas-actions.ts ("use server")
   accionProponerSerie(prevState, formData) SIN requireUser: parseo + canales
   JSON → crearPropuesta → revalidatePath('/admin') + redirect
   '/propuesta-enviada' (fuera del try/catch); fallo → { error }.
