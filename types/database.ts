@@ -182,9 +182,11 @@ export type Database = {
           moderation_status: string
           playlist_url: string | null
           portada_url: string | null
+          proponente_email: string | null
           slug: string
           titulo: string
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           anio_fin?: number | null
@@ -197,9 +199,11 @@ export type Database = {
           moderation_status?: string
           playlist_url?: string | null
           portada_url?: string | null
+          proponente_email?: string | null
           slug: string
           titulo: string
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           anio_fin?: number | null
@@ -212,9 +216,11 @@ export type Database = {
           moderation_status?: string
           playlist_url?: string | null
           portada_url?: string | null
+          proponente_email?: string | null
           slug?: string
           titulo?: string
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -222,6 +228,13 @@ export type Database = {
             columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "categoria"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "serie_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "usuario"
             referencedColumns: ["id"]
           },
         ]
@@ -323,9 +336,11 @@ export type Database = {
           moderation_status: string
           playlist_url: string | null
           portada_url: string | null
+          proponente_email: string | null
           slug: string
           titulo: string
           updated_at: string
+          user_id: string | null
         }[]
         SetofOptions: {
           from: "*"
@@ -333,6 +348,18 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      crear_propuesta: {
+        Args: {
+          p_canales: Json
+          p_categoria_id: string
+          p_descripcion: string
+          p_playlist_url: string
+          p_proponente_email: string
+          p_slug: string
+          p_titulo: string
+        }
+        Returns: undefined
       }
       is_admin_or_mod: { Args: never; Returns: boolean }
     }
