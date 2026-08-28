@@ -5,7 +5,7 @@
 | 003 | Catálogo público: home + filtros categoría/canal | L2  | ✅     |
 | 004 | Ficha de serie + episodios + embed YouTube     | L2    | ✅     |
 | 005 | Ficha de canal ("filmografía" del youtuber)    | L1    | ✅     |
-| 006 | Búsqueda (título, canal)                       | L2    |        |
+| 006 | Búsqueda (título, canal)                       | L2    | ✅     |
 | 007 | Seed: 20–30 series reales                      | L1    | ✅     |
 | 008 | Autenticación (email + password)               | L2    | ✅     |
 | 009 | Valoraciones 1–10 + agregados + fórmula WR     | L2    | ✅     |

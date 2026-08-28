@@ -163,3 +163,39 @@
   re-ejecutar (el mismo motivo de los retries de GoTrue en global-setup).
 - Cierre: D16 añadido (derivados sin caché), ROADMAP 009 ✅, validate.sh
   en verde, tag F9.
+
+## Sesión 10 — F6: Búsqueda (F006)
+- F6: Búsqueda completada. Página /buscar?q=<término> (RSC, force-dynamic):
+  secciones Series (SerieCard reutilizado de F003, orden WR desc VAL-05) y
+  Canales (avatar + nombre + handle visible con '@', link /canales/<handle>
+  sin '@' por D15); solo se renderizan secciones con resultados; sin q →
+  hint (BUS-04) + formulario en la página; sin resultados → EmptyState con
+  link a /series (BUS-05). Barra de búsqueda en el header como formulario
+  GET puro de servidor (sin JS cliente, sin prefill); en móvil baja a una
+  segunda fila (flex-wrap + order-last + w-full). Metadata dinámica
+  "Búsqueda: <q> · ISWDB" vía template del layout (BUS-08).
+- Decisión clave (aprobada en planificación): el builder de supabase-js no
+  puede invocar funciones dentro de los filtros, así que el predicado
+  ILIKE + unaccent vive en funciones RPC. Migración única: extensión
+  unaccent (schema extensions) + public.buscar_series/public.buscar_canales
+  (returns setof, language sql stable, SECURITY INVOKER, search_path fijado
+  a public,extensions). El escape de comodines %/_/\ se hace en SQL
+  (replace en orden \, %, _). gen:types declara SetofOptions to: "serie"/
+  "canal" → .rpc().select(SERIE_SELECT) tipa los embeds sin necesidad del
+  fallback por ids. Orden de series: byWrDesc reutilizado (exportado de
+  lib/series.ts junto a SERIE_SELECT y toSerieCard; precedente del export
+  de toRating en F005).
+- Hallazgo operativo (stack local): podman 4.9.3 rechaza el template
+  {{.Label}} que usa supabase CLI 2.115.0 al listar contenedores
+  ("can't evaluate field Label in type containers.psReporter") → start/stop
+  fallan si hay contenedores presentes. Workaround: podman rm -f de los
+  contenedores restantes + npx supabase start en limpio (con la lista vacía
+  el bug no dispara; el volumen de la BD se conserva). CLI 2.116.0
+  disponible pero NO actualizado (stack fijado, decisión de revisión).
+- Cierre: D17 añadido (búsqueda con RPC + unaccent), ROADMAP 006 ✅,
+  validate.sh en verde (110 tests unitarios + 36 E2E), tag F6. Lighthouse
+  /buscar?q=marbella (mobile, prod, 5 auditorías): Perf 79–97 (varianza por
+  load average del host ~4–5 en 4 cores; alcanza 97 con máquina descargada,
+  patrón F005; LCP 2.6–3.3 s dominado por la portada lazy del grid, mismo
+  patrón que /series en F003). Accessibility 100 y SEO 100 consistentes en
+  las 5 auditorías; CLS 0.

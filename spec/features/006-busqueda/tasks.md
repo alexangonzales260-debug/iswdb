@@ -59,7 +59,7 @@
   Criterio: `npm run test:e2e` verde (sin regresiones en catalogo, ficha,
   canal, valoraciones, auth).
 
-- [ ] T5 — Lighthouse + cierre
+- [x] T5 — Lighthouse + cierre
   Lighthouse manual en /buscar?q=<término> (Perf ≥90, SEO 100, A11y ≥95;
   evidencia pegada) · ./validate.sh completo en verde (evidencia pegada) ·
   ROADMAP.md (006 ✅) · docs/memory/session-log.md · Commit de cierre:
