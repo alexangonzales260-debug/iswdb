@@ -3,6 +3,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { ExternalLink, Film, ListMusic, Star } from "lucide-react";
 
+import { AddToList } from "@/components/add-to-list";
 import { CastList } from "@/components/cast-list";
 import { EmptyState } from "@/components/empty-state";
 import { RatingHistogram } from "@/components/rating-histogram";
@@ -10,8 +11,9 @@ import { RatingSelector } from "@/components/rating-selector";
 import { ReseñasSection } from "@/components/reseñas-section";
 import { SeasonList } from "@/components/season-list";
 import { Badge } from "@/components/ui/badge";
-import { getUser } from "@/lib/auth";
+import { createAuthClient, getUser } from "@/lib/auth";
 import { ratingTexto, truncateDescripcion } from "@/lib/format";
+import { listMisListas } from "@/lib/listas";
 import { getSerieBySlug, type SerieFicha } from "@/lib/series";
 import { getValoracionUsuario } from "@/lib/valoraciones";
 
@@ -144,12 +146,35 @@ async function Valoraciones({ serie }: { serie: SerieFicha }) {
   );
 }
 
+// Sección "Añadir a lista" (F013, LIS-10): dropdown con mis listas solo con
+// sesión; las listas se pasan por prop (server-side, RSC) para que el
+// componente cliente no haga fetch.
+async function AñadirALista({ serie }: { serie: SerieFicha }) {
+  const user = await getUser();
+  let listas: Awaited<ReturnType<typeof listMisListas>> = [];
+  if (user) {
+    const client = await createAuthClient();
+    listas = await listMisListas(client, user.id);
+  }
+
+  return (
+    <AddToList
+      serieId={serie.id}
+      serieSlug={serie.slug}
+      conSesion={user !== null}
+      listas={listas}
+    />
+  );
+}
+
 async function ContenidoFicha({ serie }: { serie: SerieFicha }) {
   return (
     <div className="space-y-10">
       <Cabecera serie={serie} />
 
       <Valoraciones serie={serie} />
+
+      <AñadirALista serie={serie} />
 
       <ReseñasSection serieId={serie.id} serieSlug={serie.slug} />
 
