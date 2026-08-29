@@ -50,3 +50,9 @@
      cliente. usuario.email se añadió como columna denormalizada (M6) para el
      embed, y usuario_select_authenticated se restringió (M7) para no filtrar
      emails ajenos.
+- D19: Listas personalizadas con modelo lista + lista_serie (UNIQUE
+     lista_id+serie_id, posición para orden manual). RLS own_or_public vía
+     subconsulta al padre lista (lista_serie no tiene user_id). Sin lista por
+     defecto (crear explícitamente). Reordenar completo validado server-side
+     (array con exactamente las series actuales). getLista/getListaPublica
+     reciben AuthClient para que el RLS deje ver las privadas propias.

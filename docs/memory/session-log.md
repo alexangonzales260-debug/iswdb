@@ -257,3 +257,11 @@
   de anon era inviable → RPC SECURITY DEFINER. 212 unit + 50 E2E.
 - Cierre: D9 aclarado (F011 con user_id nullable en serie), ROADMAP 011 ✅,
   validate.sh en verde, tag F11.
+
+## Sesión 14 — F13: Listas personalizadas (F013)
+- F13: Listas personalizadas (públicas/privadas) con orden manual.
+  Migración M9 (lista + lista_serie + RLS own_or_public vía subconsulta
+  al padre). Servicios inyectables LIS-01..06. Botón "Añadir a lista" en
+  la ficha. Bug destapado por E2E: descripcion null no admitido por Zod
+  (fix .nullable().optional()). 255 unit + 54 E2E.
+- Cierre: D19 añadido, ROADMAP 013 ✅, validate.sh en verde, tag F13.

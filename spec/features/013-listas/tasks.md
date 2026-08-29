@@ -88,7 +88,7 @@
   /listas/<id> → 404 (LIS-08) · sin sesión en /listas → redirect a /login.
   Criterio: npm run test:e2e verde; sin regresiones.
 
-- [ ] T5 — validate.sh + cierre
+- [x] T5 — validate.sh + cierre
   ./validate.sh completo (salida real pegada) · ROADMAP.md (013 ✅) ·
   DECISIONS.md (D19: modelo lista/lista_serie, RLS own_or_public vía
   subconsulta al padre, sin lista por defecto) · docs/memory/session-log.md
