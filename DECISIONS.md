@@ -11,7 +11,10 @@
 - D9 Las series aportadas por usuarios nacerán con estado pendiente y cola de
      moderación. La infraestructura de moderación (panel /admin, aprobar/
      rechazar, CRUD de series con canales y episodios) se materializó en F010;
-     F011 (L3) aporta el flujo de alta por usuarios.
+     F011 (L3) aporta el flujo de alta por usuarios. El alta anónima se modela
+     con user_id NULLABLE en serie (no con un "usuario sistema"): una propuesta
+     anónima deja user_id = NULL y el contacto en proponente_email; la
+     escritura pasa solo por la función crear_propuesta() SECURITY DEFINER.
 - D10 Roles en BD: tabla usuario.rol + función is_admin_or_mod() (SECURITY DEFINER + STABLE).
      Trigger prevent_self_role_escalation impide auto-escalada.
 - D11 RLS valoracion: lectura pública (anon puede ver notas); escritura solo autenticado + fila propia.

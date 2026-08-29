@@ -245,3 +245,15 @@
   ejecuciones huérfanas que contaminan la BD entre runs; salida a archivo.
 - Cierre: D18 añadido, ROADMAP 012 ✅, validate.sh en verde (182 unit + 46
   E2E), tag F12.
+
+## Sesión 13 — F11: Propuestas de series (F011)
+- F11: Propuestas de series públicas (sin login). Migración M8
+  (proponente_email + user_id nullable en serie, split de
+  serie_select_public anon/aprobada + authenticated/true, RPC
+  crear_propuesta SECURITY DEFINER que inserta serie+participa en una
+  transacción forzando pendiente+user_id null). Slug -prop-<ts>-<rand>.
+  Hallazgo PostgreSQL: con RLS activo una fila recién insertada debe ser
+  legible por las SELECT policies del rol, por lo que el insert directo
+  de anon era inviable → RPC SECURITY DEFINER. 212 unit + 50 E2E.
+- Cierre: D9 aclarado (F011 con user_id nullable en serie), ROADMAP 011 ✅,
+  validate.sh en verde, tag F11.

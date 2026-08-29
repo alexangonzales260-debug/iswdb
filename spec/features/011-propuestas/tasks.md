@@ -43,14 +43,14 @@
   (estático, metadata y mensaje de gracias con links).
   Criterio: lint + typecheck + build verdes; smoke manual en dev.
 
-- [ ] T5 — E2E Playwright
+- [x] T5 — E2E Playwright
   e2e/propuestas.spec.ts: anónimo → formulario visible → rellenar (canal
   'canal-uno') → submit → /propuesta-enviada "Gracias…" → login mod → /admin
   ve la propuesta → aprueba → visible en /series (PRO-01/07/08). afterAll:
   deleteSeriesBySlugLike('-prop-%') + deleteAuthUser(mod).
   Criterio: npm run test:e2e verde sin regresiones.
 
-- [ ] T6 — validate.sh + cierre
+- [x] T6 — validate.sh + cierre
   ./validate.sh (salida pegada) · ROADMAP.md (011 ✅) · DECISIONS.md (D9
   aclarada: F011 con user_id nullable) · session-log.md · commit `F11: …`.
   Criterio: Definition of Done completa.
