@@ -24,6 +24,8 @@ export const ERRORES_LISTA = {
 
 // LIS-01: nombre requerido, trim 3-100. es_publica y descripcion opcionales;
 // el nombre se valida trimeado y se almacena ya trimeado (igual que reseñas).
+// descripcion admite string | null | undefined: la action convierte el textarea
+// vacío en null (la columna es text nullable), y null no es un string para Zod.
 const listaSchema = z.object({
   nombre: z
     .string()
@@ -31,7 +33,7 @@ const listaSchema = z.object({
     .min(3, ERRORES_LISTA.nombreInvalido)
     .max(100, ERRORES_LISTA.nombreInvalido),
   es_publica: z.boolean().optional(),
-  descripcion: z.string().trim().optional()
+  descripcion: z.string().trim().nullable().optional()
 })
 
 export interface CrearListaDatos {
@@ -80,7 +82,7 @@ export async function crearLista(
       user_id: userId,
       nombre: parsed.data.nombre,
       es_publica: parsed.data.es_publica ?? false,
-      descripcion: parsed.data.descripcion ?? null
+      descripcion: parsed.data.descripcion || null
     })
     .select('id')
     .single()

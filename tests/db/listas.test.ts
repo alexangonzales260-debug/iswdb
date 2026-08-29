@@ -456,6 +456,20 @@ describe('crearLista (LIS-01)', () => {
     }
   }, 30_000)
 
+  it('descripcion null/vacía se guarda como NULL; sin descripcion igual (accion → null)', async () => {
+    // La server action convierte el textarea vacío en null: Zod debe aceptar
+    // null (columna text nullable) y el insert normaliza '' → NULL.
+    const { id } = await crearLista(clientOwner, { nombre: 'Lista desc null', descripcion: null })
+    try {
+      const fila = await unwrap(
+        dbAdmin.from('lista').select('descripcion').eq('id', id).single()
+      )
+      expect(fila.descripcion).toBeNull()
+    } finally {
+      await unwrap(dbAdmin.from('lista').delete().eq('id', id))
+    }
+  }, 30_000)
+
   it('nombre vacío/corto/largo → error Zod y no escribe', async () => {
     await expect(crearLista(clientOwner, { nombre: '' })).rejects.toThrow(
       ERRORES_LISTA.nombreInvalido
