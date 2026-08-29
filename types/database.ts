@@ -92,6 +92,80 @@ export type Database = {
           },
         ]
       }
+      lista: {
+        Row: {
+          created_at: string
+          descripcion: string | null
+          es_publica: boolean
+          id: string
+          nombre: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          descripcion?: string | null
+          es_publica?: boolean
+          id?: string
+          nombre: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          descripcion?: string | null
+          es_publica?: boolean
+          id?: string
+          nombre?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lista_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "usuario"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lista_serie: {
+        Row: {
+          added_at: string
+          lista_id: string
+          posicion: number
+          serie_id: string
+        }
+        Insert: {
+          added_at?: string
+          lista_id: string
+          posicion: number
+          serie_id: string
+        }
+        Update: {
+          added_at?: string
+          lista_id?: string
+          posicion?: number
+          serie_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lista_serie_lista_id_fkey"
+            columns: ["lista_id"]
+            isOneToOne: false
+            referencedRelation: "lista"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lista_serie_serie_id_fkey"
+            columns: ["serie_id"]
+            isOneToOne: false
+            referencedRelation: "serie"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       participa: {
         Row: {
           canal_id: string
