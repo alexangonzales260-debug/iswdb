@@ -1,5 +1,26 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import type { SupabaseClient } from '@supabase/supabase-js'
+
+// lib/listas.ts importa lib/supabase.ts, que lanza si faltan env vars (fail
+// fast); vi.hoisted define las vars antes de los imports (patrón valoraciones).
+vi.hoisted(() => {
+  process.env.NEXT_PUBLIC_SUPABASE_URL ??= 'http://127.0.0.1:54321'
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??=
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
+})
+
+import {
+  añadirSerieALista,
+  crearLista,
+  eliminarLista,
+  ERRORES_LISTA,
+  getLista,
+  getListaPublica,
+  listMisListas,
+  quitarSerieDeLista,
+  renombrarLista,
+  reordenarLista
+} from '@/lib/listas'
 import type { Database } from '@/types/database'
 import {
   createTestUser,
@@ -33,6 +54,7 @@ let clientOtro: SupabaseClient<Database>
 let categoriaId: string
 let serieAId: string
 let serieBId: string
+let seriePendienteId: string
 
 let listaPrivadaOwnerId: string
 let listaPublicaOwnerId: string
@@ -85,13 +107,20 @@ beforeAll(async () => {
     dbAdmin
       .from('serie')
       .insert([
-        { titulo: 'Serie List A', slug: slugDe('a'), categoria_id: categoria.id },
-        { titulo: 'Serie List B', slug: slugDe('b'), categoria_id: categoria.id }
+        { titulo: 'Serie List A', slug: slugDe('a'), categoria_id: categoria.id, moderation_status: 'aprobada' },
+        { titulo: 'Serie List B', slug: slugDe('b'), categoria_id: categoria.id, moderation_status: 'aprobada' },
+        {
+          titulo: 'Serie List Pendiente',
+          slug: slugDe('pendiente'),
+          categoria_id: categoria.id,
+          moderation_status: 'pendiente'
+        }
       ])
       .select('id, slug')
   )
   serieAId = series.find((s) => s.slug === slugDe('a'))!.id
   serieBId = series.find((s) => s.slug === slugDe('b'))!.id
+  seriePendienteId = series.find((s) => s.slug === slugDe('pendiente'))!.id
 
   // Tres listas base: privada del owner, pública del owner y privada de otro.
   const listas = await unwrap(
@@ -110,7 +139,12 @@ beforeAll(async () => {
 }, 60_000)
 
 afterAll(async () => {
-  await unwrap(dbAdmin.from('serie').delete().in('slug', [slugDe('a'), slugDe('b')]))
+  await unwrap(
+    dbAdmin
+      .from('serie')
+      .delete()
+      .in('slug', [slugDe('a'), slugDe('b'), slugDe('pendiente')])
+  )
   await unwrap(dbAdmin.from('categoria').delete().eq('id', categoriaId))
   for (const id of createdAuthUserIds) {
     await deleteTestUser(id)
@@ -389,5 +423,358 @@ describe('M9 RLS — lista_serie (subconsulta al padre)', () => {
       db.from('lista_serie').select('serie_id').eq('lista_id', listaPrivadaOwnerId)
     )
     expect(privada).toEqual([])
+  }, 30_000)
+})
+
+// ── F013 · Servicios (lib/listas.ts) ──────────────────────────────────────
+// Se ejercitan black-box a través de los servicios con clientes de sesión en
+// memoria (signInTestUser): el RLS con auth.uid() real sin request context de
+// Next. Cada test crea sus propias listas con crearLista para no interferir
+// con las listas base de los tests M9 anteriores, y las limpia en finally.
+
+describe('crearLista (LIS-01)', () => {
+  it('crea con es_publica=false por defecto y guarda el nombre trimeado', async () => {
+    const { id } = await crearLista(clientOwner, { nombre: '  Mi lista fav  ' })
+    try {
+      const fila = await unwrap(
+        dbAdmin.from('lista').select('nombre, es_publica').eq('id', id).single()
+      )
+      expect(fila.nombre).toBe('Mi lista fav')
+      expect(fila.es_publica).toBe(false)
+    } finally {
+      await unwrap(dbAdmin.from('lista').delete().eq('id', id))
+    }
+  }, 30_000)
+
+  it('respeta es_publica=true cuando se pide', async () => {
+    const { id } = await crearLista(clientOwner, { nombre: 'Lista pública crear', es_publica: true })
+    try {
+      const fila = await unwrap(dbAdmin.from('lista').select('es_publica').eq('id', id).single())
+      expect(fila.es_publica).toBe(true)
+    } finally {
+      await unwrap(dbAdmin.from('lista').delete().eq('id', id))
+    }
+  }, 30_000)
+
+  it('nombre vacío/corto/largo → error Zod y no escribe', async () => {
+    await expect(crearLista(clientOwner, { nombre: '' })).rejects.toThrow(
+      ERRORES_LISTA.nombreInvalido
+    )
+    await expect(crearLista(clientOwner, { nombre: 'ab' })).rejects.toThrow(
+      ERRORES_LISTA.nombreInvalido
+    )
+    await expect(crearLista(clientOwner, { nombre: nombreDe(101) })).rejects.toThrow(
+      ERRORES_LISTA.nombreInvalido
+    )
+    // Longitud exacta del límite inferior tras trim.
+    await expect(crearLista(clientOwner, { nombre: nombreDe(2) })).rejects.toThrow(
+      ERRORES_LISTA.nombreInvalido
+    )
+  }, 30_000)
+
+  it('sin sesión (anon) → error', async () => {
+    await expect(crearLista(db, { nombre: 'Sin sesión' })).rejects.toThrow(
+      ERRORES_LISTA.sinSesion
+    )
+  }, 30_000)
+})
+
+describe('crud LIS-02..06 (renombrar/eliminar/añadir/quitar/reordenar)', () => {
+  it('renombrar lista propia actualiza el nombre (LIS-02)', async () => {
+    const { id } = await crearLista(clientOwner, { nombre: 'Israel original' })
+    try {
+      await renombrarLista(clientOwner, id, 'Lista renombrada')
+      const fila = await unwrap(dbAdmin.from('lista').select('nombre').eq('id', id).single())
+      expect(fila.nombre).toBe('Lista renombrada')
+    } finally {
+      await unwrap(dbAdmin.from('lista').delete().eq('id', id))
+    }
+  }, 30_000)
+
+  it('renombrar lista ajena → error', async () => {
+    const { id } = await crearLista(clientOwner, { nombre: 'Lista ajena renombrar' })
+    try {
+      await expect(renombrarLista(clientOtro, id, 'Hackeada')).rejects.toThrow(
+        ERRORES_LISTA.listaNoEncontrada
+      )
+    } finally {
+      await unwrap(dbAdmin.from('lista').delete().eq('id', id))
+    }
+  }, 30_000)
+
+  it('renombrar con nombre inválido → error Zod', async () => {
+    const { id } = await crearLista(clientOwner, { nombre: 'Lista validar nombre' })
+    try {
+      await expect(renombrarLista(clientOwner, id, '')).rejects.toThrow(
+        ERRORES_LISTA.nombreInvalido
+      )
+    } finally {
+      await unwrap(dbAdmin.from('lista').delete().eq('id', id))
+    }
+  }, 30_000)
+
+  it('eliminar lista propia la borra; cascade borra su lista_serie (LIS-03)', async () => {
+    const { id } = await crearLista(clientOwner, { nombre: 'Lista a eliminar' })
+    await añadirSerieALista(clientOwner, id, serieAId)
+    await eliminarLista(clientOwner, id)
+
+    const restantes = await unwrap(dbAdmin.from('lista').select('id').eq('id', id))
+    expect(restantes).toHaveLength(0)
+    const series = await unwrap(dbAdmin.from('lista_serie').select('serie_id').eq('lista_id', id))
+    expect(series).toHaveLength(0)
+  }, 30_000)
+
+  it('eliminar lista ajena → error y fila intacta', async () => {
+    const { id } = await crearLista(clientOwner, { nombre: 'Lista ajena eliminar' })
+    try {
+      await expect(eliminarLista(clientOtro, id)).rejects.toThrow(ERRORES_LISTA.listaNoEncontrada)
+      const restantes = await unwrap(dbAdmin.from('lista').select('id').eq('id', id))
+      expect(restantes).toHaveLength(1)
+    } finally {
+      await unwrap(dbAdmin.from('lista').delete().eq('id', id))
+    }
+  }, 30_000)
+
+  it('añadir serie: posición = 1 + MAX (LIS-04)', async () => {
+    const { id } = await crearLista(clientOwner, { nombre: 'Lista posiciones' })
+    try {
+      await añadirSerieALista(clientOwner, id, serieAId)
+      await añadirSerieALista(clientOwner, id, serieBId)
+      const filas = await unwrap(
+        dbAdmin
+          .from('lista_serie')
+          .select('serie_id, posicion')
+          .eq('lista_id', id)
+          .order('posicion', { ascending: true })
+      )
+      expect(filas).toEqual([
+        { serie_id: serieAId, posicion: 1 },
+        { serie_id: serieBId, posicion: 2 }
+      ])
+    } finally {
+      await unwrap(dbAdmin.from('lista').delete().eq('id', id))
+    }
+  }, 30_000)
+
+  it('añadir serie inexistente o no aprobada → rechazo server-side (LIS-04)', async () => {
+    const { id } = await crearLista(clientOwner, { nombre: 'Lista rechazos serie' })
+    try {
+      await expect(añadirSerieALista(clientOwner, id, crypto.randomUUID())).rejects.toThrow(
+        ERRORES_LISTA.serieNoEncontrada
+      )
+      await expect(añadirSerieALista(clientOwner, id, seriePendienteId)).rejects.toThrow(
+        ERRORES_LISTA.serieNoAprobada
+      )
+      const filas = await unwrap(dbAdmin.from('lista_serie').select('serie_id').eq('lista_id', id))
+      expect(filas).toHaveLength(0)
+    } finally {
+      await unwrap(dbAdmin.from('lista').delete().eq('id', id))
+    }
+  }, 30_000)
+
+  it('añadir duplicado → error amigable (23505 → ya está en la lista)', async () => {
+    const { id } = await crearLista(clientOwner, { nombre: 'Lista duplicado serie' })
+    try {
+      await añadirSerieALista(clientOwner, id, serieAId)
+      await expect(añadirSerieALista(clientOwner, id, serieAId)).rejects.toThrow(
+        ERRORES_LISTA.yaEnLaLista
+      )
+    } finally {
+      await unwrap(dbAdmin.from('lista').delete().eq('id', id))
+    }
+  }, 30_000)
+
+  it('añadir serie a lista ajena → sin permiso', async () => {
+    const { id } = await crearLista(clientOwner, { nombre: 'Lista ajena anadir' })
+    try {
+      await expect(añadirSerieALista(clientOtro, id, serieAId)).rejects.toThrow(
+        ERRORES_LISTA.sinPermiso
+      )
+    } finally {
+      await unwrap(dbAdmin.from('lista').delete().eq('id', id))
+    }
+  }, 30_000)
+
+  it('quitar serie propia de la lista (LIS-05); quitar la inexistente → error', async () => {
+    const { id } = await crearLista(clientOwner, { nombre: 'Lista quitar serie' })
+    try {
+      await añadirSerieALista(clientOwner, id, serieAId)
+      await quitarSerieDeLista(clientOwner, id, serieAId)
+      const filas = await unwrap(dbAdmin.from('lista_serie').select('serie_id').eq('lista_id', id))
+      expect(filas).toHaveLength(0)
+
+      await expect(quitarSerieDeLista(clientOwner, id, serieAId)).rejects.toThrow(
+        ERRORES_LISTA.serieNoEncontrada
+      )
+    } finally {
+      await unwrap(dbAdmin.from('lista').delete().eq('id', id))
+    }
+  }, 30_000)
+
+  it('quitar serie de lista ajena → sin permiso', async () => {
+    const { id } = await crearLista(clientOwner, { nombre: 'Lista ajena quitar' })
+    try {
+      await añadirSerieALista(clientOwner, id, serieAId)
+      await expect(quitarSerieDeLista(clientOtro, id, serieAId)).rejects.toThrow(
+        ERRORES_LISTA.sinPermiso
+      )
+    } finally {
+      await unwrap(dbAdmin.from('lista').delete().eq('id', id))
+    }
+  }, 30_000)
+
+  it('reordenar mismo conjunto actualiza posiciones (LIS-06)', async () => {
+    const { id } = await crearLista(clientOwner, { nombre: 'Lista reordenar ok' })
+    try {
+      await añadirSerieALista(clientOwner, id, serieAId)
+      await añadirSerieALista(clientOwner, id, serieBId)
+      await reordenarLista(clientOwner, id, [serieBId, serieAId])
+      const filas = await unwrap(
+        dbAdmin
+          .from('lista_serie')
+          .select('serie_id, posicion')
+          .eq('lista_id', id)
+          .order('posicion', { ascending: true })
+      )
+      expect(filas).toEqual([
+        { serie_id: serieBId, posicion: 1 },
+        { serie_id: serieAId, posicion: 2 }
+      ])
+    } finally {
+      await unwrap(dbAdmin.from('lista').delete().eq('id', id))
+    }
+  }, 30_000)
+
+  it('reordenar conjunto incompleto/extra/duplicado → rechazo y no altera', async () => {
+    const { id } = await crearLista(clientOwner, { nombre: 'Lista reordenar invalido' })
+    try {
+      await añadirSerieALista(clientOwner, id, serieAId)
+      await añadirSerieALista(clientOwner, id, serieBId)
+
+      // Incompleto (falta B)
+      await expect(reordenarLista(clientOwner, id, [serieAId])).rejects.toThrow(
+        ERRORES_LISTA.ordenInvalido
+      )
+      // Extra (serie ajena a la lista)
+      await expect(reordenarLista(clientOwner, id, [serieAId, serieBId, crypto.randomUUID()])).rejects.toThrow(
+        ERRORES_LISTA.ordenInvalido
+      )
+      // Duplicado
+      await expect(reordenarLista(clientOwner, id, [serieAId, serieAId])).rejects.toThrow(
+        ERRORES_LISTA.ordenInvalido
+      )
+
+      const filas = await unwrap(
+        dbAdmin
+          .from('lista_serie')
+          .select('serie_id, posicion')
+          .eq('lista_id', id)
+          .order('posicion', { ascending: true })
+      )
+      expect(filas).toEqual([
+        { serie_id: serieAId, posicion: 1 },
+        { serie_id: serieBId, posicion: 2 }
+      ])
+    } finally {
+      await unwrap(dbAdmin.from('lista').delete().eq('id', id))
+    }
+  }, 30_000)
+
+  it('reordenar lista ajena (aunque pública) → sin permiso', async () => {
+    const { id } = await crearLista(clientOwner, { nombre: 'Pública reordenar ajena', es_publica: true })
+    try {
+      await añadirSerieALista(clientOwner, id, serieAId)
+      await añadirSerieALista(clientOwner, id, serieBId)
+      await expect(reordenarLista(clientOtro, id, [serieBId, serieAId])).rejects.toThrow(
+        ERRORES_LISTA.sinPermiso
+      )
+    } finally {
+      await unwrap(dbAdmin.from('lista').delete().eq('id', id))
+    }
+  }, 30_000)
+
+  it('todas las escrituras sin sesión → error', async () => {
+    await expect(añadirSerieALista(db, listaPrivadaOwnerId, serieAId)).rejects.toThrow(
+      ERRORES_LISTA.sinSesion
+    )
+    await expect(quitarSerieDeLista(db, listaPrivadaOwnerId, serieAId)).rejects.toThrow(
+      ERRORES_LISTA.sinSesion
+    )
+    await expect(renombrarLista(db, listaPrivadaOwnerId, 'Nombre válido')).rejects.toThrow(
+      ERRORES_LISTA.sinSesion
+    )
+    await expect(eliminarLista(db, listaPrivadaOwnerId)).rejects.toThrow(ERRORES_LISTA.sinSesion)
+    await expect(reordenarLista(db, listaPrivadaOwnerId, [])).rejects.toThrow(
+      ERRORES_LISTA.sinSesion
+    )
+  }, 30_000)
+})
+
+describe('lecturas (LIS-07/08/09)', () => {
+  it('listMisListas: solo las del usuario con nº de series', async () => {
+    const { id } = await crearLista(clientOwner, { nombre: 'Mi lista grid' })
+    try {
+      await añadirSerieALista(clientOwner, id, serieAId)
+      await añadirSerieALista(clientOwner, id, serieBId)
+
+      const listas = await listMisListas(clientOwner, ownerId)
+      const mia = listas.find((l) => l.id === id)
+      expect(mia).toBeDefined()
+      expect(mia!.nombre).toBe('Mi lista grid')
+      expect(mia!.numSeries).toBe(2)
+      expect(mia!.es_publica).toBe(false)
+
+      // NO aparecen las listas de otro en las mías.
+      expect(listas.find((l) => l.id === _listaPrivadaOtroId)).toBeUndefined()
+    } finally {
+      await unwrap(dbAdmin.from('lista').delete().eq('id', id))
+    }
+  }, 30_000)
+
+  it('getLista: owner ve su privada con esOwner true; ajeno y anon → null (LIS-08/404)', async () => {
+    const { id } = await crearLista(clientOwner, { nombre: 'Privada detalle' })
+    try {
+      await añadirSerieALista(clientOwner, id, serieAId)
+
+      const detalleOwner = await getLista(clientOwner, id, ownerId)
+      expect(detalleOwner).not.toBeNull()
+      expect(detalleOwner!.esOwner).toBe(true)
+      expect(detalleOwner!.lista.series).toEqual([
+        { serieId: serieAId, titulo: 'Serie List A', slug: slugDe('a') }
+      ])
+
+      // Ajeno no puede ver la privada ajena → null (404 app-side).
+      expect(await getLista(clientOtro, id, otroId)).toBeNull()
+      // Anónimo tampoco.
+      expect(await getLista(db, id, null)).toBeNull()
+    } finally {
+      await unwrap(dbAdmin.from('lista').delete().eq('id', id))
+    }
+  }, 30_000)
+
+  it('lista inexistente → getLista null', async () => {
+    expect(await getLista(clientOwner, crypto.randomUUID(), ownerId)).toBeNull()
+  })
+
+  it('getLista/getListaPublica: pública visible en solo lectura para anon y ajeno (LIS-07)', async () => {
+    const { id } = await crearLista(clientOwner, { nombre: 'Pública detalle', es_publica: true })
+    try {
+      await añadirSerieALista(clientOwner, id, serieBId)
+
+      // Anónimo: getListaPublica (solo lectura pública).
+      const publicaAnon = await getListaPublica(id)
+      expect(publicaAnon).not.toBeNull()
+      expect(publicaAnon!.series).toEqual([
+        { serieId: serieBId, titulo: 'Serie List B', slug: slugDe('b') }
+      ])
+
+      // Authenticated no dueño: la ve pero no es owner (esOwner false).
+      const detalleOtro = await getLista(clientOtro, id, otroId)
+      expect(detalleOtro).not.toBeNull()
+      expect(detalleOtro!.esOwner).toBe(false)
+      expect(detalleOtro!.lista.user_id).toBe(ownerId)
+    } finally {
+      await unwrap(dbAdmin.from('lista').delete().eq('id', id))
+    }
   }, 30_000)
 })
