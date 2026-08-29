@@ -144,6 +144,7 @@ export function PropuestaForm({ categorias }: PropuestaFormProps) {
               className="flex-1"
             />
             <select
+              name={`canales[${indice}].rol`}
               aria-label={`Rol del canal ${indice + 1}`}
               value={fila.rol}
               onChange={(evento) => actualizarCanal(indice, { rol: evento.target.value as RolCanal })}
