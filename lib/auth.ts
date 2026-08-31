@@ -94,10 +94,39 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'Introduce tu contraseña')
 })
 
+// REC-01: el email se valida, pero el mensaje es SIEMPRE el genérico (no
+// revela si la cuenta existe). recuperarSchema solo valida formato.
+export const recuperarSchema = z.object({
+  email: z.email('Introduce un email válido')
+})
+
+// REC-05: min 8 caracteres en la nueva password y la confirmación debe
+// coincidir. El refine apunta el issue al campo confirmacion.
+export const nuevaPasswordSchema = z
+  .object({
+    password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
+    confirmacion: z.string().min(1, 'Confirma la nueva contraseña')
+  })
+  .refine((dato) => dato.password === dato.confirmacion, {
+    message: 'Las contraseñas no coinciden',
+    path: ['confirmacion']
+  })
+
 export const ERRORES_AUTH = {
   emailDuplicado: 'Ya existe una cuenta con este email',
-  credencialesInvalidas: 'Email o contraseña incorrectos'
+  credencialesInvalidas: 'Email o contraseña incorrectos',
+  // REC-01: mensaje genérico, igual para email existente e inexistente.
+  mensajeRecuperacionEnviado: 'Si existe una cuenta con ese email, te hemos enviado un link',
+  // REC-04: confirma el cambio; /login lo muestra como banner (role=status).
+  cambiarPasswordOk: 'Contraseña actualizada correctamente'
 } as const
+
+// Origin para construir el redirectTo del link de recuperación (REC-02). En
+// local es http://127.0.0.1:3000 (site_url de supabase/config.toml); en
+// despliegue se define NEXT_PUBLIC_SITE_URL. No se hardcodea el puerto.
+export function origin(): string {
+  return process.env.NEXT_PUBLIC_SITE_URL ?? 'http://127.0.0.1:3000'
+}
 
 // Servicios inyectables: reciben el cliente Supabase por parámetro para poder
 // testearlos sin request context de Next. Las Server Actions pasan el cliente
@@ -194,4 +223,30 @@ export async function getPerfilData(
   const fila = await selectUsuario(client, userId)
   if (!fila) throw new Error('No se pudo obtener ni crear la fila de usuario')
   return { email, created_at: fila.created_at, rol: fila.rol }
+}
+
+// REC-01/REC-02: pide el link de recuperación a GoTrue. Si el email no
+// existe, GoTrue NO devuelve error (anti-enumeración por diseño, no se manda
+// correo) — comportamiento idéntico al observable del caso válido. Si GoTrue
+// lanza (rate-limit/red), se re-lanza el mensaje genérico para que la action
+// tampoco revele nada.
+export async function solicitarRecuperacion(
+  client: AuthClient,
+  email: string
+): Promise<void> {
+  const { error } = await client.auth.resetPasswordForEmail(email, {
+    redirectTo: `${origin()}/auth/reset`
+  })
+  if (error) throw new Error(ERRORES_AUTH.mensajeRecuperacionEnviado)
+}
+
+// REC-04: actualiza la password. Requiere la sesión de recovery activa (la
+// que deja GoTrue al intercambiar el token del link); si no hay sesión,
+// updateUser falla y la action mostrará error + enlace a /recuperar.
+export async function restablecerPassword(
+  client: AuthClient,
+  password: string
+): Promise<void> {
+  const { error } = await client.auth.updateUser({ password })
+  if (error) throw new Error(error.message)
 }
