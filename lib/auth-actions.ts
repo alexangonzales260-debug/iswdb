@@ -8,8 +8,12 @@ import {
   esRutaLocal,
   iniciarSesion,
   loginSchema,
+  nuevaPasswordSchema,
+  recuperarSchema,
   registrarUsuario,
-  registroSchema
+  registroSchema,
+  restablecerPassword,
+  solicitarRecuperacion
 } from './auth'
 
 export interface AuthFormState {
@@ -79,4 +83,58 @@ export async function accionLogout(): Promise<void> {
     // Aunque falle la revocación en GoTrue, sacamos al usuario de la página.
   }
   redirect('/')
+}
+
+// REC-01: valida el email y pide el link a GoTrue. En éxito redirige SIEMPRE
+// a /recuperar/enviado (incluso si el email no existe: GoTrue no revela). Si
+// GoTrue lanza (rareza), se devuelve igualmente el mensaje genérico para no
+// filtrar si la cuenta existe.
+export async function accionPedirRecuperacion(
+  prevState: AuthFormState,
+  formData: FormData
+): Promise<AuthFormState> {
+  const parsed = recuperarSchema.safeParse({
+    email: campoTexto(formData, 'email').trim()
+  })
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? 'Revisa los datos del formulario' }
+  }
+  const client = await createAuthClient()
+  try {
+    await solicitarRecuperacion(client, parsed.data.email)
+  } catch {
+    // REC-01: mensaje genérico siempre, no revela existencia del email.
+    return { error: ERRORES_AUTH.mensajeRecuperacionEnviado }
+  }
+  redirect('/recuperar/enviado')
+}
+
+// REC-04/REC-05: valida la nueva password y la aplica con la sesión de
+// recovery activa (fijada por el callback). En éxito redirige a /login con el
+// banner de confirmación (reutiliza el status de /login). En fallo (sin
+// sesión de recovery / link caducado) devuelve un error amigable.
+export async function accionConfirmarRecuperacion(
+  prevState: AuthFormState,
+  formData: FormData
+): Promise<AuthFormState> {
+  const parsed = nuevaPasswordSchema.safeParse({
+    password: campoTexto(formData, 'password'),
+    confirmacion: campoTexto(formData, 'confirmacion')
+  })
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? 'Revisa los datos del formulario' }
+  }
+  const client = await createAuthClient()
+  try {
+    await restablecerPassword(client, parsed.data.password)
+  } catch {
+    // Sin sesión de recovery (link caducado/o ya usado) updateUser falla;
+    // el form muestra el error y un enlace a /recuperar para pedir uno nuevo.
+    return {
+      error:
+        'El enlace ha caducado o ya se ha utilizado. Vuelve a solicitar la recuperación.'
+    }
+  }
+  const params = new URLSearchParams({ msg: ERRORES_AUTH.cambiarPasswordOk })
+  redirect(`/login?${params.toString()}`)
 }
