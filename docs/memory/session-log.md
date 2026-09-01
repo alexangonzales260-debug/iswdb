@@ -273,3 +273,12 @@
   Bug de host localhost vs 127.0.0.1 detectado por E2E y corregido
   (cookies de sesión en dominio canónico). 262 unit + 56 E2E.
 - Cierre: D20 añadido, ROADMAP 014 ✅, validate.sh en verde, tag F14.
+
+## Sesión 16 — F15: Edición de perfil (F015)
+- F15: Edición de perfil (password con reauth, email con confirmación,
+  display_name). Migración M10 (display_name TEXT NULL con CHECK 3-50).
+  config.toml: double_confirm_changes=false para simplificar el flujo.
+  Reauth implementado a nivel app con signInWithPassword. 275 unit +
+  58 E2E. Hallazgo operativo: contenedores de Supabase parados 10h
+  causaron flakiness en tests RLS; resuelto con db reset + start limpio.
+- Cierre: D21 añadido, ROADMAP 015 ✅, validate.sh en verde, tag F15.

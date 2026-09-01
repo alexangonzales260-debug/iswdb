@@ -57,8 +57,13 @@
      (array con exactamente las series actuales). getLista/getListaPublica
      reciben AuthClient para que el RLS deje ver las privadas propias.
 - D20: Recuperación de password con flujo GoTrue nativo (resetPasswordForEmail
-     + verifyOtp con token_hash). Anti-enumeración a dos niveles: GoTrue
-     (sin error en email inexistente) + action con mensaje genérico siempre.
-     Mailpit como servidor de email local (puerto 54324). El dominio canónico
-     es 127.0.0.1 (site_url de config.toml), no localhost, para que las cookies
-     de sesión queden en el dominio correcto.
+      + verifyOtp con token_hash). Anti-enumeración a dos niveles: GoTrue
+      (sin error en email inexistente) + action con mensaje genérico siempre.
+      Mailpit como servidor de email local (puerto 54324). El dominio canónico
+      es 127.0.0.1 (site_url de config.toml), no localhost, para que las cookies
+      de sesión queden en el dominio correcto.
+- D21: Edición de perfil con reauth de password (signInWithPassword
+      antes de updateUser, porque secure_password_change=false en GoTrue).
+      Cambio de email con confirmación de solo el email nuevo
+      (double_confirm_changes=false para simplificar UX). display_name como
+      columna TEXT NULL en usuario con CHECK 3-50 chars.

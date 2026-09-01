@@ -14,4 +14,5 @@
 | 012 | Reseñas                                        | L2    | ✅     |
 | 013 | Listas personalizadas                          | L2    | ✅     |
 | 014 | Recuperación de password                       | L2    | ✅     |
+| 015 | Edición de perfil                              | L2    | ✅     |
 Fases: P1 catálogo sin login (001–007) · P2 social (008–010) · P3 comunidad (011–013)
