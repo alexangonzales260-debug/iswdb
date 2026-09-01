@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Star } from "lucide-react";
 
+import { CambiarDisplayNameForm } from "@/components/cambiar-displayname-form";
+import { CambiarEmailForm } from "@/components/cambiar-email-form";
+import { CambiarPasswordForm } from "@/components/cambiar-password-form";
 import { EmptyState } from "@/components/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { createAuthClient, getPerfilData, requireUser } from "@/lib/auth";
@@ -49,7 +52,13 @@ export default async function PerfilPage({ searchParams }: PerfilPageProps) {
 
       <section className="mt-6 rounded-xl border bg-card p-6">
         <h2 className="text-sm font-medium text-muted-foreground">Datos de la cuenta</h2>
-        <dl className="mt-4 grid gap-4 sm:grid-cols-3">
+        <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div>
+            <dt className="text-xs text-muted-foreground">Nombre de usuario</dt>
+            <dd className="mt-1 font-medium break-all">
+              {perfil.display_name ?? "—"}
+            </dd>
+          </div>
           <div>
             <dt className="text-xs text-muted-foreground">Email</dt>
             <dd className="mt-1 font-medium break-all">{perfil.email}</dd>
@@ -69,6 +78,30 @@ export default async function PerfilPage({ searchParams }: PerfilPageProps) {
             </dd>
           </div>
         </dl>
+      </section>
+
+      <section className="mt-8">
+        <h2 className="text-sm font-medium text-muted-foreground">Editar perfil</h2>
+        <div className="mt-4 grid gap-6">
+          <div className="rounded-xl border bg-card p-6">
+            <h3 className="text-base font-semibold">Cambiar password</h3>
+            <div className="mt-4">
+              <CambiarPasswordForm />
+            </div>
+          </div>
+          <div className="rounded-xl border bg-card p-6">
+            <h3 className="text-base font-semibold">Cambiar email</h3>
+            <div className="mt-4">
+              <CambiarEmailForm />
+            </div>
+          </div>
+          <div className="rounded-xl border bg-card p-6">
+            <h3 className="text-base font-semibold">Cambiar nombre de usuario</h3>
+            <div className="mt-4">
+              <CambiarDisplayNameForm />
+            </div>
+          </div>
+        </div>
       </section>
 
       <section className="mt-8">
