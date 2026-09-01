@@ -168,6 +168,33 @@ export async function getRecoveryLink(email: string): Promise<string> {
   throw new Error(`getRecoveryLink: no se encontró correo de recuperación para ${email}`)
 }
 
+// F015 (T7): extrae el link de confirmación de cambio de email del correo en
+// Mailpit (poll con timeout, igual que getRecoveryLink). El correo de GoTrue
+// tiene subject "Confirm your new email address" y apunta al endpoint verify
+// (…/auth/v1/verify?token=…&type=email_change&redirect_to=…): al abrirlo,
+// GoTrue confirma el cambio de email y redirige al browser a redirect_to.
+export async function getEmailChangeLink(email: string): Promise<string> {
+  for (let intento = 1; intento <= 30; intento++) {
+    const res = await fetch(
+      `${MAILPIT_URL}/api/v1/search?query=${encodeURIComponent(`to:${email}`)}`
+    )
+    const data = (await res.json()) as { messages?: { ID: string; Subject: string }[] }
+    const change = (data.messages ?? []).find(
+      (m) => m.Subject === 'Confirm your new email address'
+    )
+    if (change) {
+      const detalleRes = await fetch(`${MAILPIT_URL}/api/v1/message/${change.ID}`)
+      const detalle = (await detalleRes.json()) as { HTML?: string }
+      const href = detalle.HTML?.match(/href="([^"]*)"/)
+      if (href?.[1]) {
+        return href[1].replaceAll('&amp;', '&')
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500))
+  }
+  throw new Error(`getEmailChangeLink: no se encontró correo de cambio de email para ${email}`)
+}
+
 // F009 (T5): usuario E2E con fila en public.usuario. createAuthUser solo crea
 // el auth user; la FK de valoracion exige la fila de usuario, y el flujo de
 // valorar no visita /perfil (cuyo self-healing la crearía). El email se
