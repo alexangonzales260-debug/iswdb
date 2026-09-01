@@ -48,6 +48,14 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           Regístrate
         </Link>
       </p>
+      <p className="mt-2 text-center text-sm text-muted-foreground">
+        <Link
+          href="/recuperar"
+          className="font-medium text-foreground underline underline-offset-4"
+        >
+          ¿Olvidaste tu contraseña?
+        </Link>
+      </p>
     </div>
   );
 }
