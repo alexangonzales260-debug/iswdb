@@ -265,3 +265,11 @@
   la ficha. Bug destapado por E2E: descripcion null no admitido por Zod
   (fix .nullable().optional()). 255 unit + 54 E2E.
 - Cierre: D19 añadido, ROADMAP 013 ✅, validate.sh en verde, tag F13.
+
+## Sesión 15 — F14: Recuperación de password (F014)
+- F14: Recuperación de password vía email (flujo GoTrue nativo).
+  Route handler /auth/reset con verifyOtp (token_hash, no PKCE).
+  Mensaje genérico anti-enumeración (REC-01). Mailpit para emails locales.
+  Bug de host localhost vs 127.0.0.1 detectado por E2E y corregido
+  (cookies de sesión en dominio canónico). 262 unit + 56 E2E.
+- Cierre: D20 añadido, ROADMAP 014 ✅, validate.sh en verde, tag F14.

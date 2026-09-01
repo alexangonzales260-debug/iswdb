@@ -6,7 +6,7 @@
 3. Seguridad: mensaje genérico SIEMPRE (no revelar si el email existe, evita
    enumeración). El success y el inexistente muestran el mismo texto.
 4. Punto de entrada: link "¿Olvidaste tu contraseña?" bajo el form de /login.
-5. Email en local: Inbucket (puerto 54324, el SMTP local de supabase start).
+5. Email en local: Mailpit (puerto 54324, el SMTP local de supabase start).
 6. Tests: pedir recuperación válido, email inexistente (mismo mensaje),
    cambiar password vía link, E2E completo.
 7. NO requiere migración (usa auth.users de GoTrue).
@@ -81,22 +81,22 @@
 8. **Tests de servidor** (tests/db/recuperacion.test.ts, patrón auth.test.ts,
    clientes planos persistSession:false + vi.hoisted env):
    - `solicitarRecuperacion` con email válido → no lanza y GoTrue guarda el
-     correo (se verifica consultando Inbucket API o que no hay error); mejor:
-     verificar que un email llega a Inbucket.
+     correo (se verifica consultando Mailpit API o que no hay error); mejor:
+     verificar que un email llega a Mailpit.
    - `solicitarRecuperacion` con email inexistente → no lanza y NO se envía
-     correo (Inbucket vacío para ese destinatario) — mismo comportamiento
+     correo (Mailpit vacío para ese destinatario) — mismo comportamiento
      observable desde la action (mensaje genérico).
    - `restablecerPassword` fluido completo: para hacerlo determinista se
-     obtiene el link de Inbucket, se intercambia el code con un cliente
+     obtiene el link de Mailpit, se intercambia el code con un cliente
      (exchangeCodeForSession) y se llama restablecerPassword; luego login con
      la nueva password OK y con la antigua falla.
    - Zod: nuevaPassword < 8 chars y confirmación distinta → issues.
 9. **E2E Playwright** (e2e/recuperacion.spec.ts):
    - Helper para leer el último email de recuperación de un destinatario vía
-     API de Inbucket (http://127.0.0.1:54324) y extraer el link
+     API de Mailpit (http://127.0.0.1:54324) y extraer el link
      (href al /auth/reset...).
    - Flujo completo en un `test()` (cookies compartidas): crear usuario →
-     /recuperar → submit email → /recuperar/enviado → leer link de Inbucket →
+     /recuperar → submit email → /recuperar/enviado → leer link de Mailpit →
      goto link (callback intercambia sesión) → /recuperar/confirmar → nueva
      password → /login → login con nueva password OK; login con antigua falla.
    - Test: /recuperar con email inexistente → misma pantalla /enviado (no
@@ -109,7 +109,7 @@
   additional_redirect_urls=[https://127.0.0.1:3000] · enable_confirmations
   =false · secure_password_change=false (updateUser sin reauth) ·
   max_frequency="1s" (rate limit de emails, bueno para tests) ·
-  local_smtp habilitado en puerto 54324 (Inbucket).
+  local_smtp habilitado en puerto 54324 (Mailpit).
 - @supabase/ssr ^0.12.5 + supabase-js ^2.112.4 ya instalados (F008). No hay
   dependencias nuevas.
 - No existe ningún app/auth/ ni route handler hoy (F008 lo anotó como
@@ -117,7 +117,7 @@
   en Next; hace falta route handler). createAuthClient() ya gestiona cookies
   vía getAll/setAll (listo para exchangeCodeForSession).
 - Patrones de acción → servicio → cliente inyectable, Zod inline,
-  useActionState, banner msg en /login, Inbucket ya usado en desarrollo:
+  useActionState, banner msg en /login, Mailpit ya usado en desarrollo:
   todo reutilizable.
 - E2E: workers=1, webServer `npm run build && npm start`, global-setup templa
   GoTrue; helpers createAuthUser/deleteAuthUser/deleteAuthUserByEmail/
@@ -142,10 +142,10 @@
   http://127.0.0.1:3000) o el derivado de headers en el route handler.
 - tests/db/recuperacion.test.ts (nuevo, patrón auth.test.ts):
   - solicitarRecuperacion(email válido) → no lanza; el email aparece en
-    Inbucket (consulta API de Inbucket).
+    Mailpit (consulta API de Mailpit).
   - solicitarRecuperacion(email inexistente) → no lanza; no aparece correo en
-    Inbucket; mismo comportamiento observable.
-  - restablecerPassword del flujo completo: tomar link de Inbucket →
+    Mailpit; mismo comportamiento observable.
+  - restablecerPassword del flujo completo: tomar link de Mailpit →
     intercambiar code (cliente plano) → restablecerPassword(nueva) → login
     nueva OK, antigua falla.
   - Zod: password <8 y confirmación distinta → issues.
@@ -163,7 +163,7 @@
     createAuthClient → restablecerPassword → redirect('/login?msg=…'); en
     fallo devuelve { error } (link expirado/sesión inexistente → error amigable
     + el form ofrece enlace a /recuperar).
-- Criterio: lint + typecheck + build verdes; smoke manual en dev con Inbucket.
+- Criterio: lint + typecheck + build verdes; smoke manual en dev con Mailpit.
 
 ### T3 — Páginas + componentes + link en /login
 - components/recuperar-form.tsx (nuevo, "use client"): useActionState(
@@ -185,13 +185,14 @@
 - Criterio: lint + typecheck + build verdes; smoke manual en dev.
 
 ### T4 — E2E Playwright
-- e2e/helpers.ts (nuevo) o inline en el spec: leer correos de Inbucket
-  (GET http://127.0.0.1:54324/api/v1/mailbox/<email>) y extraer el href del
+- e2e/helpers.ts (nuevo) o inline en el spec: leer correos de Mailpit
+  (GET http://127.0.0.1:54324/api/v1/search?query=to:<email> +
+  /api/v1/message/<id>) y extraer el href del
   link /auth/reset del body HTML del último correo.
 - e2e/recuperacion.spec.ts (nuevo): usuario único por ejecución + cleanup
   deleteAuthUserByEmail → cascade:
   - Flujo completo en un test: /login → link "¿Olvidaste tu contraseña?" →
-    /recuperar → submit email → /recuperar/enviado → leer link de Inbucket →
+    /recuperar → submit email → /recuperar/enviado → leer link de Mailpit →
     goto link (intercambio de code) → /recuperar/confirmar → nueva password →
     /login?msg → login con nueva password OK; login con antigua falla.
   - /recuperar con email inexistente → misma pantalla /enviado (REC-01, no
@@ -234,7 +235,7 @@
 - **Anti-enumeración**: reforzada a dos niveles — GoTrue (sin error en email
   inexistente) + action que devuelve SIEMPRE el mismo mensaje genérico
   (REC-01), incluso ante fallos de red/rate-limit.
-- **Inbucket en E2E**: el email puede tardar un instante en aparecer; el helper
+- **Mailpit en E2E**: el email puede tardar un instante en aparecer; el helper
   debe esperar/poll. max_frequency="1s" de GoTrue limita emails repetidos. Si
   tarda, retry con timeout.
 - **Expiración del link**: por defecto GoTrue (1h) + jwt_expiry=3600. Para el

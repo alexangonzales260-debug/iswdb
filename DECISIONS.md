@@ -56,3 +56,9 @@
      defecto (crear explícitamente). Reordenar completo validado server-side
      (array con exactamente las series actuales). getLista/getListaPublica
      reciben AuthClient para que el RLS deje ver las privadas propias.
+- D20: Recuperación de password con flujo GoTrue nativo (resetPasswordForEmail
+     + verifyOtp con token_hash). Anti-enumeración a dos niveles: GoTrue
+     (sin error en email inexistente) + action con mensaje genérico siempre.
+     Mailpit como servidor de email local (puerto 54324). El dominio canónico
+     es 127.0.0.1 (site_url de config.toml), no localhost, para que las cookies
+     de sesión queden en el dominio correcto.

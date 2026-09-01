@@ -4,7 +4,7 @@
 Feature L2. Permite a un usuario que olvidó su password recuperarla vía email.
 Usa el flujo nativo de Supabase GoTrue (resetPasswordForEmail + updateUser).
 No requiere migración (usa auth.users existente). En local, el email de
-recuperación se verifica en Inbucket (puerto 54324).
+recuperación se verifica en Mailpit (puerto 54324).
 
 ## Rutas
 - `/recuperar`: formulario para pedir el email de recuperación.
@@ -18,7 +18,7 @@ recuperación se verifica en Inbucket (puerto 54324).
   existe una cuenta con ese email, te hemos enviado un link" (no revelar si
   el email existe).
 - REC-02: Cuando el email existe, el sistema deberá enviar un link de
-  recuperación a Inbucket (local) con expiración por defecto de GoTrue.
+  recuperación a Mailpit (local) con expiración por defecto de GoTrue.
 - REC-03: Cuando el usuario hace click en el link del email, el sistema deberá
   intercambiar el code por sesión (route handler de callback) y redirect a
   /recuperar/confirmar.
@@ -33,18 +33,18 @@ recuperación se verifica en Inbucket (puerto 54324).
   deberá mostrar un mensaje de error y link para pedir uno nuevo.
 
 ## Criterios de aceptación
-- [ ] GET /recuperar muestra formulario de email.
-- [ ] Submit con email válido → redirect a /recuperar/enviado + Inbucket recibe link.
-- [ ] Submit con email inexistente → mismo mensaje genérico (no revela).
-- [ ] Click en link del email → redirect a /recuperar/confirmar con sesión.
-- [ ] Submit nueva password válida → updateUser + redirect a /login.
-- [ ] Login con nueva password funciona; con la antigua falla.
-- [ ] Password < 8 chars o confirmación no coincide → error Zod.
-- [ ] /login tiene link "¿Olvidaste tu contraseña?".
-- [ ] Link expirado/inválido → mensaje de error + link para pedir nuevo.
-- [ ] Tests de servidor: pedir recuperación, email inexistente, cambiar password.
-- [ ] Test E2E: flujo completo (pedir → link → cambiar → login).
-- [ ] ./validate.sh en verde.
+- [x] GET /recuperar muestra formulario de email.
+- [x] Submit con email válido → redirect a /recuperar/enviado + Mailpit recibe link.
+- [x] Submit con email inexistente → mismo mensaje genérico (no revela).
+- [x] Click en link del email → redirect a /recuperar/confirmar con sesión.
+- [x] Submit nueva password válida → updateUser + redirect a /login.
+- [x] Login con nueva password funciona; con la antigua falla.
+- [x] Password < 8 chars o confirmación no coincide → error Zod.
+- [x] /login tiene link "¿Olvidaste tu contraseña?".
+- [x] Link expirado/inválido → mensaje de error + link para pedir nuevo.
+- [x] Tests de servidor: pedir recuperación, email inexistente, cambiar password.
+- [x] Test E2E: flujo completo (pedir → link → cambiar → login).
+- [x] ./validate.sh en verde.
 
 ## Fuera de alcance
 - Configuración de SMTP real para producción (follow-up de despliegue)
