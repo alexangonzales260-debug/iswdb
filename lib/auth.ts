@@ -112,13 +112,47 @@ export const nuevaPasswordSchema = z
     path: ['confirmacion']
   })
 
+// PER-02: la password actual no coincide con la de la cuenta (validado con
+// el reauth vía signInWithPassword antes de cambiarla).
+export const cambiarPasswordSchema = z
+  .object({
+    passwordActual: z.string().min(1, 'Introduce tu contraseña actual'),
+    passwordNueva: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
+    confirmacion: z.string().min(1, 'Confirma la nueva contraseña')
+  })
+  .refine((dato) => dato.passwordNueva === dato.confirmacion, {
+    message: 'Las contraseñas no coinciden',
+    path: ['confirmacion']
+  })
+
+// PER-03: el email se valida, pero el mensaje es SIEMPRE el genérico (no
+// revela si el email ya está en uso / existe la cuenta).
+export const cambiarEmailSchema = z.object({
+  email: z.email('Introduce un email válido')
+})
+
+// PER-05: 3-50 caracteres, sin espacios sobrantes en los extremos.
+export const cambiarDisplayNameSchema = z.object({
+  displayName: z
+    .string()
+    .trim()
+    .min(3, 'El nombre mostrado debe tener al menos 3 caracteres')
+    .max(50, 'El nombre mostrado no puede superar los 50 caracteres')
+})
+
 export const ERRORES_AUTH = {
   emailDuplicado: 'Ya existe una cuenta con este email',
   credencialesInvalidas: 'Email o contraseña incorrectos',
   // REC-01: mensaje genérico, igual para email existente e inexistente.
   mensajeRecuperacionEnviado: 'Si existe una cuenta con ese email, te hemos enviado un link',
   // REC-04: confirma el cambio; /login lo muestra como banner (role=status).
-  cambiarPasswordOk: 'Contraseña actualizada correctamente'
+  cambiarPasswordOk: 'Contraseña actualizada correctamente',
+  // PER-02: la password actual reautenticada no es correcta.
+  passwordActualIncorrecta: 'La contraseña actual es incorrecta',
+  // PER-03/PRE-04: genérico siempre, no revela si el email nuevo ya existe.
+  mensajeEmailCambioEnviado: 'Te hemos enviado un link de confirmación al nuevo email',
+  // PER-05: confirma el cambio de nombre mostrado.
+  displayNameOk: 'Nombre mostrado actualizado'
 } as const
 
 // Origin para construir el redirectTo del link de recuperación (REC-02). En
@@ -183,12 +217,13 @@ export interface PerfilData {
   email: string
   created_at: string
   rol: string
+  display_name: string | null
 }
 
 async function selectUsuario(client: AuthClient, userId: string) {
   const { data, error } = await client
     .from('usuario')
-    .select('rol, created_at')
+    .select('rol, created_at, display_name')
     .eq('id', userId)
     .maybeSingle()
   if (error) throw new Error(error.message)
@@ -215,14 +250,20 @@ export async function getPerfilData(
   const { data: creada, error } = await client
     .from('usuario')
     .upsert({ id: userId, rol: 'user', email }, { onConflict: 'id', ignoreDuplicates: true })
-    .select('rol, created_at')
+    .select('rol, created_at, display_name')
     .maybeSingle()
   if (error) throw new Error(error.message)
-  if (creada) return { email, created_at: creada.created_at, rol: creada.rol }
+  if (creada)
+    return {
+      email,
+      created_at: creada.created_at,
+      rol: creada.rol,
+      display_name: creada.display_name
+    }
 
   const fila = await selectUsuario(client, userId)
   if (!fila) throw new Error('No se pudo obtener ni crear la fila de usuario')
-  return { email, created_at: fila.created_at, rol: fila.rol }
+  return { email, created_at: fila.created_at, rol: fila.rol, display_name: fila.display_name }
 }
 
 // REC-01/REC-02: pide el link de recuperación a GoTrue. Si el email no
@@ -248,5 +289,62 @@ export async function restablecerPassword(
   password: string
 ): Promise<void> {
   const { error } = await client.auth.updateUser({ password })
+  if (error) throw new Error(error.message)
+}
+
+// PER-01/PER-02: reauth vía signInWithPassword para verificar la password
+// actual antes de actualizarla. Si el reauth falla (password actual
+// incorrecta), se lanza un error específico (PER-02 anti-enumeración de la
+// nueva password). El email se obtiene de la sesión activa (getUser).
+export async function cambiarPassword(
+  client: AuthClient,
+  passwordActual: string,
+  passwordNueva: string
+): Promise<void> {
+  const { data: userData, error: getUserError } = await client.auth.getUser()
+  if (getUserError || !userData.user?.email) {
+    throw new Error(ERRORES_AUTH.credencialesInvalidas)
+  }
+
+  const { error: reauthError } = await client.auth.signInWithPassword({
+    email: userData.user.email,
+    password: passwordActual
+  })
+  if (reauthError) {
+    throw new Error(ERRORES_AUTH.passwordActualIncorrecta)
+  }
+
+  const { error } = await client.auth.updateUser({ password: passwordNueva })
+  if (error) throw new Error(error.message)
+}
+
+// PER-03/PRE-04: updateUser({email}) envía link de confirmación al nuevo
+// email vía GoTrue. Con double_confirm_changes=false solo el nuevo requiere
+// confirmar. Mensaje genérico SIEMPRE (anti-enumeración, PER-03).
+export async function cambiarEmail(
+  client: AuthClient,
+  nuevoEmail: string
+): Promise<string> {
+  const { error } = await client.auth.updateUser({ email: nuevoEmail })
+  if (error) throw new Error(error.message)
+  return ERRORES_AUTH.mensajeEmailCambioEnviado
+}
+
+// PER-05: actualiza display_name en public.usuario. RLS usuario_update_own
+// permite escribir la fila propia (id = auth.uid()). El userId se obtiene
+// de la sesión activa.
+export async function cambiarDisplayName(
+  client: AuthClient,
+  displayName: string
+): Promise<void> {
+  const { data: userData, error: getUserError } = await client.auth.getUser()
+  if (getUserError || !userData.user) {
+    throw new Error(ERRORES_AUTH.credencialesInvalidas)
+  }
+
+  const { error } = await client
+    .from('usuario')
+    .update({ display_name: displayName || null })
+    .eq('id', userData.user.id)
   if (error) throw new Error(error.message)
 }
