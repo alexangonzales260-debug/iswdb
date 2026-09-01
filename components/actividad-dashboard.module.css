@@ -1,0 +1,35 @@
+.actividad-panel {
+  display: none;
+}
+.actividad-panel:target,
+.actividad-panel:not(:target) ~ #valoraciones:not(:target) {
+  display: block;
+}
+:root:has(#valoraciones:target) #valoraciones,
+:root:has(#reseñas:target) #reseñas,
+:root:has(#listas:target) #listas,
+:root:has(#propuestas:target) #propuestas {
+  display: block;
+}
+:root:has(#valoraciones:target) #reseñas,
+:root:has(#valoraciones:target) #listas,
+:root:has(#valoraciones:target) #propuestas,
+:root:has(#reseñas:target) #valoraciones,
+:root:has(#reseñas:target) #listas,
+:root:has(#reseñas:target) #propuestas,
+:root:has(#listas:target) #valoraciones,
+:root:has(#listas:target) #reseñas,
+:root:has(#listas:target) #propuestas,
+:root:has(#propuestas:target) #valoraciones,
+:root:has(#propuestas:target) #reseñas,
+:root:has(#propuestas:target) #listas {
+  display: none;
+}
+:root:not(:has(:target)) #valoraciones {
+  display: block;
+}
+:root:not(:has(:target)) #reseñas,
+:root:not(:has(:target)) #listas,
+:root:not(:has(:target)) #propuestas {
+  display: none;
+}

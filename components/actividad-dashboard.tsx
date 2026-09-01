@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { EmptyState } from '@/components/empty-state'
 import type { AgregadosActividad, MiValoracion, MiReseña, MiLista, MiPropuesta } from '@/lib/actividad'
+import styles from './actividad-dashboard.module.css'
 
 function formatFecha(fecha: string): string {
   return new Date(fecha).toLocaleDateString('es-ES', {
@@ -113,7 +114,7 @@ export function ActividadDashboard({
       </nav>
 
       <div className="space-y-8">
-        <section id="valoraciones" className="actividad-panel">
+        <section id="valoraciones" className={`${styles['actividad-panel']}`}>
           <div className="flex items-center justify-between gap-4 mb-4">
             <h2 className="text-xl font-semibold">Valoraciones</h2>
             <span className="text-sm text-muted-foreground">{valoraciones.length} elementos</span>
@@ -169,7 +170,7 @@ export function ActividadDashboard({
           )}
         </section>
 
-        <section id="reseñas" className="actividad-panel">
+        <section id="reseñas" className={`${styles['actividad-panel']}`}>
           <div className="flex items-center justify-between gap-4 mb-4">
             <h2 className="text-xl font-semibold">Reseñas</h2>
             <span className="text-sm text-muted-foreground">{reseñas.length} elementos</span>
@@ -200,7 +201,7 @@ export function ActividadDashboard({
           )}
         </section>
 
-        <section id="listas" className="actividad-panel">
+        <section id="listas" className={`${styles['actividad-panel']}`}>
           <div className="flex items-center justify-between gap-4 mb-4">
             <h2 className="text-xl font-semibold">Listas</h2>
             <span className="text-sm text-muted-foreground">{listas.length} elementos</span>
@@ -240,7 +241,7 @@ export function ActividadDashboard({
           )}
         </section>
 
-        <section id="propuestas" className="actividad-panel">
+        <section id="propuestas" className={`${styles['actividad-panel']}`}>
           <div className="flex items-center justify-between gap-4 mb-4">
             <h2 className="text-xl font-semibold">Propuestas</h2>
             <span className="text-sm text-muted-foreground">{propuestas.length} elementos</span>
@@ -286,44 +287,6 @@ export function ActividadDashboard({
           )}
         </section>
       </div>
-
-      <style jsx>{`
-        .actividad-panel {
-          display: none;
-        }
-        .actividad-panel:target,
-        .actividad-panel:not(:target) ~ #valoraciones:not(:target) {
-          display: block;
-        }
-        :root:has(#valoraciones:target) #valoraciones,
-        :root:has(#reseñas:target) #reseñas,
-        :root:has(#listas:target) #listas,
-        :root:has(#propuestas:target) #propuestas {
-          display: block;
-        }
-        :root:has(#valoraciones:target) #reseñas,
-        :root:has(#valoraciones:target) #listas,
-        :root:has(#valoraciones:target) #propuestas,
-        :root:has(#reseñas:target) #valoraciones,
-        :root:has(#reseñas:target) #listas,
-        :root:has(#reseñas:target) #propuestas,
-        :root:has(#listas:target) #valoraciones,
-        :root:has(#listas:target) #reseñas,
-        :root:has(#listas:target) #propuestas,
-        :root:has(#propuestas:target) #valoraciones,
-        :root:has(#propuestas:target) #reseñas,
-        :root:has(#propuestas:target) #listas {
-          display: none;
-        }
-        :root:not(:has(:target)) #valoraciones {
-          display: block;
-        }
-        :root:not(:has(:target)) #reseñas,
-        :root:not(:has(:target)) #listas,
-        :root:not(:has(:target)) #propuestas {
-          display: none;
-        }
-      `}</style>
     </div>
   )
 }
