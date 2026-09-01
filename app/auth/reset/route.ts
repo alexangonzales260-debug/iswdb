@@ -1,30 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-import { createAuthClient } from '@/lib/auth'
+import { createAuthClient, origin } from '@/lib/auth'
 
-// Route handler de callback de recuperación (REC-03). El link que genera
-// GoTrue apunta a <origin>/auth/reset?token=...&type=recovery&redirect_to=...
-// El flujo de GoTrue usa token_hash, NO PKCE code: se verifica el token con
-// verifyOtp({ type: 'recovery', token_hash }), que fija la sesión de recovery
-// vía cookies (setAll). Luego redirect a /recuperar/confirmar.
+// REC-03: callback de recuperación (flujo PKCE de Supabase).
+// GoTrue redirige aquí con ?code=<pkce_code> tras verificar el token del
+// email. El route handler intercambia el code por una sesión completa de
+// recovery usando exchangeCodeForSession (ver plan decisiones #1).
+// La sesión se escribe en cookies vía @supabase/ssr (getAll/setAll), lo que
+// permite que /recuperar/confirmar pueda llamar a updateUser({ password }).
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
-  const token = searchParams.get('token')
+  const code = searchParams.get('code')
 
   const client = await createAuthClient()
 
-  if (token) {
-    const { error } = await client.auth.verifyOtp({
-      type: 'recovery',
-      token_hash: token
-    })
+  if (code) {
+    const { error } = await client.auth.exchangeCodeForSession(code)
     if (!error) {
-      return NextResponse.redirect(new URL('/recuperar/confirmar', request.url))
+      // Redirect al origin canónico (NEXT_PUBLIC_SITE_URL / 127.0.0.1), NO al
+      // derivado de request.url: Next normaliza ese host a "localhost", y si
+      // el flow entró por 127.0.0.1 las cookies de código/sesión se quedan en
+      // 127.0.0.1 → /recuperar/confirmar en localhost no vería la sesión y
+      // updateUser({ password }) fallaría.
+      return NextResponse.redirect(`${origin()}/recuperar/confirmar`)
     }
+    console.error('REC-03 exchangeCodeForSession error:', error.message)
   }
 
-  // REC-07: token inválido/expirado → error en /recuperar/confirmar.
-  return NextResponse.redirect(
-    new URL('/recuperar/confirmar?error=link-invalido', request.url)
-  )
+  // REC-07: code inválido/expirado o sin code → error en /recuperar/confirmar.
+  return NextResponse.redirect(`${origin()}/recuperar/confirmar?error=link-invalido`)
 }

@@ -135,6 +135,15 @@ export async function accionConfirmarRecuperacion(
         'El enlace ha caducado o ya se ha utilizado. Vuelve a solicitar la recuperación.'
     }
   }
+  // Tras cambiar la password, se cierra la sesión de recovery: si se
+  // dejara activa, /login redirigiría a /perfil (AUTH-05) y el banner de
+  // confirmación (msg) nunca se vería; el usuario debe volver a entrar con
+  // la nueva password. Si el signOut falla, se continúa igualmente.
+  try {
+    await cerrarSesion(client)
+  } catch {
+    // No bloqueamos el flujo por un fallo de signOut local.
+  }
   const params = new URLSearchParams({ msg: ERRORES_AUTH.cambiarPasswordOk })
   redirect(`/login?${params.toString()}`)
 }

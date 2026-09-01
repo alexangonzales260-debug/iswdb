@@ -140,6 +140,34 @@ export async function deleteAuthUserByEmail(email: string): Promise<void> {
   }
 }
 
+// F014 (T4): extrae el link de recuperación del correo en Mailpit. Hace poll
+// con timeout porque GoTrue puede tardar en enviar el correo. El link que
+// genera GoTrue apunta al endpoint verify del API (…/auth/v1/verify?token=…&
+// type=recovery&redirect_to=…): al abrirlo, GoTrue redirige al browser a
+// /auth/reset#access_token=… (rebautizado por el callback). Lo extraemos del
+// body HTML del email (href de "Reset password").
+const MAILPIT_URL = process.env.MAILPIT_URL ?? 'http://127.0.0.1:54324'
+
+export async function getRecoveryLink(email: string): Promise<string> {
+  for (let intento = 1; intento <= 30; intento++) {
+    const res = await fetch(
+      `${MAILPIT_URL}/api/v1/search?query=${encodeURIComponent(`to:${email}`)}`
+    )
+    const data = (await res.json()) as { messages?: { ID: string; Subject: string }[] }
+    const reset = (data.messages ?? []).find((m) => m.Subject === 'Reset your password')
+    if (reset) {
+      const detalleRes = await fetch(`${MAILPIT_URL}/api/v1/message/${reset.ID}`)
+      const detalle = (await detalleRes.json()) as { HTML?: string }
+      const href = detalle.HTML?.match(/href="([^"]*)"/)
+      if (href?.[1]) {
+        return href[1].replaceAll('&amp;', '&')
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500))
+  }
+  throw new Error(`getRecoveryLink: no se encontró correo de recuperación para ${email}`)
+}
+
 // F009 (T5): usuario E2E con fila en public.usuario. createAuthUser solo crea
 // el auth user; la FK de valoracion exige la fila de usuario, y el flujo de
 // valorar no visita /perfil (cuyo self-healing la crearía). El email se
