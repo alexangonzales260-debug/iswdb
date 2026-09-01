@@ -1,7 +1,14 @@
 'use server'
 
+import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import {
+  cambiarDisplayName,
+  cambiarDisplayNameSchema,
+  cambiarEmail,
+  cambiarEmailSchema,
+  cambiarPassword,
+  cambiarPasswordSchema,
   cerrarSesion,
   createAuthClient,
   ERRORES_AUTH,
@@ -12,12 +19,14 @@ import {
   recuperarSchema,
   registrarUsuario,
   registroSchema,
+  requireUser,
   restablecerPassword,
   solicitarRecuperacion
 } from './auth'
 
 export interface AuthFormState {
   error?: string
+  ok?: string
 }
 
 function campoTexto(formData: FormData, nombre: string): string {
@@ -146,4 +155,86 @@ export async function accionConfirmarRecuperacion(
   }
   const params = new URLSearchParams({ msg: ERRORES_AUTH.cambiarPasswordOk })
   redirect(`/login?${params.toString()}`)
+}
+
+// PER-01/PER-02: cambia la password previa reauth con la actual. En éxito
+// devuelve { ok } (el form lo muestra sin recargar).
+export async function accionCambiarPassword(
+  prevState: AuthFormState,
+  formData: FormData
+): Promise<AuthFormState> {
+  const parsed = cambiarPasswordSchema.safeParse({
+    passwordActual: campoTexto(formData, 'passwordActual'),
+    passwordNueva: campoTexto(formData, 'passwordNueva'),
+    confirmacion: campoTexto(formData, 'confirmacion')
+  })
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? 'Revisa los datos del formulario' }
+  }
+  await requireUser()
+  const client = await createAuthClient()
+  try {
+    await cambiarPassword(
+      client,
+      parsed.data.passwordActual,
+      parsed.data.passwordNueva
+    )
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : 'No se pudo cambiar la contraseña'
+    }
+  }
+  revalidatePath('/perfil')
+  return { ok: ERRORES_AUTH.cambiarPasswordOk }
+}
+
+// PER-03/PER-04: pide a GoTrue el cambio de email (envía link al nuevo).
+// En éxito devuelve SIEMPRE el mensaje genérico (no revela si el email ya
+// existe, PER-03).
+export async function accionCambiarEmail(
+  prevState: AuthFormState,
+  formData: FormData
+): Promise<AuthFormState> {
+  const parsed = cambiarEmailSchema.safeParse({
+    email: campoTexto(formData, 'email').trim()
+  })
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? 'Revisa los datos del formulario' }
+  }
+  await requireUser()
+  const client = await createAuthClient()
+  try {
+    await cambiarEmail(client, parsed.data.email)
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : 'No se pudo cambiar el email'
+    }
+  }
+  revalidatePath('/perfil')
+  return { ok: ERRORES_AUTH.mensajeEmailCambioEnviado }
+}
+
+// PER-05: actualiza el nombre mostrado en public.usuario. En éxito devuelve
+// { ok } (confirmación mostrada en el form).
+export async function accionCambiarDisplayName(
+  prevState: AuthFormState,
+  formData: FormData
+): Promise<AuthFormState> {
+  const parsed = cambiarDisplayNameSchema.safeParse({
+    displayName: campoTexto(formData, 'displayName')
+  })
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? 'Revisa los datos del formulario' }
+  }
+  await requireUser()
+  const client = await createAuthClient()
+  try {
+    await cambiarDisplayName(client, parsed.data.displayName)
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : 'No se pudo actualizar el nombre'
+    }
+  }
+  revalidatePath('/perfil')
+  return { ok: ERRORES_AUTH.displayNameOk }
 }
