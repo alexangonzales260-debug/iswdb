@@ -282,3 +282,13 @@
   58 E2E. Hallazgo operativo: contenedores de Supabase parados 10h
   causaron flakiness en tests RLS; resuelto con db reset + start limpio.
 - Cierre: D21 añadido, ROADMAP 015 ✅, validate.sh en verde, tag F15.
+
+## Sesión 17 — F16: Dashboard mi actividad (F016)
+- F16: Dashboard 'Mi actividad' en /perfil/actividad. Unifica valoraciones,
+  reseñas, listas, propuestas + agregados (conteos + promedio). Tabs CSS
+  puro con :target (sin componente cliente). Servicios inyectables en
+  lib/actividad.ts. 287 unit + 60 E2E. T3 saltado (CSS anchors suficiente).
+  Cleanup de E2E requiere delete explícito de propuesta-series (serie.user_id
+  es ON DELETE SET NULL).
+- Cierre: D22 añadido, ROADMAP 016 ✅, validate.sh en verde (287 unit + 60
+  E2E), tag F16.

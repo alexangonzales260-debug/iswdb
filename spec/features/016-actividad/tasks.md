@@ -5,6 +5,7 @@ Orden atómico: una sesión de Build por tarea. Cada tarea incluye código + tes
 ---
 
 ## T1: lib/actividad.ts — Servicios del dashboard
+**Estado**: ✅ Completada
 **Objetivo**: Crear servicios inyectables para leer actividad y calcular agregados.
 
 **Entregables**:
@@ -25,6 +26,7 @@ Orden atómico: una sesión de Build por tarea. Cada tarea incluye código + tes
 ---
 
 ## T2: components/actividad-dashboard.tsx — Dashboard (Server Component)
+**Estado**: ✅ Completada
 **Objetivo**: Componente que renderiza agregados + 4 secciones con listados.
 
 **Entregables**:
@@ -43,6 +45,7 @@ Orden atómico: una sesión de Build por tarea. Cada tarea incluye código + tes
 ---
 
 ## T3: components/actividad-tab.tsx — Tab interactivo (Client Component, opcional)
+**Estado**: ⏭️ Saltada — CSS anchors (`:target`) suficiente
 **Objetivo**: Si tabs CSS puro no es suficiente, componente cliente mínimo.
 
 **Entregables**:
@@ -57,6 +60,7 @@ Orden atómico: una sesión de Build por tarea. Cada tarea incluye código + tes
 ---
 
 ## T4: app/perfil/actividad/page.tsx — Página RSC protegida
+**Estado**: ✅ Completada
 **Objetivo**: Página que orquesta la lectura y renderiza el dashboard.
 
 **Entregables**:
@@ -71,6 +75,7 @@ Orden atómico: una sesión de Build por tarea. Cada tarea incluye código + tes
 ---
 
 ## T5: app/perfil/page.tsx — Link "Ver mi actividad"
+**Estado**: ✅ Completada
 **Objetivo**: Añadir enlace en la página de perfil existente.
 
 **Entregables**:
@@ -87,6 +92,7 @@ Orden atómico: una sesión de Build por tarea. Cada tarea incluye código + tes
 ---
 
 ## T6: tests/lib/actividad.test.ts — Tests de servidor
+**Estado**: ✅ Hecha en T1 (tests incluidos en la misma entrega)
 **Objetivo**: Cubrir servicios de `lib/actividad.ts` con fixtures reales.
 
 **Entregables**:
@@ -100,6 +106,7 @@ Orden atómico: una sesión de Build por tarea. Cada tarea incluye código + tes
 ---
 
 ## T7: e2e/actividad.spec.ts — Test E2E Playwright
+**Estado**: ✅ Completada
 **Objetivo**: Flujo completo usuario con actividad → dashboard muestra todo.
 
 **Entregables**:
@@ -121,6 +128,7 @@ Orden atómico: una sesión de Build por tarea. Cada tarea incluye código + tes
 ---
 
 ## T8: Validación completa
+**Estado**: ✅ Completada
 **Objetivo**: Ejecutar `./validate.sh` y confirmar todo en verde.
 
 **Entregables**:
@@ -132,13 +140,12 @@ Orden atómico: una sesión de Build por tarea. Cada tarea incluye código + tes
 
 ## Resumen de archivos
 
-### Nuevos (6)
+### Nuevos (5)
 1. `lib/actividad.ts`
 2. `components/actividad-dashboard.tsx`
-3. `components/actividad-tab.tsx` (opcional)
-4. `app/perfil/actividad/page.tsx`
-5. `tests/lib/actividad.test.ts`
-6. `e2e/actividad.spec.ts`
+3. `app/perfil/actividad/page.tsx`
+4. `tests/lib/actividad.test.ts`
+5. `e2e/actividad.spec.ts`
 
 ### Modificados (1)
 1. `app/perfil/page.tsx`
@@ -153,7 +160,7 @@ Orden atómico: una sesión de Build por tarea. Cada tarea incluye código + tes
 | user_id NULL en propuestas anónimas no aparece en dashboard | Por diseño: solo muestra propuestas del usuario logueado. Follow-up: filtro por proponente_email |
 | Promedio NaN si 0 valoraciones | `calcularAgregados` devuelve `null` para promedio si totalValoraciones === 0 |
 | Portada null en valoraciones | UI usa placeholder (EmptyState o imagen por defecto) |
-| Tabs CSS no funcionan bien en móvil | Fallback a `actividad-tab.tsx` cliente |
+| Tabs CSS no funcionan bien en móvil | Fallback a `actividad-tab.tsx` cliente (no aplicado: T3 saltada, `:target` suficiente) |
 
 ---
 

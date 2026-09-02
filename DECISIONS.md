@@ -67,3 +67,9 @@
       Cambio de email con confirmación de solo el email nuevo
       (double_confirm_changes=false para simplificar UX). display_name como
       columna TEXT NULL en usuario con CHECK 3-50 chars.
+- D22: Dashboard de actividad con tabs CSS puro (:target) en lugar de
+      componente cliente, priorizando simplicidad. Propuestas anónimas
+      (user_id NULL) no se muestran en el dashboard; solo las del usuario
+      logueado. Agregados calculados en servidor (D16) sin caché.
+      listMisPropuestas usa cliente con sesión para ver propuestas
+      pendientes/rechazadas propias (RLS serie_select_authenticated).
