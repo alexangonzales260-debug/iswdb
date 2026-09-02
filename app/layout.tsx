@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
 import { Header } from "@/components/header";
+import { SupabaseListener } from "@/components/supabase-listener";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -59,6 +60,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="flex min-h-full flex-col">
         <Header />
+        <SupabaseListener />
         <main className="flex-1">{children}</main>
         <footer className="border-t py-6">
           <div className="mx-auto w-full max-w-6xl px-4 text-sm text-muted-foreground">
