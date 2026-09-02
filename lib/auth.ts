@@ -143,6 +143,7 @@ export const cambiarDisplayNameSchema = z.object({
 export const ERRORES_AUTH = {
   emailDuplicado: 'Ya existe una cuenta con este email',
   credencialesInvalidas: 'Email o contraseña incorrectos',
+  oauthGoogleFallido: 'No se pudo iniciar sesión con Google',
   // REC-01: mensaje genérico, igual para email existente e inexistente.
   mensajeRecuperacionEnviado: 'Si existe una cuenta con ese email, te hemos enviado un link',
   // REC-04: confirma el cambio; /login lo muestra como banner (role=status).
@@ -206,6 +207,17 @@ export async function iniciarSesion(
   const { error } = await client.auth.signInWithPassword({ email, password })
   // Error genérico intencionado: no revelar si el email existe (AUTH-02).
   if (error) throw new Error(ERRORES_AUTH.credencialesInvalidas)
+}
+
+export async function iniciarSesionConGoogle(
+  client: AuthClient,
+  redirectTo: string
+): Promise<void> {
+  const { error } = await client.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo }
+  })
+  if (error) throw new Error(ERRORES_AUTH.oauthGoogleFallido)
 }
 
 export async function cerrarSesion(client: AuthClient): Promise<void> {
