@@ -73,3 +73,11 @@
       logueado. Agregados calculados en servidor (D16) sin caché.
       listMisPropuestas usa cliente con sesión para ver propuestas
       pendientes/rechazadas propias (RLS serie_select_authenticated).
+- D23: OAuth Google vía Supabase Auth sin implementación manual
+      (flujo PKCE, callback e intercambio gestionados por GoTrue y browser
+      client). Browser client factory en lib/supabase-browser.ts + listener
+      en app/layout.tsx con onAuthStateChange → router.refresh(). Botón
+      type='button' en login/registro con signInWithOAuth directo (sin
+      servicios server-only en cliente). Merge de cuentas automático por
+      GoTrue (mismo email → mismo auth.users.id). skip_nonce_check=true
+      requerido para Google en local.

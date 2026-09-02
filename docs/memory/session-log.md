@@ -292,3 +292,17 @@
   es ON DELETE SET NULL).
 - Cierre: D22 añadido, ROADMAP 016 ✅, validate.sh en verde (287 unit + 60
   E2E), tag F16.
+
+## Sesión 18 — F17: OAuth Google (F017)
+- F17: OAuth con Google vía Supabase Auth (sin implementación manual).
+  Browser client factory (lib/supabase-browser.ts) + listener en layout
+  (components/supabase-listener.tsx) para intercambio automático de código.
+  Botones 'Continuar con Google' en /login y /registro. skip_nonce_check=true
+  en local. env vars con default vacío (validate.sh no se rompe sin
+  credenciales). Hallazgo operacional: matar dev server stale antes de
+  test:e2e (reuseExistingServer reutiliza el puerto). 289 unit + 63 E2E.
+  Nota: flujo OAuth real con Google requiere credenciales válidas en
+  Google Cloud Console; sin ellas el botón da 401 invalid_client (error
+  esperado, el botón funciona).
+- Cierre: D23 añadido, ROADMAP 017 ✅, validate.sh en verde (289 unit + 63
+  E2E), tag F17.

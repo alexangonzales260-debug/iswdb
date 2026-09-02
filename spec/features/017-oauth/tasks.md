@@ -107,37 +107,63 @@ que intercambia el código de Google por tokens automáticamente.
 ---
 
 ## T6: e2e/oauth.spec.ts — Test E2E Playwright
-**Estado**: ⏳ Pendiente
-**Objetivo**: Flujo completo de login con Google (mock si está disponible).
+**Estado**: ✅ Completa
+**Objetivo**: Verificar que el botón "Continuar con Google" existe y está
+habilitado en /login y /registro, y que el flujo email/password sigue intacto
+(regresión). No se mockea el flujo OAuth real con Google.
 
 **Entregables**:
-- `e2e/oauth.spec.ts` con mock del flujo Google
+- `e2e/oauth.spec.ts` con verificación del botón + regresión email/password
 
-**Validación**: `npm run test:e2e e2e/oauth.spec.ts`
+**Validación**: `npm run test:e2e e2e/oauth.spec.ts` → 3 tests verdes.
 
 ---
 
 ## T7: Validación completa
-**Estado**: ⏳ Pendiente
+**Estado**: ✅ Completa
 **Objetivo**: Ejecutar `./validate.sh` y confirmar verde.
 
 **Entregables**:
-- Salida real de `./validate.sh` pegada aquí
+- Salida real de `./validate.sh`: 289 unit + 63 E2E en verde
+  (lint, typecheck, tests, build y e2e OK).
 
 **Comando**: `./validate.sh`
 
 ---
 
 ## T8: Cierre — ROADMAP + session-log + commit
-**Estado**: ⏳ Pendiente
+**Estado**: ✅ Completa
 **Objetivo**: Cierre de la feature 017.
 
 **Entregables**:
 - `ROADMAP.md`: 017 ✅
 - `docs/memory/session-log.md`: sesión F017
-- Commit atómico `F17: …`
+- `DECISIONS.md`: ADR D23
+- Commit atómico `F17: …` + tag F17
 
 **Validación**: Definition of Done completa.
+
+---
+
+## T9: Flujo OAuth real con Google — manual / follow-up
+**Estado**: 🔧 Manual / follow-up
+**Objetivo**: Validar el flujo OAuth completo de extremo a extremo con
+credenciales reales de Google Cloud Console. No automatizable en CI sin
+credenciales/víctimas de flujo interactivo.
+
+**Requisito**: credenciales válidas en Google Cloud Console
+(`GOOGLE_OAUTH_CLIENT_ID` / `GOOGLE_OAUTH_CLIENT_SECRET` en el entorno) y la
+redirect URI `http://127.0.0.1:54321/auth/v1/callback` configurada
+(ver `docs/oauth-google.md`).
+
+**Procedimiento** (manual):
+1. Poner las credenciales reales y `supabase restart`.
+2. Ir a /login → "Continuar con Google" → autorizar en Google.
+3. Confirmar el merge de cuentas (mismo email → mismo auth.users.id).
+4. Confirmar que /perfil muestra la sesión y el refresh del listener.
+
+**Estado**: sin credenciales el botón devuelve 401 invalid_client (error
+esperado; el botón funciona, solo faltan credenciales).
 
 ---
 
