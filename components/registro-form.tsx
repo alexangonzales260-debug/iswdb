@@ -1,11 +1,12 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { accionRegistro, type AuthFormState } from '@/lib/auth-actions'
+import { createBrowserAuthClient } from '@/lib/supabase-browser'
 
 const ESTADO_INICIAL: AuthFormState = {}
 
@@ -14,6 +15,8 @@ const ESTADO_INICIAL: AuthFormState = {}
 // inputs son no controlados: el email se preserva en fallo.
 export function RegistroForm() {
   const [state, formAction, pending] = useActionState(accionRegistro, ESTADO_INICIAL)
+  const [pendingGoogle, setPendingGoogle] = useState(false)
+  const [errorGoogle, setErrorGoogle] = useState<string | null>(null)
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -48,6 +51,42 @@ export function RegistroForm() {
       <Button type="submit" disabled={pending}>
         {pending ? 'Creando cuenta…' : 'Crear cuenta'}
       </Button>
+      <div className="my-4 flex items-center gap-2">
+        <div className="h-px flex-1 bg-border" />
+        <span className="text-xs text-muted-foreground">O continúa con</span>
+        <div className="h-px flex-1 bg-border" />
+      </div>
+      <Button
+        type="button"
+        variant="outline"
+        disabled={pendingGoogle}
+        onClick={async () => {
+          setPendingGoogle(true)
+          setErrorGoogle(null)
+          try {
+            const client = createBrowserAuthClient()
+            const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin
+            const { error } = await client.auth.signInWithOAuth({
+              provider: 'google',
+              options: { redirectTo: `${siteUrl}/` }
+            })
+            if (error) {
+              setErrorGoogle('No se pudo iniciar sesión con Google')
+              setPendingGoogle(false)
+            }
+          } catch {
+            setErrorGoogle('No se pudo iniciar sesión con Google')
+            setPendingGoogle(false)
+          }
+        }}
+      >
+        {pendingGoogle ? 'Redirigiendo…' : 'Continuar con Google'}
+      </Button>
+      {errorGoogle ? (
+        <p role="alert" className="text-sm font-medium text-destructive">
+          {errorGoogle}
+        </p>
+      ) : null}
     </form>
   )
 }
