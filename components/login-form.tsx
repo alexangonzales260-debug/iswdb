@@ -68,7 +68,9 @@ export function LoginForm({ next }: { next?: string }) {
             const next = new URLSearchParams(window.location.search).get('next') ?? '/'
             const { error } = await client.auth.signInWithOAuth({
               provider: 'google',
-              options: { redirectTo: `${siteUrl}${next}` }
+              options: {
+                redirectTo: `${siteUrl}/auth/callback?next=${encodeURIComponent(next)}`
+              }
             })
             if (error) {
               setErrorGoogle('No se pudo iniciar sesión con Google')

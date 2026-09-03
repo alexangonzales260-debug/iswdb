@@ -68,7 +68,7 @@ export function RegistroForm() {
             const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin
             const { error } = await client.auth.signInWithOAuth({
               provider: 'google',
-              options: { redirectTo: `${siteUrl}/` }
+              options: { redirectTo: `${siteUrl}/auth/callback` }
             })
             if (error) {
               setErrorGoogle('No se pudo iniciar sesión con Google')
