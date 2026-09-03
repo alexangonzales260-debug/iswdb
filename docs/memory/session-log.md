@@ -306,3 +306,21 @@
   esperado, el botón funciona).
 - Cierre: D23 añadido, ROADMAP 017 ✅, validate.sh en verde (289 unit + 63
   E2E), tag F17.
+
+## Sesión 19 — F017: verificación intercambio code → session (OAuth Google)
+- Estado: el flujo llegaba a Google y Google redirigía a la app con
+  ?code=..., pero el intercambio PKCE por sesión no ocurría de forma fiable.
+  El listener del browser client (createBrowserClient con detectSessionInUrl
+  default true) no bastaba tras el round-trip SSR del redirect de Google.
+- Solución (ruta de respaldo del plan): se creó route handler server-side
+  app/auth/callback/route.ts que recibe ?code= (+ next), intercambia con
+  exchangeCodeForSession (client con cookies vía getAll/setAll, patrón idéntico
+  a app/auth/reset/route.ts) y redirige a next o /. El botón Google en
+  components/login-form.tsx ahora usa redirectTo=
+  /auth/callback?next=<ruta> en lugar de /<ruta> directo.
+- Nota config.toml: redirect_uri de [auth.external.google] queda "" (default);
+  ahí se configura el callback de GoTrue (site + /auth/v1/callback), que no
+  cambió. El redirectTo del botón no necesita config.toml adicional.
+- Verificación: lint y typecheck en verde (pegado en la sesión). Intercambio
+  real end-to-end con Google pendiente de credenciales válidas en Google Cloud
+  Console (sin ellas, 401 invalid_client, comportamiento esperado).
