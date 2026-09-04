@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
   if (code) {
     const { error } = await client.auth.exchangeCodeForSession(code)
     if (!error) {
-      // Redirect al origin canónico (NEXT_PUBLIC_SITE_URL / 127.0.0.1), NO al
+      // Redirect al origin canónico (NEXT_PUBLIC_SITE_URL / localhost), NO al
       // derivado de request.url: Next normaliza ese host a "localhost", y si
       // el flow entró por 127.0.0.1 las cookies de código/sesión se quedan en
       // 127.0.0.1 → /recuperar/confirmar en localhost no vería la sesión y

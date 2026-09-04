@@ -62,6 +62,14 @@
       Mailpit como servidor de email local (puerto 54324). El dominio canónico
       es 127.0.0.1 (site_url de config.toml), no localhost, para que las cookies
       de sesión queden en el dominio correcto.
+      [F017-fix] El dominio canónico pasa a ser **http://localhost:3000** (site_url
+      de config.toml, NEXT_PUBLIC_SITE_URL, browser client, baseURL de Playwright
+      y Authorized JavaScript origin de Google). Razón: al usar @supabase/ssr, el
+      code_verifier/sesión del OAuth se guarda en cookies del mismo host del
+      browser; unificar todo en localhost evita el mismatch de host que rompía el
+      intercambio PKCE ("code verifier not found in storage"). El API de Auth de
+      Supabase (127.0.0.1:54321) queda al margen: el code_verifier vive en cookies
+      del browser, no en GoTrue.
 - D21: Edición de perfil con reauth de password (signInWithPassword
       antes de updateUser, porque secure_password_change=false en GoTrue).
       Cambio de email con confirmación de solo el email nuevo

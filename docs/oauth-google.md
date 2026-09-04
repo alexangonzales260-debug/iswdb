@@ -13,11 +13,17 @@ de entorno. Sin credenciales el stack arranca igual (default vacío):
 4. **+ Crear credenciales → ID de cliente OAuth 2.0**.
 5. En **Tipo de aplicación** elegir **Aplicación web** (Web application).
 6. En **Authorized JavaScript origins**:
-   - `http://127.0.0.1:3000`
+   - `http://localhost:3000`
 7. En **Authorized redirect URIs** añadir exactamente:
    - `http://127.0.0.1:54321/auth/v1/callback`
 8. **Crear**. Se mostrarán los valores **Client ID** y **Client Secret**.
 
+> F017: el dominio canónico del frontend es `http://localhost:3000` (navega
+> siempre por `localhost`, nunca `127.0.0.1`), por eso el *Authorized JavaScript
+> origin* es `localhost`. La **redirect URI NO cambia**: sigue siendo
+> `http://127.0.0.1:54321/auth/v1/callback` — ese `127.0.0.1:54321` es Supabase
+> local (el API server de Auth/GoTrue), no la app.
+>
 > La URI de redirección deriva del `site_url`/`external_url` de Supabase Auth
 > (`http://127.0.0.1:54321` + `/auth/v1/callback`). Debe coincidir a rajatabla
 > con la URL configurada en Google Cloud Console, incluyendo el puerto.

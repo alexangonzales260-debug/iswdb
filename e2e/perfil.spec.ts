@@ -88,7 +88,7 @@ test('PER flujo completo: display_name → password → email', async ({ page })
   // origin de la app), igual que getRecoveryLink en F014.
   const linkEmail = await getEmailChangeLink(EMAIL_NUEVO)
   await page.goto(linkEmail)
-  await page.waitForURL((url) => url.origin === 'http://127.0.0.1:3000')
+  await page.waitForURL((url) => url.origin === 'http://localhost:3000')
 
   await page.getByRole('button', { name: 'Salir' }).click()
   await page.waitForURL(/\/$/)

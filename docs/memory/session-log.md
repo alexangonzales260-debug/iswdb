@@ -324,3 +324,27 @@
 - Verificación: lint y typecheck en verde (pegado en la sesión). Intercambio
   real end-to-end con Google pendiente de credenciales válidas en Google Cloud
   Console (sin ellas, 401 invalid_client, comportamiento esperado).
+
+## Sesión 20 — F017-fix: unificar frontend a http://localhost:3000
+- Diagnóstico PKCE: el flujo OAuth con Google fallaba con `PKCE code verifier
+  not found in storage`. Root cause: falta de consistencia de host. El dominio
+  canónico era 127.0.0.1:3000 (D20), pero el browser client de @supabase/ssr
+  guarda el code_verifier en cookies del host desde el que se navega (localhost),
+  mientras el redirectTo usaba NEXT_PUBLIC_SITE_URL=127.0.0.1:3000 → la cookie no
+  llega al callback en 127.0.0.1. El endpoint 127.0.0.1:54321 (Supabase/GoTrue)
+  NO interfiere: es el API server; el code_verifier vive en cookies del browser.
+- Cambio (11 archivos): se estandariza TODO el frontend en http://localhost:3000
+  y se deja 127.0.0.1:54321 solo para Supabase. .env.local/.env.example +
+  supabase/config.toml (site_url + additional_redirect_urls ahora solo localhost,
+  incluye /auth/callback), lib/auth.ts origin(), next.config.ts allowedDevOrigins,
+  playwright.config.ts baseURL, e2e/perfil.spec.ts, comentario en
+  app/auth/reset/route.ts, docs/oauth-google.md, D20 actualizado y esta entrada.
+- D20 modificado: dominio canónico 127.0.0.1:3000 → http://localhost:3000 (cambio
+  de decisión aprobado por el usuario, ver DECISIONS.md).
+- Steps manuales del usuario fuera del repo: Google Cloud Console (Authorized
+  JavaScript origin http://localhost:3000; redirect URI sigue siendo
+  http://127.0.0.1:54321/auth/v1/callback) + supabase stop && supabase start para
+  que GoTrue tome el nuevo site_url. Navegar siempre por http://localhost:3000.
+- Verificación automática: typecheck, lint, test, build en verde (sin regresiones).
+  Flujo OAuth completo con Google pendiente de verificación manual tras los pasos
+  de Google Cloud Console + supabase restart.

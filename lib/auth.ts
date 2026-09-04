@@ -157,10 +157,11 @@ export const ERRORES_AUTH = {
 } as const
 
 // Origin para construir el redirectTo del link de recuperación (REC-02). En
-// local es http://127.0.0.1:3000 (site_url de supabase/config.toml); en
-// despliegue se define NEXT_PUBLIC_SITE_URL. No se hardcodea el puerto.
+// local es http://localhost:3000 (site_url de supabase/config.toml y dominio
+// canónico de la app); en despliegue se define NEXT_PUBLIC_SITE_URL. No se
+// hardcodea el puerto.
 export function origin(): string {
-  return process.env.NEXT_PUBLIC_SITE_URL ?? 'http://127.0.0.1:3000'
+  return process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 }
 
 // Servicios inyectables: reciben el cliente Supabase por parámetro para poder

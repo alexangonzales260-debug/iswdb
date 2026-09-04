@@ -6,13 +6,13 @@ export default defineConfig({
   // Los tests comparten el fixture de la BD local; se ejecutan en secuencia.
   workers: 1,
   reporter: [['list']],
-  // baseURL = http://127.0.0.1:3000, el mismo origin canónico que el site_url
-  // de supabase/config.toml y NEXT_PUBLIC_SITE_URL (ver .env.example). Si fuera
-  // localhost, las cookies de sesión/code_verifier (server actions) se quedarían
-  // en el dominio localhost y el callback de recuperación (que redirige a
-  // http://127.0.0.1:3000/auth/reset) no las recibiría → exchange PKCE falla.
+  // baseURL = http://localhost:3000, el dominio canónico (site_url de
+  // supabase/config.toml, NEXT_PUBLIC_SITE_URL y browser client coinciden). Al
+  // unificar browser + redirectTo + site_url en localhost, las cookies de
+  // sesión/code_verifier (server actions) quedan en localhost y el callback los
+  // recibe → el exchange PKCE no falla por mismatch de host.
   use: {
-    baseURL: 'http://127.0.0.1:3000',
+    baseURL: 'http://localhost:3000',
     trace: 'on-first-retry'
   },
   webServer: {
