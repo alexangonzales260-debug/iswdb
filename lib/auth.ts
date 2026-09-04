@@ -243,36 +243,38 @@ async function selectUsuario(client: AuthClient, userId: string) {
   return data
 }
 
-// Datos de perfil (AUTH-03) con self-healing: si el signUp funcionó pero el
-// insert de la fila usuario falló, se crea aquí con la sesión activa
-// (RLS usuario_insert_own: id = auth.uid()).
+// Self-healing de la fila public.usuario (AUTH-01): si el signUp funcionó pero
+// el insert de la fila usuario falló o el auth user aún no tiene fila (p. ej.
+// seguir una serie antes de visitar /perfil), se crea aquí con la sesión
+// activa (RLS usuario_insert_own: id = auth.uid()). Reutilizable desde
+// getPerfilData y desde cualquier Server Action que necesite la FK.
 //
 // Upsert con ignoreDuplicates (INSERT ... ON CONFLICT DO NOTHING + RETURNING):
 // un solo round-trip crea la fila o devuelve nada si ya existía. El DO NOTHING
 // es deliberado: un DO UPDATE sobreescribiría el rol (p. ej. degradaría a un
 // admin) y dispararía el trigger anti-escalada. El email (F012/M6) solo se
-// escribe al crear la fila, por el mismo motivo. El GET de fallback solo
-// ocurre cuando la fila ya existía, así nunca hay dos GET idénticos en el
-// mismo render (la memoización de fetch de Next devolvería la respuesta
+// escribe al crear la fila, por el mismo motivo.
+export async function asegurarFilaUsuario(
+  client: AuthClient,
+  userId: string,
+  email: string
+): Promise<void> {
+  const { error } = await client
+    .from('usuario')
+    .upsert({ id: userId, rol: 'user', email }, { onConflict: 'id', ignoreDuplicates: true })
+  if (error) throw new Error(error.message)
+}
+
+// Datos de perfil (AUTH-03) usando asegurarFilaUsuario + GET de fallback. El
+// GET solo ocurre cuando la fila ya existía, así nunca hay dos GET idénticos
+// en el mismo render (la memoización de fetch de Next devolvería la respuesta
 // obsoleta).
 export async function getPerfilData(
   client: AuthClient,
   userId: string,
   email: string
 ): Promise<PerfilData> {
-  const { data: creada, error } = await client
-    .from('usuario')
-    .upsert({ id: userId, rol: 'user', email }, { onConflict: 'id', ignoreDuplicates: true })
-    .select('rol, created_at, display_name')
-    .maybeSingle()
-  if (error) throw new Error(error.message)
-  if (creada)
-    return {
-      email,
-      created_at: creada.created_at,
-      rol: creada.rol,
-      display_name: creada.display_name
-    }
+  await asegurarFilaUsuario(client, userId, email)
 
   const fila = await selectUsuario(client, userId)
   if (!fila) throw new Error('No se pudo obtener ni crear la fila de usuario')

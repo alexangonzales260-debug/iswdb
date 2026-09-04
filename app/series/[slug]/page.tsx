@@ -6,12 +6,14 @@ import { ExternalLink, Film, ListMusic, Star } from "lucide-react";
 import { AddToList } from "@/components/add-to-list";
 import { CastList } from "@/components/cast-list";
 import { EmptyState } from "@/components/empty-state";
+import { FollowButton } from "@/components/follow-button";
 import { RatingHistogram } from "@/components/rating-histogram";
 import { RatingSelector } from "@/components/rating-selector";
 import { ReseñasSection } from "@/components/reseñas-section";
 import { SeasonList } from "@/components/season-list";
 import { Badge } from "@/components/ui/badge";
 import { createAuthClient, getUser } from "@/lib/auth";
+import { estaSiguiendo } from "@/lib/follows";
 import { ratingTexto, truncateDescripcion } from "@/lib/format";
 import { listMisListas } from "@/lib/listas";
 import { getSerieBySlug, type SerieFicha } from "@/lib/series";
@@ -125,6 +127,18 @@ function Cabecera({ serie }: { serie: SerieFicha }) {
   );
 }
 
+async function SeguirSerie({ serie }: { serie: SerieFicha }) {
+  const user = await getUser();
+  if (!user) return null;
+
+  const client = await createAuthClient();
+  const siguiendo = await estaSiguiendo(client, user.id, serie.id);
+
+  return (
+    <FollowButton serieId={serie.id} serieSlug={serie.slug} siguiendoInicial={siguiendo} />
+  );
+}
+
 // Sección "Valoraciones" (F009, VAL-04): histograma + selector. El AVG y el
 // conteo se conservan en la cabecera (VAL-06). getUser() está cacheado con
 // cache() de React (el header del layout lo llama en el mismo request); la
@@ -171,6 +185,8 @@ async function ContenidoFicha({ serie }: { serie: SerieFicha }) {
   return (
     <div className="space-y-10">
       <Cabecera serie={serie} />
+
+      <SeguirSerie serie={serie} />
 
       <Valoraciones serie={serie} />
 

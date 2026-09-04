@@ -14,6 +14,7 @@ import {
   listMisSeguidas,
   seguirSerie
 } from '@/lib/follows'
+import { asegurarFilaUsuario } from '@/lib/auth'
 import {
   createTestUser,
   dbAdmin,
@@ -172,5 +173,63 @@ describe('listMisSeguidas (FOL-03)', () => {
   it('sin follows → lista vacía', async () => {
     const filas = await listMisSeguidas(client, userId)
     expect(filas).toEqual([])
+  }, 30_000)
+})
+
+describe('self-healing: auth user sin fila en public.usuario (FK fix)', () => {
+  let fixUserId: string
+  let fixClient: Awaited<ReturnType<typeof signInTestUser>>
+
+  beforeAll(async () => {
+    // Crear auth user SOLO en GoTrue, sin fila en public.usuario.
+    fixUserId = await createTestUser(emailDe('fix-user'), TEST_PASSWORD)
+    createdAuthUserIds.push(fixUserId)
+    fixClient = await signInTestUser(emailDe('fix-user'), TEST_PASSWORD)
+  }, 60_000)
+
+  afterAll(async () => {
+    await unwrap(dbAdmin.from('usuario_serie').delete().eq('usuario_id', fixUserId))
+    // La fila de usuario se crea durante el test; se limpia junto al auth user.
+    await unwrap(dbAdmin.from('usuario').delete().eq('id', fixUserId))
+  })
+
+  it('asegurarFilaUsuario + seguirSerie: crea follow sin FK violation y crea fila usuario', async () => {
+    // Precondición: no hay fila de usuario aún.
+    const antes = await unwrap(
+      dbAdmin.from('usuario').select('id').eq('id', fixUserId).maybeSingle()
+    )
+    expect(antes).toBeNull()
+
+    // Mismo flujo que accionSeguir: self-healing ANTES de seguirSerie.
+    await asegurarFilaUsuario(fixClient, fixUserId, emailDe('fix-user'))
+    await seguirSerie(fixClient, fixUserId, serieAId)
+
+    expect(await estaSiguiendo(fixClient, fixUserId, serieAId)).toBe(true)
+
+    const despues = await unwrap(
+      dbAdmin.from('usuario').select('id, rol').eq('id', fixUserId).single()
+    )
+    expect(despues.rol).toBe('user')
+  }, 30_000)
+
+  it('asegurarFilaUsuario es idempotente (la fila ya existe → no falla ni sobreescribe rol)', async () => {
+    await asegurarFilaUsuario(fixClient, fixUserId, emailDe('fix-user'))
+    const fila = await unwrap(
+      dbAdmin.from('usuario').select('rol').eq('id', fixUserId).single()
+    )
+    expect(fila.rol).toBe('user')
+  }, 30_000)
+
+  it('sin asegurarFilaUsuario: seguirSerie lanza FK violation (regresión esperada sin fix)', async () => {
+    // Un usuario completamente nuevo, sin fila, solo GoTrue.
+    const bareId = await createTestUser(emailDe('bare'), TEST_PASSWORD)
+    createdAuthUserIds.push(bareId)
+    const bareClient = await signInTestUser(emailDe('bare'), TEST_PASSWORD)
+
+    await expect(
+      seguirSerie(bareClient, bareId, serieBId)
+    ).rejects.toThrow(/violates foreign key|usuario/)
+
+    await unwrap(dbAdmin.from('usuario').delete().eq('id', bareId))
   }, 30_000)
 })

@@ -78,9 +78,12 @@ export default async function PerfilPage({ searchParams }: PerfilPageProps) {
             </dd>
           </div>
         </dl>
-        <div className="mt-4">
+        <div className="mt-4 flex flex-wrap gap-4">
           <Link href="/perfil/actividad" className="text-brand underline-offset-2 hover:underline">
             Ver mi actividad
+          </Link>
+          <Link href="/perfil/seguidas" className="text-brand underline-offset-2 hover:underline">
+            Ver mis series seguidas
           </Link>
         </div>
       </section>
