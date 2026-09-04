@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { Search } from 'lucide-react'
 
+import { NotificacionBadge } from '@/components/notificacion-badge'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -82,6 +83,7 @@ export async function Header() {
                 </span>
                 <span className="hidden max-w-48 truncate sm:inline">{user.email}</span>
               </Link>
+              <NotificacionBadge />
               {/* AUTH-04: logout como form RSC puro (cero JS cliente). */}
               <form action={accionLogout}>
                 <Button type="submit" variant="ghost" size="sm">
