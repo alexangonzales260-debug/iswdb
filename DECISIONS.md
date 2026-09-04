@@ -95,3 +95,9 @@
       (23505 silenciado). Self-healing de public.usuario centralizado en
       asegurarFilaUsuario y aplicado en escrituras con FK a usuario, no solo
       en /perfil.
+- D25: Notificaciones generadas en la acción de admin (no trigger en BD)
+      para mantener el flujo explícito y testeable. Insert solo service_role
+      (RLS) con notificarNuevoEpisodio inyectable. Fallo de notificación se
+      logea y no revierte el episodio (aceptado). Badge como Server Component
+      que hereda dynamic del header. UNIQUE(usuario_id, episodio_id) para
+      idempotencia.

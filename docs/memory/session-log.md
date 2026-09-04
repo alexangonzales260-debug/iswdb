@@ -358,3 +358,13 @@
   user nunca visitó /perfil. 312 unit + 65 E2E. Nota operativa: flakiness
   por estado residual si una corrida E2E muere por timeout (wipe no se
   re-ejecuta); relanzar la suite limpia.
+
+## Sesión 22 — F19: Notificaciones de episodios (F019)
+- F19: Notificaciones de nuevos episodios. Tabla notificacion (M12,
+  UNIQUE usuario+episodio, FK cascade, RLS select/update own, insert solo
+  service_role). Generación en acción de admin (crearSerie/editarSerie)
+  vía notificarNuevoEpisodio con service-role client (no trigger). M13
+  corrige grants de service_role (upsert onConflict requiere SELECT).
+  Badge en header (Server Component) + /perfil/notificaciones con marcar
+  leída/todas. 324 unit + 67 E2E.
+- Cierre: D25 añadido, ROADMAP 019 ✅, validate.sh en verde, tag F19.

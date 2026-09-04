@@ -4,7 +4,7 @@ Cada tarea = una sesión de Build. Orden estricto.
 
 ---
 
-## T1: Migración M12 — tabla notificacion
+## T1: Migración M12 — tabla notificacion ✅
 **Crear**: `supabase/migrations/20260904100000_create_notificacion.sql`
 **Contenido**: tabla notificacion, UNIQUE, índices, grants, RLS (ver plan.md §1)
 **Verificar**: `supabase db reset` + inspección de tabla
@@ -12,7 +12,7 @@ Cada tarea = una sesión de Build. Orden estricto.
 
 ---
 
-## T2: Servicios — lib/notificaciones.ts
+## T2: Servicios — lib/notificaciones.ts ✅
 **Crear**: `lib/notificaciones.ts`
 **Contenido**: listMisNotificaciones, marcarLeida, marcarTodasLeidas, contarNoLeidas, notificarNuevoEpisodio (usa createServiceRoleClient)
 **Verificar**: `npm run typecheck`
@@ -20,7 +20,7 @@ Cada tarea = una sesión de Build. Orden estricto.
 
 ---
 
-## T3: Tests de servidor — notificaciones
+## T3: Tests de servidor — notificaciones ✅
 **Crear**: `tests/notificaciones.test.ts` (o similar)
 **Contenido**: generación al crear episodio, listar, marcar, marcar todas, RLS, UNIQUE
 **Verificar**: `npm run test`
@@ -28,7 +28,7 @@ Cada tarea = una sesión de Build. Orden estricto.
 
 ---
 
-## T4: Integración admin — crearSerie + editarSerie
+## T4: Integración admin — crearSerie + editarSerie ✅
 **Modificar**: `lib/admin.ts`
 **Contenido**: tras insertar episodios, llamar notificarNuevoEpisodio con createServiceRoleClient() para cada episodio nuevo
 **Verificar**: `npm run typecheck` + tests de T3 pasan
@@ -36,7 +36,7 @@ Cada tarea = una sesión de Build. Orden estricto.
 
 ---
 
-## T5: Badge + header
+## T5: Badge + header ✅
 **Crear**: `components/notificacion-badge.tsx`
 **Modificar**: `components/header.tsx`
 **Contenido**: badge async RSC con contador de no leídas, visible solo con sesión
@@ -45,7 +45,7 @@ Cada tarea = una sesión de Build. Orden estricto.
 
 ---
 
-## T6: UI notificaciones — página + actions + botones
+## T6: UI notificaciones — página + actions + botones ✅
 **Crear**:
   - `lib/notificaciones-actions.ts` (server actions: marcarLeida, marcarTodasLeidas)
   - `components/marcar-leida-button.tsx` (client component con useTransition)
@@ -55,7 +55,7 @@ Cada tarea = una sesión de Build. Orden estricto.
 
 ---
 
-## T7: Test E2E — flujo completo
+## T7: Test E2E — flujo completo ✅
 **Crear/Modificar**: archivo de test Playwright existente o nuevo
 **Contenido**: seguir serie → admin crea episodio → badge → notificaciones → marcar leída
 **Verificar**: `npm run test` (Playwright)
@@ -63,7 +63,7 @@ Cada tarea = una sesión de Build. Orden estricto.
 
 ---
 
-## T8: Validación final + cierre
+## T8: Validación final + cierre ✅
 **Ejecutar**: `./validate.sh`
 **Verificar**: 0 errores en lint, typecheck, tests, build
 **Actualizar**: ROADMAP.md, DECISIONS.md (D25 sobre notificaciones)
