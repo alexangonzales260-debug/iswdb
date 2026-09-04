@@ -337,6 +337,39 @@ export type Database = {
         }
         Relationships: []
       }
+      usuario_serie: {
+        Row: {
+          created_at: string
+          serie_id: string
+          usuario_id: string
+        }
+        Insert: {
+          created_at?: string
+          serie_id: string
+          usuario_id: string
+        }
+        Update: {
+          created_at?: string
+          serie_id?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usuario_serie_serie_id_fkey"
+            columns: ["serie_id"]
+            isOneToOne: false
+            referencedRelation: "serie"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usuario_serie_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuario"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       valoracion: {
         Row: {
           created_at: string
