@@ -2,6 +2,8 @@ import { notFound } from 'next/navigation'
 import { z } from 'zod'
 import type { AuthClient } from './auth'
 import { unwrap } from './series'
+import { notificarNuevoEpisodio } from './notificaciones'
+import { createServiceRoleClient } from './supabase'
 
 // ── F010 · Guard de rol (ADM-04) ────────────────────────────────────────────
 
@@ -411,16 +413,20 @@ export async function crearSerie(client: AuthClient, datos: SerieDatos): Promise
       if (errorParticipa) throw errorParticipa
     }
     if (parsed.episodios.length > 0) {
-      const { error: errorEpisodio } = await client.from('episodio').insert(
-        parsed.episodios.map(({ temporada, numero, titulo, video_id }) => ({
-          serie_id: fila.id,
-          temporada,
-          numero,
-          titulo,
-          video_id
-        }))
-      )
+      const { data: episodios, error: errorEpisodio } = await client
+        .from('episodio')
+        .insert(
+          parsed.episodios.map(({ temporada, numero, titulo, video_id }) => ({
+            serie_id: fila.id,
+            temporada,
+            numero,
+            titulo,
+            video_id
+          }))
+        )
+        .select('id')
       if (errorEpisodio) throw errorEpisodio
+      await notificarEpisodiosNuevos(fila.id, parsed.episodios.map((_, i) => episodios?.[i]?.id).filter(Boolean) as string[])
     }
   } catch (error) {
     // Compensación: borrar la serie (cascade borra participa y episodio).
@@ -501,7 +507,7 @@ export async function editarSerie(
   if (parsed.episodios.length > 0) {
     // defaultToNull:false → Prefer: missing=default: a las filas nuevas (sin
     // id) PostgREST les aplica gen_random_uuid() en vez de NULL en el bulk.
-    const { error: errorEpisodio } = await client.from('episodio').upsert(
+    const { data: episodios, error: errorEpisodio } = await client.from('episodio').upsert(
       parsed.episodios.map((episodio) => ({
         ...(episodio.id ? { id: episodio.id } : {}),
         serie_id: serie.id,
@@ -511,7 +517,30 @@ export async function editarSerie(
         video_id: episodio.video_id
       })),
       { onConflict: 'id', defaultToNull: false }
-    )
+    ).select('id')
     if (errorEpisodio) throw errorEscritura(errorEpisodio)
+    // Notificar solo los episodios recién insertados (los que no traían id):
+    // el upsert devuelve las filas en el mismo orden que la entrada.
+    const idsNuevos = parsed.episodios
+      .map((_, i) => (!parsed.episodios[i].id ? episodios?.[i]?.id : undefined))
+      .filter((id): id is string => Boolean(id))
+    await notificarEpisodiosNuevos(serie.id, idsNuevos)
+  }
+}
+
+// Genera notificaciones de "nuevo episodio" para los episodios recién
+// insertados (NOT-01). El episodio ya está commiteado en la BD: un fallo aquí
+// (p.ej. error transitorio del servicio de notificaciones) NO debe revertir la
+// creación del episodio ni romper el flujo de admin, por eso el error se logea
+// y se continúa (no se relanza).
+async function notificarEpisodiosNuevos(serieId: string, episodioIds: string[]): Promise<void> {
+  if (episodioIds.length === 0) return
+  try {
+    const serviceRoleClient = createServiceRoleClient()
+    for (const episodioId of episodioIds) {
+      await notificarNuevoEpisodio(serviceRoleClient, serieId, episodioId)
+    }
+  } catch (error) {
+    console.error('notificarNuevoEpisodio: generación de notificaciones fallida', error)
   }
 }

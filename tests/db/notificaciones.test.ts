@@ -1,6 +1,16 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
+
+// lib/admin.ts → lib/supabase.ts lanza si faltan env vars (fail fast);
+// vi.hoisted se ejecuta antes que los imports.
+vi.hoisted(() => {
+  process.env.NEXT_PUBLIC_SUPABASE_URL ??= 'http://127.0.0.1:54321'
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??=
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
+  process.env.SUPABASE_SERVICE_ROLE_KEY ??=
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU'
+})
 
 import {
   createTestUser,
@@ -18,6 +28,7 @@ import {
   marcarTodasLeidas,
   notificarNuevoEpisodio
 } from '@/lib/notificaciones'
+import { editarSerie } from '@/lib/admin'
 
 requireLocalDb()
 
@@ -169,6 +180,40 @@ describe('generación (notificarNuevoEpisodio, service_role)', () => {
     )
     expect(notifs).toHaveLength(0)
     await limpiarNotificaciones()
+  }, 30_000)
+
+  it('editarSerie (admin) añade un episodio nuevo a una serie seguida → notificación por seguidor', async () => {
+    await seguirASerie(seguidorId)
+    // La serie ya tiene episodioId; el edit conserva ese episodio y añade uno nuevo.
+    await editarSerie(dbAdmin, slugDe('serie'), {
+      titulo: 'Serie Notificaciones',
+      categoria: slugDe('cat'),
+      estado: 'activa',
+      episodios: [
+        { id: episodioId, temporada: 2, numero: 5, titulo: 'Episodio Nuevo', video_id: `vid-${runId}` },
+        { temporada: 2, numero: 8, titulo: 'Episodio Añadido', video_id: `vid4-${runId}` }
+      ]
+    })
+
+    const notifs = await unwrap(
+      dbAdmin
+        .from('notificacion')
+        .select('episodio_id, leida')
+        .eq('usuario_id', seguidorId)
+    )
+    expect(notifs).toHaveLength(1)
+    expect(notifs[0].leida).toBe(false)
+    expect(notifs[0].episodio_id).not.toBe(episodioId)
+
+    await limpiarNotificaciones()
+    await unwrap(
+      dbAdmin
+        .from('episodio')
+        .delete()
+        .eq('serie_id', serieId)
+        .neq('id', episodioId)
+    )
+    await unwrap(dbAdmin.from('usuario_serie').delete().eq('usuario_id', seguidorId).eq('serie_id', serieId))
   }, 30_000)
 })
 
@@ -335,12 +380,13 @@ describe('RLS (NOT-08)', () => {
     await unwrap(dbAdmin.from('usuario_serie').delete().eq('usuario_id', seguidorId).eq('serie_id', serieId))
   }, 30_000)
 
-  it('anon: lectura de notificaciones → 0 filas', async () => {
+  it('anon: lectura de notificaciones denegada (sin grant de SELECT)', async () => {
     await seguirASerie(seguidorId)
     await notificarNuevoEpisodio(dbAdmin, serieId, episodioId)
 
-    const filas = await unwrap(db.from('notificacion').select('id').eq('serie_id', serieId))
-    expect(filas).toHaveLength(0)
+    await expect(
+      unwrap(db.from('notificacion').select('id').eq('serie_id', serieId))
+    ).rejects.toThrow(/permission denied|not permitted/i)
 
     await limpiarNotificaciones()
     await unwrap(dbAdmin.from('usuario_serie').delete().eq('usuario_id', seguidorId).eq('serie_id', serieId))
