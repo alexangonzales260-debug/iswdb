@@ -66,9 +66,12 @@ export function RegistroForm() {
           try {
             const client = createBrowserAuthClient()
             const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin
+            const next = new URLSearchParams(window.location.search).get('next') ?? '/'
             const { error } = await client.auth.signInWithOAuth({
               provider: 'google',
-              options: { redirectTo: `${siteUrl}/auth/callback` }
+              options: {
+                redirectTo: `${siteUrl}/auth/callback?next=${encodeURIComponent(next)}`
+              }
             })
             if (error) {
               setErrorGoogle('No se pudo iniciar sesión con Google')
