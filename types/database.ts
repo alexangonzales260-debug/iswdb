@@ -166,6 +166,55 @@ export type Database = {
           },
         ]
       }
+      notificacion: {
+        Row: {
+          created_at: string
+          episodio_id: string
+          id: string
+          leida: boolean
+          serie_id: string
+          usuario_id: string
+        }
+        Insert: {
+          created_at?: string
+          episodio_id: string
+          id?: string
+          leida?: boolean
+          serie_id: string
+          usuario_id: string
+        }
+        Update: {
+          created_at?: string
+          episodio_id?: string
+          id?: string
+          leida?: boolean
+          serie_id?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notificacion_episodio_id_fkey"
+            columns: ["episodio_id"]
+            isOneToOne: false
+            referencedRelation: "episodio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notificacion_serie_id_fkey"
+            columns: ["serie_id"]
+            isOneToOne: false
+            referencedRelation: "serie"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notificacion_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuario"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       participa: {
         Row: {
           canal_id: string
