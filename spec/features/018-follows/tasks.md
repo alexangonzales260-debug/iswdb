@@ -5,7 +5,7 @@ Orden atómico: una sesión de Build por tarea. Cada tarea incluye código + tes
 ---
 
 ## T1: Migración M11 + tipos + tests DB/RLS
-**Estado**: Pendiente
+**Estado**: Completado
 **Objetivo**: Crear tabla usuario_serie + RLS + grants + tests de invariantes y RLS.
 
 **Entregables**:
@@ -44,7 +44,7 @@ Orden atómico: una sesión de Build por tarea. Cada tarea incluye código + tes
 ---
 
 ## T2: Servicios en lib/follows.ts + tests
-**Estado**: Pendiente
+**Estado**: Completado
 **Objetivo**: Crear servicios inyectables para seguir/dejar/listar follows.
 
 **Entregables**:
@@ -71,7 +71,7 @@ Orden atómico: una sesión de Build por tarea. Cada tarea incluye código + tes
 ---
 
 ## T3: Server Actions + componentes + páginas + integración en ficha
-**Estado**: Pendiente
+**Estado**: Completado
 **Objetivo**: Actions, componente botón, página /perfil/seguidas e integración en ficha.
 
 **Entregables**:
@@ -110,7 +110,7 @@ smoke manual en dev (seguir → botón cambia → /perfil/seguidas → dejar de 
 ---
 
 ## T4: E2E Playwright
-**Estado**: Pendiente
+**Estado**: Completado
 **Objetivo**: Flujo completo seguir desde ficha → visible en /perfil/seguidas → dejar de seguir.
 
 **Entregables**:
@@ -127,7 +127,7 @@ smoke manual en dev (seguir → botón cambia → /perfil/seguidas → dejar de 
 ---
 
 ## T5: validate.sh + cierre
-**Estado**: Pendiente
+**Estado**: Completado
 **Objetivo**: Ejecutar validate.sh y actualizar docs de cierre.
 
 **Entregables**:

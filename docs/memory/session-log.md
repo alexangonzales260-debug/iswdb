@@ -348,3 +348,13 @@
 - Verificación automática: typecheck, lint, test, build en verde (sin regresiones).
   Flujo OAuth completo con Google pendiente de verificación manual tras los pasos
   de Google Cloud Console + supabase restart.
+
+## Sesión 21 — F18: Seguimiento de series (F018)
+- F18: Seguimiento de series (follow/unfollow) con tabla usuario_serie
+  (M11, UNIQUE + FK cascade + RLS own). Botón Seguir/Siguiendo en ficha
+  con estado optimista. Página /perfil/seguidas. Fix crítico: self-healing
+  de public.usuario extraído a asegurarFilaUsuario (lib/auth.ts) y llamado
+  en accionSeguir antes del insert, evitando FK violation cuando el auth
+  user nunca visitó /perfil. 312 unit + 65 E2E. Nota operativa: flakiness
+  por estado residual si una corrida E2E muere por timeout (wipe no se
+  re-ejecuta); relanzar la suite limpia.

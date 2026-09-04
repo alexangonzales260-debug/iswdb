@@ -89,3 +89,9 @@
       servicios server-only en cliente). Merge de cuentas automático por
       GoTrue (mismo email → mismo auth.users.id). skip_nonce_check=true
       requerido para Google en local.
+- D24: Seguimiento de series con tabla usuario_serie (usuario_id, serie_id,
+      UNIQUE, FK cascade, RLS own con auth.uid() directo). Revalidación acotada
+      (/series/<slug> + /perfil/seguidas). Idempotencia en seguir/dejar
+      (23505 silenciado). Self-healing de public.usuario centralizado en
+      asegurarFilaUsuario y aplicado en escrituras con FK a usuario, no solo
+      en /perfil.

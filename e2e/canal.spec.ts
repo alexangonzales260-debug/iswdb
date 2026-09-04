@@ -54,7 +54,7 @@ test.describe('Ficha de canal', () => {
 
   test('OG con avatar cuando existe', async ({ page }) => {
     await page.goto('/canales/canal-dos')
-    await expect(page.locator('meta[property="og:image"]')).toHaveAttribute(
+    await expect(page.locator('meta[property="og:image"]').first()).toHaveAttribute(
       'content',
       'https://img.youtube.com/vi/canaldos/avatar.jpg'
     )
