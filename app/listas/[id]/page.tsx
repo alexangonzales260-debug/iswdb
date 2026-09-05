@@ -6,6 +6,8 @@ import type { AuthClient } from "@/lib/auth";
 import { createAuthClient, getUser } from "@/lib/auth";
 import { getLista } from "@/lib/listas";
 import { supabaseServer } from "@/lib/supabase";
+import { listColaboradores } from "@/lib/listas-colaborativas";
+import { createServiceRoleClient } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +34,7 @@ export async function generateMetadata({
 // con cache() de React (lo llama el header). getLista devuelve null si la
 // lista no es accesible (privada ajena o inexistente) → notFound() (404).
 // La página funciona sin sesión para listas públicas (solo lectura, sin
-// botones): ListaDetalle recibe esOwner.
+// botones): ListaDetalle recibe esOwner y rol.
 export default async function ListaDetallePage({
   params,
 }: ListaDetallePageProps) {
@@ -45,6 +47,13 @@ export default async function ListaDetallePage({
   // lista si el cliente puede leerla (own_or_public por RLS).
   if (!detalle) notFound();
 
+  let colaboradores = []
+  let numEditores = 0
+  if (detalle.esOwner) {
+    colaboradores = await listColaboradores(createServiceRoleClient(), id)
+    numEditores = colaboradores.filter((c) => c.rol === 'editor').length
+  }
+
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-12">
       <ListaDetalle
@@ -52,7 +61,9 @@ export default async function ListaDetallePage({
         nombre={detalle.lista.nombre}
         descripcion={detalle.lista.descripcion}
         esOwner={detalle.esOwner}
+        rol={detalle.rol}
         series={detalle.lista.series}
+        numEditores={numEditores}
       />
     </div>
   );

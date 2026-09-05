@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation'
 import { createAuthClient, requireUser } from './auth'
 import {
   añadirSerieALista,
+  cambiarDescripcionLista,
   crearLista,
   eliminarLista,
   ERRORES_LISTA,
@@ -13,6 +14,11 @@ import {
   renombrarLista,
   reordenarLista
 } from './listas'
+import {
+  invitarColaborador,
+  quitarColaborador,
+  cambiarRolColaborador
+} from './listas-colaborativas'
 
 export interface ListaActionState {
   error?: string
@@ -150,7 +156,7 @@ export async function accionQuitarSerie(
   return {}
 }
 
-// Reordena las series de una lista propia (LIS-06). serieIds es el orden
+// Reordena las series de una lista editable (LIS-06). serieIds es el orden
 // final deseado (array de serie_id). Llamada directa (useTransition).
 export async function accionReordenar(
   listaId: string,
@@ -167,6 +173,121 @@ export async function accionReordenar(
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : 'No se pudo reordenar la lista'
+    }
+  }
+
+  revalidatePath(`/listas/${listaId}`)
+  return {}
+}
+
+// ── Colaboradores (T3) ───────────────────────────────────────────────────────
+
+// Invita un colaborador a la lista (COL-01/05). useActionState: username + rol.
+export async function accionInvitarColaborador(
+  listaId: string,
+  _prev: ListaActionState,
+  formData: FormData
+): Promise<ListaActionState> {
+  await requireUser({
+    next: `/listas/${listaId}`,
+    message: ERRORES_LISTA.sinSesion
+  })
+  const client = await createAuthClient()
+  const { data: userData } = await client.auth.getUser()
+  const invitorId = userData.user?.id
+
+  if (!invitorId) {
+    return { error: ERRORES_LISTA.sinSesion }
+  }
+
+  try {
+    await invitarColaborador(client, listaId, invitorId, String(formData.get('username') ?? ''), String(formData.get('rol') ?? ''))
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : 'No se pudo invitar al colaborador'
+    }
+  }
+
+  revalidatePath(`/listas/${listaId}`)
+  return {}
+}
+
+// Quita un colaborador de la lista (COL-04). Llamada directa (useTransition).
+export async function accionQuitarColaborador(
+  listaId: string,
+  colaboradorId: string
+): Promise<ListaActionState> {
+  await requireUser({
+    next: `/listas/${listaId}`,
+    message: ERRORES_LISTA.sinSesion
+  })
+  const client = await createAuthClient()
+  const { data: userData } = await client.auth.getUser()
+  const ownerId = userData.user?.id
+
+  if (!ownerId) {
+    return { error: ERRORES_LISTA.sinSesion }
+  }
+
+  try {
+    await quitarColaborador(client, listaId, ownerId, colaboradorId)
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : 'No se pudo quitar al colaborador'
+    }
+  }
+
+  revalidatePath(`/listas/${listaId}`)
+  return {}
+}
+
+// Cambia el rol de un colaborador (COL-04). Llamada directa.
+export async function accionCambiarRolColaborador(
+  listaId: string,
+  colaboradorId: string,
+  nuevoRol: string
+): Promise<ListaActionState> {
+  await requireUser({
+    next: `/listas/${listaId}`,
+    message: ERRORES_LISTA.sinSesion
+  })
+  const client = await createAuthClient()
+  const { data: userData } = await client.auth.getUser()
+  const ownerId = userData.user?.id
+
+  if (!ownerId) {
+    return { error: ERRORES_LISTA.sinSesion }
+  }
+
+  try {
+    await cambiarRolColaborador(client, listaId, ownerId, colaboradorId, nuevoRol)
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : 'No se pudo cambiar el rol'
+    }
+  }
+
+  revalidatePath(`/listas/${listaId}`)
+  return {}
+}
+
+// Cambia la descripción de una lista editable (COL-02). useActionState.
+export async function accionCambiarDescripcionLista(
+  listaId: string,
+  _prev: ListaActionState,
+  formData: FormData
+): Promise<ListaActionState> {
+  await requireUser({
+    next: `/listas/${listaId}`,
+    message: ERRORES_LISTA.sinSesion
+  })
+  const client = await createAuthClient()
+
+  try {
+    await cambiarDescripcionLista(client, listaId, String(formData.get('descripcion') ?? '') || null)
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : 'No se pudo cambiar la descripción'
     }
   }
 
