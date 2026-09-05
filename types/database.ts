@@ -169,26 +169,32 @@ export type Database = {
       notificacion: {
         Row: {
           created_at: string
-          episodio_id: string
+          episodio_id: string | null
           id: string
           leida: boolean
-          serie_id: string
+          seguidor_id: string | null
+          serie_id: string | null
+          tipo: string
           usuario_id: string
         }
         Insert: {
           created_at?: string
-          episodio_id: string
+          episodio_id?: string | null
           id?: string
           leida?: boolean
-          serie_id: string
+          seguidor_id?: string | null
+          serie_id?: string | null
+          tipo?: string
           usuario_id: string
         }
         Update: {
           created_at?: string
-          episodio_id?: string
+          episodio_id?: string | null
           id?: string
           leida?: boolean
-          serie_id?: string
+          seguidor_id?: string | null
+          serie_id?: string | null
+          tipo?: string
           usuario_id?: string
         }
         Relationships: [
@@ -197,6 +203,13 @@ export type Database = {
             columns: ["episodio_id"]
             isOneToOne: false
             referencedRelation: "episodio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notificacion_seguidor_id_fkey"
+            columns: ["seguidor_id"]
+            isOneToOne: false
+            referencedRelation: "usuario"
             referencedColumns: ["id"]
           },
           {
