@@ -10,13 +10,16 @@ vi.hoisted(() => {
 })
 
 import {
+  asegurarFilaUsuario,
   cambiarDisplayName,
   cambiarDisplayNameSchema,
   cambiarEmail,
   cambiarEmailSchema,
   cambiarPassword,
   cambiarPasswordSchema,
-  ERRORES_AUTH
+  ERRORES_AUTH,
+  registrarUsuario,
+  usernameDesdeEmail
 } from '@/lib/auth'
 import type { Database } from '@/types/database'
 import { createTestUser, dbAdmin, deleteTestUser, requireLocalDb, signInTestUser } from './env'
@@ -184,7 +187,9 @@ describe('F015 cambiarDisplayName (PER-05)', () => {
     createdAuthUserIds.push(userId)
     // El admin de GoTrue no crea la fila en public.usuario; el servicio la
     // actualiza (PER-05), así que se inserta vía service-role (evita RLS).
-    const { error: insertError } = await dbAdmin.from('usuario').insert({ id: userId, email })
+    const { error: insertError } = await dbAdmin
+      .from('usuario')
+      .insert({ id: userId, email, username: usernameDesdeEmail(email, userId) })
     expect(insertError).toBeNull()
     const client = await signInTestUser(email, PASSWORD)
 
@@ -205,8 +210,16 @@ describe('F015 cambiarDisplayName (PER-05)', () => {
     const userIdB = await createTestUser(emailB, PASSWORD)
     createdAuthUserIds.push(userIdA, userIdB)
     await dbAdmin.from('usuario').insert([
-      { id: userIdA, email: emailA },
-      { id: userIdB, email: emailB }
+      {
+        id: userIdA,
+        email: emailA,
+        username: usernameDesdeEmail(emailA, userIdA)
+      },
+      {
+        id: userIdB,
+        email: emailB,
+        username: usernameDesdeEmail(emailB, userIdB)
+      }
     ])
     const clientA = await signInTestUser(emailA, PASSWORD)
 
@@ -266,4 +279,36 @@ describe('F015 validación Zod', () => {
   it('cambiarDisplayNameSchema: 3-50 caracteres → ok', () => {
     expect(cambiarDisplayNameSchema.safeParse({ displayName: 'Leo' }).success).toBe(true)
   })
+})
+
+describe('F021 username (T2)', () => {
+  it('registrarUsuario crea la fila con username derivado del email', async () => {
+    const email = emailDe('username-registro')
+    const client = nuevoCliente()
+
+    const { userId } = await registrarUsuario(client, email, PASSWORD)
+    createdAuthUserIds.push(userId)
+
+    const { data: fila } = await dbAdmin
+      .from('usuario')
+      .select('username')
+      .eq('id', userId)
+      .maybeSingle()
+    expect(fila?.username).toBe(usernameDesdeEmail(email, userId))
+  }, 30_000)
+
+  it('asegurarFilaUsuario crea la fila con username derivado (self-healing)', async () => {
+    const email = emailDe('username-healing')
+    const userId = await createTestUser(email, PASSWORD)
+    createdAuthUserIds.push(userId)
+
+    await asegurarFilaUsuario(dbAdmin, userId, email)
+
+    const { data: fila } = await dbAdmin
+      .from('usuario')
+      .select('username')
+      .eq('id', userId)
+      .maybeSingle()
+    expect(fila?.username).toBe(usernameDesdeEmail(email, userId))
+  }, 30_000)
 })

@@ -5,6 +5,7 @@ import { Star } from "lucide-react";
 import { CambiarDisplayNameForm } from "@/components/cambiar-displayname-form";
 import { CambiarEmailForm } from "@/components/cambiar-email-form";
 import { CambiarPasswordForm } from "@/components/cambiar-password-form";
+import { CambiarUsernameForm } from "@/components/cambiar-username-form";
 import { EmptyState } from "@/components/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { createAuthClient, getPerfilData, requireUser } from "@/lib/auth";
@@ -54,10 +55,14 @@ export default async function PerfilPage({ searchParams }: PerfilPageProps) {
         <h2 className="text-sm font-medium text-muted-foreground">Datos de la cuenta</h2>
         <dl className="mt-4 grid gap-4 sm:grid-cols-2">
           <div>
-            <dt className="text-xs text-muted-foreground">Nombre de usuario</dt>
+            <dt className="text-xs text-muted-foreground">Nombre mostrado</dt>
             <dd className="mt-1 font-medium break-all">
               {perfil.display_name ?? "—"}
             </dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted-foreground">Nombre de usuario (URL)</dt>
+            <dd className="mt-1 font-medium break-all">{perfil.username ?? "—"}</dd>
           </div>
           <div>
             <dt className="text-xs text-muted-foreground">Email</dt>
@@ -79,6 +84,14 @@ export default async function PerfilPage({ searchParams }: PerfilPageProps) {
           </div>
         </dl>
         <div className="mt-4 flex flex-wrap gap-4">
+          {perfil.username ? (
+            <Link
+              href={`/usuarios/${perfil.username}`}
+              className="text-brand underline-offset-2 hover:underline"
+            >
+              Ver mi perfil público
+            </Link>
+          ) : null}
           <Link href="/perfil/actividad" className="text-brand underline-offset-2 hover:underline">
             Ver mi actividad
           </Link>
@@ -107,6 +120,12 @@ export default async function PerfilPage({ searchParams }: PerfilPageProps) {
             <h3 className="text-base font-semibold">Cambiar nombre de usuario</h3>
             <div className="mt-4">
               <CambiarDisplayNameForm />
+            </div>
+          </div>
+          <div className="rounded-xl border bg-card p-6">
+            <h3 className="text-base font-semibold">Cambiar nombre de usuario (URL)</h3>
+            <div className="mt-4">
+              <CambiarUsernameForm />
             </div>
           </div>
         </div>

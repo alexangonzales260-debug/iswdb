@@ -68,6 +68,19 @@ export function slugSerie(n: number): string {
   return `e2e-${String(n).padStart(2, '0')}`
 }
 
+function usernameDesdeEmail(email: string, userId: string): string {
+  const base =
+    (email.split('@')[0] ?? '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9_-]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .slice(0, 13) || 'usuario'
+  return `${base}-${userId.replaceAll('-', '').slice(0, 6)}`
+}
+
 function categoriaDe(n: number): string {
   return n <= 8 ? 'minecraft' : 'gta'
 }
@@ -203,7 +216,9 @@ export async function getEmailChangeLink(email: string): Promise<string> {
 export async function createAuthUserWithUsuario(email: string): Promise<string> {
   const userId = await createAuthUser(email)
   const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
-  await unwrap(db.from('usuario').insert({ id: userId, email }))
+  await unwrap(
+    db.from('usuario').insert({ id: userId, email, username: usernameDesdeEmail(email, userId) })
+  )
   return userId
 }
 
@@ -212,7 +227,14 @@ export async function createAuthUserWithUsuario(email: string): Promise<string> 
 export async function createModUser(email: string): Promise<string> {
   const userId = await createAuthUser(email)
   const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
-  await unwrap(db.from('usuario').insert({ id: userId, rol: 'mod', email }))
+  await unwrap(
+    db.from('usuario').insert({
+      id: userId,
+      rol: 'mod',
+      email,
+      username: usernameDesdeEmail(email, userId)
+    })
+  )
   return userId
 }
 
@@ -256,10 +278,13 @@ async function wipe(db: SupabaseClient): Promise<void> {
 async function seed(db: SupabaseClient): Promise<string[]> {
   const runId = Date.now()
   const userIds: string[] = []
-  for (const i of [1, 2]) {
-    userIds.push(await createAuthUser(`e2e-u${i}-${runId}@iswdb.local`))
+  const emails = [`e2e-u1-${runId}@iswdb.local`, `e2e-u2-${runId}@iswdb.local`]
+  for (const email of emails) {
+    userIds.push(await createAuthUser(email))
   }
-  await unwrap(db.from('usuario').insert(userIds.map((id) => ({ id }))))
+  await unwrap(
+    db.from('usuario').insert(userIds.map((id, i) => ({ id, username: usernameDesdeEmail(emails[i], id) })))
+  )
 
   const categorias = await unwrap(
     db.from('categoria').insert([...FIXTURE.categorias]).select('id, slug')

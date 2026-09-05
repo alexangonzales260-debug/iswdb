@@ -9,6 +9,8 @@ import {
   cambiarEmailSchema,
   cambiarPassword,
   cambiarPasswordSchema,
+  cambiarUsername,
+  cambiarUsernameSchema,
   cerrarSesion,
   createAuthClient,
   ERRORES_AUTH,
@@ -237,4 +239,28 @@ export async function accionCambiarDisplayName(
   }
   revalidatePath('/perfil')
   return { ok: ERRORES_AUTH.displayNameOk }
+}
+
+export async function accionCambiarUsername(
+  prevState: AuthFormState,
+  formData: FormData
+): Promise<AuthFormState> {
+  const parsed = cambiarUsernameSchema.safeParse({
+    username: campoTexto(formData, 'username')
+  })
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? 'Revisa los datos del formulario' }
+  }
+  await requireUser()
+  const client = await createAuthClient()
+  try {
+    await cambiarUsername(client, parsed.data.username)
+  } catch (error) {
+    return {
+      error:
+        error instanceof Error ? error.message : 'No se pudo actualizar el nombre de usuario'
+    }
+  }
+  revalidatePath('/perfil')
+  return { ok: ERRORES_AUTH.usernameOk }
 }

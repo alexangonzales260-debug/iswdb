@@ -22,6 +22,19 @@ const supabaseAnonKey = envAnonKey
 
 export type AuthClient = SupabaseClient<Database>
 
+export function usernameDesdeEmail(email: string, userId: string): string {
+  const base =
+    (email.split('@')[0] ?? '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9_-]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .slice(0, 13) || 'usuario'
+  return `${base}-${userId.replaceAll('-', '').slice(0, 6)}`
+}
+
 // Cliente con cookies de sesión para App Router (AUTH-07). En Server
 // Components las cookies son de solo lectura: setAll se ignora ahí; la sesión
 // se escribe en contextos con cookies escribibles (Server Actions).
@@ -140,6 +153,17 @@ export const cambiarDisplayNameSchema = z.object({
     .max(50, 'El nombre mostrado no puede superar los 50 caracteres')
 })
 
+export const cambiarUsernameSchema = z.object({
+  username: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .regex(
+      /^[a-z0-9_-]{3,20}$/,
+      'El nombre de usuario debe tener entre 3 y 20 caracteres y solo letras, números, guiones o guiones bajos'
+    )
+})
+
 export const ERRORES_AUTH = {
   emailDuplicado: 'Ya existe una cuenta con este email',
   credencialesInvalidas: 'Email o contraseña incorrectos',
@@ -153,7 +177,9 @@ export const ERRORES_AUTH = {
   // PER-03/PRE-04: genérico siempre, no revela si el email nuevo ya existe.
   mensajeEmailCambioEnviado: 'Te hemos enviado un link de confirmación al nuevo email',
   // PER-05: confirma el cambio de nombre mostrado.
-  displayNameOk: 'Nombre mostrado actualizado'
+  displayNameOk: 'Nombre mostrado actualizado',
+  usernameEnUso: 'Ese nombre de usuario ya está en uso',
+  usernameOk: 'Nombre de usuario actualizado'
 } as const
 
 // Origin para construir el redirectTo del link de recuperación (REC-02). En
@@ -193,7 +219,7 @@ export async function registrarUsuario(
   // válido igualmente.
   const { error: insertError } = await client
     .from('usuario')
-    .insert({ id: user.id, rol: 'user', email })
+    .insert({ id: user.id, rol: 'user', email, username: usernameDesdeEmail(email, user.id) })
   if (insertError && insertError.code !== '23505') {
     throw new Error(insertError.message)
   }
@@ -231,12 +257,13 @@ export interface PerfilData {
   created_at: string
   rol: string
   display_name: string | null
+  username: string
 }
 
 async function selectUsuario(client: AuthClient, userId: string) {
   const { data, error } = await client
     .from('usuario')
-    .select('rol, created_at, display_name')
+    .select('rol, created_at, display_name, username')
     .eq('id', userId)
     .maybeSingle()
   if (error) throw new Error(error.message)
@@ -261,7 +288,10 @@ export async function asegurarFilaUsuario(
 ): Promise<void> {
   const { error } = await client
     .from('usuario')
-    .upsert({ id: userId, rol: 'user', email }, { onConflict: 'id', ignoreDuplicates: true })
+    .upsert(
+      { id: userId, rol: 'user', email, username: usernameDesdeEmail(email, userId) },
+      { onConflict: 'id', ignoreDuplicates: true }
+    )
   if (error) throw new Error(error.message)
 }
 
@@ -278,7 +308,13 @@ export async function getPerfilData(
 
   const fila = await selectUsuario(client, userId)
   if (!fila) throw new Error('No se pudo obtener ni crear la fila de usuario')
-  return { email, created_at: fila.created_at, rol: fila.rol, display_name: fila.display_name }
+  return {
+    email,
+    created_at: fila.created_at,
+    rol: fila.rol,
+    display_name: fila.display_name,
+    username: fila.username
+  }
 }
 
 // REC-01/REC-02: pide el link de recuperación a GoTrue. Si el email no
@@ -361,5 +397,21 @@ export async function cambiarDisplayName(
     .from('usuario')
     .update({ display_name: displayName || null })
     .eq('id', userData.user.id)
+  if (error) throw new Error(error.message)
+}
+
+export async function cambiarUsername(client: AuthClient, username: string): Promise<void> {
+  const { data: userData, error: getUserError } = await client.auth.getUser()
+  if (getUserError || !userData.user) {
+    throw new Error(ERRORES_AUTH.credencialesInvalidas)
+  }
+
+  const { error } = await client
+    .from('usuario')
+    .update({ username })
+    .eq('id', userData.user.id)
+  if (error && error.code === '23505') {
+    throw new Error(ERRORES_AUTH.usernameEnUso)
+  }
   if (error) throw new Error(error.message)
 }

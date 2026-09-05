@@ -83,3 +83,16 @@ export async function signInTestUser(email: string, password: string): Promise<S
   }
   return client
 }
+
+export function usernameDesdeEmail(email: string, userId: string): string {
+  const base =
+    (email.split('@')[0] ?? '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9_-]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .slice(0, 13) || 'usuario'
+  return `${base}-${userId.replaceAll('-', '').slice(0, 6)}`
+}
