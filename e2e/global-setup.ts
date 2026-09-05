@@ -265,6 +265,10 @@ export async function getUserIdByEmail(email: string): Promise<string | null> {
 }
 
 async function wipe(db: SupabaseClient): Promise<void> {
+  // notificacion de seguidores primero (F023): referencian solo usuario (no
+  // serie/episodio), así que el cascade de serie no las limpia si una corrida
+  // muere; las de nuevo_episodio caen por el cascade de serie/episodio.
+  await unwrap(db.from('notificacion').delete().eq('tipo', 'nuevo_seguidor'))
   // usuario_usuario primero (F022): limpieza defensiva de follows residuales.
   await unwrap(db.from('usuario_usuario').delete().not('seguidor_id', 'is', null))
   // reseña primero (F012): depende de usuario y serie.
