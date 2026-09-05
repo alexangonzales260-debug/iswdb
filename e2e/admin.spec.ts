@@ -123,7 +123,9 @@ test('mod: crea una serie por UI con canal y episodio, y la edita (ADM-05/ADM-06
   // Visible en el catálogo público con su categoría, canal y episodio.
   await page.goto(`/series/${SLUG_NUEVA}`)
   await expect(page.getByRole('heading', { name: TITULO_NUEVA })).toBeVisible()
-  await expect(page.getByText('GTA', { exact: true })).toBeVisible()
+  // .first(): el badge de la cabecera; los de "Series similares" (es un GTA)
+  // también dicen "GTA" (REC-04).
+  await expect(page.getByText('GTA', { exact: true }).first()).toBeVisible()
   await expect(page.getByText('Canal Uno')).toBeVisible()
   await expect(page.getByText('Principal', { exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Temporada 1' })).toBeVisible()

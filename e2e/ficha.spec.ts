@@ -26,7 +26,9 @@ test.describe('Ficha de serie', () => {
       .click()
     await page.waitForURL(`**/series/${SLUG_DOS_TEMPORADAS}`)
     await expect(page.getByRole('heading', { level: 1, name: 'Serie e2e 1' })).toBeVisible()
-    await expect(page.getByText('Minecraft')).toBeVisible()
+    // .first(): el badge de la cabecera; los 4 de "Series similares" también
+    // dicen "Minecraft" (REC-04).
+    await expect(page.getByText('Minecraft').first()).toBeVisible()
     await expect(page.getByText('Finalizada')).toBeVisible()
     await expect(page.getByRole('heading', { level: 3, name: 'Temporada 1' })).toBeVisible()
     await expect(page.getByRole('heading', { level: 3, name: 'Temporada 2' })).toBeVisible()
