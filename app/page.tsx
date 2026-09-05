@@ -5,9 +5,12 @@ import { ArrowRight, Clapperboard, Clock, Sparkles, Star } from "lucide-react";
 
 import { CategoryChips } from "@/components/category-chips";
 import { EmptyState } from "@/components/empty-state";
+import { RecomendacionCard } from "@/components/recomendacion-card";
 import { SerieCard } from "@/components/serie-card";
 import { Badge } from "@/components/ui/badge";
+import { createAuthClient, getUser } from "@/lib/auth";
 import { getCategorias, type CategoriaChip } from "@/lib/categorias";
+import { getRecomendaciones } from "@/lib/recomendaciones";
 import {
   getHeroSerie,
   getLatestSeries,
@@ -18,6 +21,32 @@ import {
 // La home depende de datos de BD que cambian sin rebuild (seed, moderación);
 // sin esto Next la prerenderiza como estática en el build.
 export const dynamic = "force-dynamic";
+
+async function SeccionRecomendaciones() {
+  const user = await getUser();
+  if (!user) return null;
+
+  const client = await createAuthClient();
+  const recomendaciones = await getRecomendaciones(client, user.id, 6);
+  if (recomendaciones.length === 0) return null;
+
+  return (
+    <section className="space-y-4" aria-labelledby="recomendado-heading">
+      <h2 id="recomendado-heading" className="text-xl font-semibold tracking-tight">
+        Recomendado para ti
+      </h2>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5">
+        {recomendaciones.map((recomendacion) => (
+          <RecomendacionCard
+            key={recomendacion.serie.id}
+            serie={recomendacion.serie}
+            razon={recomendacion.razon}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
 
 function SeccionDestacada({ hero }: { hero: SerieCardData | null }) {
   return (
@@ -157,6 +186,7 @@ async function ContenidoHome() {
 
   return (
     <>
+      <SeccionRecomendaciones />
       <SeccionDestacada hero={hero} />
       <SeccionTop top={top} />
       <SeccionUltimas latest={latest} />

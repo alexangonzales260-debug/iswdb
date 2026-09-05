@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/empty-state";
 import { FollowButton } from "@/components/follow-button";
 import { RatingHistogram } from "@/components/rating-histogram";
 import { RatingSelector } from "@/components/rating-selector";
+import { RecomendacionCard } from "@/components/recomendacion-card";
 import { ReseñasSection } from "@/components/reseñas-section";
 import { SeasonList } from "@/components/season-list";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +17,7 @@ import { createAuthClient, getUser } from "@/lib/auth";
 import { estaSiguiendo } from "@/lib/follows";
 import { ratingTexto, truncateDescripcion } from "@/lib/format";
 import { listMisListas } from "@/lib/listas";
+import { getSeriesSimilares } from "@/lib/recomendaciones";
 import { getSerieBySlug, type SerieFicha } from "@/lib/series";
 import { getValoracionUsuario } from "@/lib/valoraciones";
 
@@ -181,6 +183,25 @@ async function AñadirALista({ serie }: { serie: SerieFicha }) {
   );
 }
 
+async function SeriesSimilares({ serie }: { serie: SerieFicha }) {
+  const client = await createAuthClient();
+  const similares = await getSeriesSimilares(client, serie.id, 4);
+  if (similares.length === 0) return null;
+
+  return (
+    <section className="space-y-4" aria-labelledby="similares-heading">
+      <h2 id="similares-heading" className="text-xl font-semibold tracking-tight">
+        Series similares
+      </h2>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+        {similares.map((similar) => (
+          <RecomendacionCard key={similar.id} serie={similar} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 async function ContenidoFicha({ serie }: { serie: SerieFicha }) {
   return (
     <div className="space-y-10">
@@ -217,6 +238,8 @@ async function ContenidoFicha({ serie }: { serie: SerieFicha }) {
           />
         )}
       </section>
+
+      <SeriesSimilares serie={serie} />
     </div>
   );
 }
