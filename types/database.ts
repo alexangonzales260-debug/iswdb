@@ -130,6 +130,52 @@ export type Database = {
           },
         ]
       }
+      lista_colaborador: {
+        Row: {
+          created_at: string
+          invitado_por: string | null
+          lista_id: string
+          rol: string
+          usuario_id: string
+        }
+        Insert: {
+          created_at?: string
+          invitado_por?: string | null
+          lista_id: string
+          rol?: string
+          usuario_id: string
+        }
+        Update: {
+          created_at?: string
+          invitado_por?: string | null
+          lista_id?: string
+          rol?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lista_colaborador_invitado_por_fkey"
+            columns: ["invitado_por"]
+            isOneToOne: false
+            referencedRelation: "usuario"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lista_colaborador_lista_id_fkey"
+            columns: ["lista_id"]
+            isOneToOne: false
+            referencedRelation: "lista"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lista_colaborador_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuario"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lista_serie: {
         Row: {
           added_at: string
@@ -568,6 +614,14 @@ export type Database = {
           p_titulo: string
         }
         Returns: undefined
+      }
+      es_colaborador: {
+        Args: { p_lista: string; p_rol?: string; p_usuario: string }
+        Returns: boolean
+      }
+      es_owner: {
+        Args: { p_lista: string; p_usuario: string }
+        Returns: boolean
       }
       is_admin_or_mod: { Args: never; Returns: boolean }
     }

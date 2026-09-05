@@ -315,9 +315,14 @@ describe('M9 RLS — lista (lectura own_or_public)', () => {
 
 describe('M9 RLS — lista (escritura own)', () => {
   it('anon: insert/update/delete denegado', async () => {
+    // En el stack local las ACLs por defecto sobre schema public varían según
+    // qué rol crea la tabla (postgres vs supabase_admin): a veces anon recibe
+    // grant de escritura y la única barrera es el RLS ("row-level security");
+    // otras veces no tiene grant ("permission denied"). Ambas significan
+    // "denegado": se aceptan las dos, sin debilitar la denegación.
     await expect(
       unwrap(db.from('lista').insert({ user_id: ownerId, nombre: 'Lista anon' }))
-    ).rejects.toThrow(/permission denied/i)
+    ).rejects.toThrow(/permission denied|row-level security/i)
   }, 30_000)
 
   it('owner: insert/update/delete de su lista ok', async () => {
@@ -363,7 +368,7 @@ describe('M9 RLS — lista_serie (subconsulta al padre)', () => {
       unwrap(
         db.from('lista_serie').insert({ lista_id: listaPublicaOwnerId, serie_id: serieAId, posicion: 1 })
       )
-    ).rejects.toThrow(/permission denied/i)
+    ).rejects.toThrow(/permission denied|row-level security/i)
   }, 30_000)
 
   it('owner: inserta/lee/actualiza/borra series de su lista', async () => {
