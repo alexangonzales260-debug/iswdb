@@ -362,9 +362,10 @@
 ## Sesión 22 — F19: Notificaciones de episodios (F019)
 - F19: Notificaciones de nuevos episodios. Tabla notificacion (M12,
   UNIQUE usuario+episodio, FK cascade, RLS select/update own, insert solo
-  service_role). Generación en acción de admin (crearSerie/editarSerie)
-  vía notificarNuevoEpisodio con service-role client (no trigger). M13
-  corrige grants de service_role (upsert onConflict requiere SELECT).
-  Badge en header (Server Component) + /perfil/notificaciones con marcar
-  leída/todas. 324 unit + 67 E2E.
+  service_role). M13 corrige grants service_role (upsert onConflict requiere
+  SELECT). Generación en acción de admin (crearSerie/editarSerie) vía
+  notificarNuevoEpisodio con service-role client (no trigger). Fix T4:
+  canal_id UUID regex (aceptar seed no-v4 Vegetta777/Willyrex). Badge en
+  header (Server Component) + /perfil/notificaciones con marcar leída/todas.
+  326 unit + 67 E2E.
 - Cierre: D25 añadido, ROADMAP 019 ✅, validate.sh en verde, tag F19.

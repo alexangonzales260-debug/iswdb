@@ -100,4 +100,5 @@
       (RLS) con notificarNuevoEpisodio inyectable. Fallo de notificación se
       logea y no revierte el episodio (aceptado). Badge como Server Component
       que hereda dynamic del header. UNIQUE(usuario_id, episodio_id) para
-      idempotencia.
+      idempotencia. UUIDs del seed (no-v4) validados con regex general en
+      lugar de z.uuid() de Zod v4.
