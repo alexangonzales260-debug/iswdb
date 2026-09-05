@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { Heart, List, MessageSquareText, Star } from "lucide-react";
 
 import { EmptyState } from "@/components/empty-state";
+import { SeguirUsuarioButton } from "@/components/seguir-usuario-button";
+import { createAuthClient, getUser } from "@/lib/auth";
 import {
   getPerfilPublico,
   type ListaPublica,
@@ -11,6 +13,13 @@ import {
   type SerieSeguidaPublica,
   type ValoracionPublica,
 } from "@/lib/perfil-publico";
+import {
+  contadoresUsuario,
+  estaSiguiendoUsuario,
+  getUsuarioIdPorUsername,
+  type ContadoresUsuario,
+} from "@/lib/sigue-usuarios";
+import { createServiceRoleClient } from "@/lib/supabase";
 
 // El perfil público depende de datos de BD que cambian sin rebuild (username,
 // actividad, moderación) y no necesita sesión (USR-03). force-dynamic además
@@ -50,16 +59,36 @@ function Cabecera({
   username,
   displayName,
   creadoEn,
+  contadores,
+  mostrarBoton,
+  seguidoId,
+  siguiendo,
 }: {
   username: string;
   displayName: string | null;
   creadoEn: string;
+  contadores: ContadoresUsuario;
+  mostrarBoton: boolean;
+  seguidoId: string;
+  siguiendo: boolean;
 }) {
   return (
     <header className="space-y-1">
       <h1 className="text-3xl font-bold tracking-tight">{username}</h1>
       {displayName ? <p className="text-muted-foreground">{displayName}</p> : null}
       <p className="text-sm text-muted-foreground">Miembro desde {fechaLarga(creadoEn)}</p>
+      <div className="flex flex-wrap items-center gap-4 pt-2">
+        <p className="text-sm text-muted-foreground">
+          Seguidos {contadores.seguidos} · Seguidores {contadores.seguidores}
+        </p>
+        {mostrarBoton ? (
+          <SeguirUsuarioButton
+            seguidoId={seguidoId}
+            seguidoUsername={username}
+            siguiendoInicial={siguiendo}
+          />
+        ) : null}
+      </div>
     </header>
   );
 }
@@ -186,12 +215,30 @@ export default async function PerfilPublicoPage({ params }: PerfilPublicoPagePro
   const perfil = await getPerfilPublico(username);
   if (!perfil) notFound();
 
+  const serviceRole = createServiceRoleClient();
+  const [user, targetId] = await Promise.all([
+    getUser(),
+    getUsuarioIdPorUsername(serviceRole, perfil.usuario.username),
+  ]);
+  const contadores = await contadoresUsuario(serviceRole, targetId ?? "");
+
+  let siguiendo = false;
+  if (user && targetId) {
+    siguiendo = await estaSiguiendoUsuario(await createAuthClient(), user.id, targetId);
+  }
+  const esPropio = user !== null && user.id === targetId;
+  const mostrarBoton = user !== null && !esPropio;
+
   return (
     <div className="mx-auto w-full max-w-3xl space-y-10 px-4 py-12">
       <Cabecera
         username={perfil.usuario.username}
         displayName={perfil.usuario.display_name}
         creadoEn={perfil.usuario.created_at}
+        contadores={contadores}
+        mostrarBoton={mostrarBoton}
+        seguidoId={targetId ?? ""}
+        siguiendo={siguiendo}
       />
       <SeccionSeguidas seguidas={perfil.seguidas} />
       <SeccionValoraciones valoraciones={perfil.valoraciones} />
