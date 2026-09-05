@@ -9,7 +9,7 @@ vi.hoisted(() => {
 })
 
 import { getCanalByHandle, rolDestacado } from '@/lib/canales'
-import { createTestUser, dbAdmin, deleteTestUser, requireLocalDb, unwrap } from '../db/env'
+import { createTestUser, dbAdmin, deleteTestUser, requireLocalDb, unwrap, usernameDesdeEmail } from '../db/env'
 
 requireLocalDb()
 
@@ -128,7 +128,14 @@ describe('getCanalByHandle con datos (cliente anon, RLS de lectura pública)', (
     for (const i of [1, 2]) {
       createdAuthUserIds.push(await createTestUser(`fc-u${i}-${runId}@iswdb.local`, TEST_PASSWORD))
     }
-    await unwrap(dbAdmin.from('usuario').insert(createdAuthUserIds.map((id) => ({ id }))))
+    await unwrap(
+      dbAdmin.from('usuario').insert(
+        createdAuthUserIds.map((id, i) => ({
+          id,
+          username: usernameDesdeEmail(`fc-u${i + 1}-${runId}@iswdb.local`, id)
+        }))
+      )
+    )
 
     const categorias = await unwrap(dbAdmin.from('categoria').insert(CATEGORIA).select('id, slug'))
     const categoriaId = categorias[0].id

@@ -19,7 +19,8 @@ import {
   deleteTestUser,
   requireLocalDb,
   signInTestUser,
-  unwrap
+  unwrap,
+  usernameDesdeEmail
 } from './env'
 import {
   contarNoLeidas,
@@ -57,7 +58,11 @@ function emailDe(nombre: string): string {
 async function crearUsuario(nombre: string): Promise<string> {
   const userId = await createTestUser(emailDe(nombre), TEST_PASSWORD)
   createdAuthUserIds.push(userId)
-  await unwrap(dbAdmin.from('usuario').insert({ id: userId }))
+  await unwrap(
+    dbAdmin
+      .from('usuario')
+      .insert({ id: userId, username: usernameDesdeEmail(emailDe(nombre), userId) })
+  )
   return userId
 }
 

@@ -7,7 +7,8 @@ import {
   deleteTestUser,
   requireLocalDb,
   signInTestUser,
-  unwrap
+  unwrap,
+  usernameDesdeEmail
 } from './env'
 
 requireLocalDb()
@@ -56,10 +57,10 @@ beforeAll(async () => {
 
   await unwrap(
     dbAdmin.from('usuario').insert([
-      { id: normalId, rol: 'user' },
-      { id: modId, rol: 'mod' },
-      { id: adminId, rol: 'admin' },
-      { id: admin2Id, rol: 'admin' }
+      { id: normalId, rol: 'user', username: usernameDesdeEmail(emails.normal, normalId) },
+      { id: modId, rol: 'mod', username: usernameDesdeEmail(emails.mod, modId) },
+      { id: adminId, rol: 'admin', username: usernameDesdeEmail(emails.admin, adminId) },
+      { id: admin2Id, rol: 'admin', username: usernameDesdeEmail(emails.admin2, admin2Id) }
     ])
   )
 

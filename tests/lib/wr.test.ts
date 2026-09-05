@@ -16,7 +16,7 @@ import {
   weightedRating,
   WR_M
 } from '@/lib/series'
-import { createTestUser, dbAdmin, deleteTestUser, requireLocalDb, unwrap } from '../db/env'
+import { createTestUser, dbAdmin, deleteTestUser, requireLocalDb, unwrap, usernameDesdeEmail } from '../db/env'
 
 requireLocalDb()
 
@@ -84,7 +84,14 @@ describe('rankings por WR con datos (cliente anon, RLS de lectura pública)', ()
     for (const i of [1, 2, 3, 4, 5, 6, 7, 8, 9]) {
       createdAuthUserIds.push(await createTestUser(`wr-u${i}-${runId}@iswdb.local`, TEST_PASSWORD))
     }
-    await unwrap(dbAdmin.from('usuario').insert(createdAuthUserIds.map((id) => ({ id }))))
+    await unwrap(
+      dbAdmin.from('usuario').insert(
+        createdAuthUserIds.map((id, i) => ({
+          id,
+          username: usernameDesdeEmail(`wr-u${i + 1}-${runId}@iswdb.local`, id)
+        }))
+      )
+    )
 
     const categoria = await unwrap(
       dbAdmin.from('categoria').insert({ nombre: 'WR', slug: 'wr' }).select('id').single()

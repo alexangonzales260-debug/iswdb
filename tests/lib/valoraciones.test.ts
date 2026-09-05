@@ -9,7 +9,7 @@ vi.hoisted(() => {
 })
 
 import { listMisValoraciones } from '@/lib/valoraciones'
-import { createTestUser, dbAdmin, deleteTestUser, requireLocalDb, unwrap } from '../db/env'
+import { createTestUser, dbAdmin, deleteTestUser, requireLocalDb, unwrap, usernameDesdeEmail } from '../db/env'
 
 requireLocalDb()
 
@@ -40,7 +40,11 @@ beforeAll(async () => {
   userNada = await createTestUser(`vl-nada-${runId}@iswdb.local`, TEST_PASSWORD)
   createdAuthUserIds.push(userDos, userUna, userNada)
   await unwrap(
-    dbAdmin.from('usuario').insert([{ id: userDos }, { id: userUna }, { id: userNada }])
+    dbAdmin.from('usuario').insert([
+      { id: userDos, username: usernameDesdeEmail(`vl-dos-${runId}@iswdb.local`, userDos) },
+      { id: userUna, username: usernameDesdeEmail(`vl-una-${runId}@iswdb.local`, userUna) },
+      { id: userNada, username: usernameDesdeEmail(`vl-nada-${runId}@iswdb.local`, userNada) }
+    ])
   )
 
   const categoria = await unwrap(

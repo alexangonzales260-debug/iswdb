@@ -18,7 +18,7 @@ import {
   valorarSerie
 } from '@/lib/valoraciones'
 import type { Database } from '@/types/database'
-import { createTestUser, dbAdmin, deleteTestUser, requireLocalDb, unwrap } from './env'
+import { createTestUser, dbAdmin, deleteTestUser, requireLocalDb, unwrap, usernameDesdeEmail } from './env'
 
 requireLocalDb()
 
@@ -69,7 +69,11 @@ async function clienteConSesion(email: string, password: string): Promise<Supaba
 async function crearUsuario(nombre: string): Promise<string> {
   const userId = await createTestUser(emailDe(nombre), TEST_PASSWORD)
   createdAuthUserIds.push(userId)
-  await unwrap(dbAdmin.from('usuario').insert({ id: userId, rol: 'user' }))
+  await unwrap(
+    dbAdmin
+      .from('usuario')
+      .insert({ id: userId, rol: 'user', username: usernameDesdeEmail(emailDe(nombre), userId) })
+  )
   return userId
 }
 

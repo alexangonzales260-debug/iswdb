@@ -29,7 +29,8 @@ import {
   deleteTestUser,
   requireLocalDb,
   signInTestUser,
-  unwrap
+  unwrap,
+  usernameDesdeEmail
 } from './env'
 
 // F013 (LIS-01/03/04/07/08): tabla lista + lista_serie (M9) y su RLS en crudo.
@@ -78,7 +79,11 @@ async function crearUsuario(nombre: string): Promise<string> {
   const userId = await createTestUser(emailDe(nombre), TEST_PASSWORD)
   createdAuthUserIds.push(userId)
   // La fila public.usuario es necesaria por la FK user_id -> usuario(id).
-  await unwrap(dbAdmin.from('usuario').insert({ id: userId }))
+  await unwrap(
+    dbAdmin
+      .from('usuario')
+      .insert({ id: userId, username: usernameDesdeEmail(emailDe(nombre), userId) })
+  )
   return userId
 }
 

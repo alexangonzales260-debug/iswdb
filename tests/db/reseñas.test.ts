@@ -16,7 +16,8 @@ import {
   deleteTestUser,
   requireLocalDb,
   signInTestUser,
-  unwrap
+  unwrap,
+  usernameDesdeEmail
 } from './env'
 
 requireLocalDb()
@@ -66,7 +67,11 @@ async function crearUsuario(nombre: string, rol: 'user' | 'mod' | 'admin'): Prom
   createdAuthUserIds.push(userId)
   // Email en la fila usuario (M6): necesario para el embed de autor en
   // listReseñasSerie.
-  await unwrap(dbAdmin.from('usuario').insert({ id: userId, rol, email: emailDe(nombre) }))
+  await unwrap(
+    dbAdmin
+      .from('usuario')
+      .insert({ id: userId, rol, email: emailDe(nombre), username: usernameDesdeEmail(emailDe(nombre), userId) })
+  )
   return userId
 }
 

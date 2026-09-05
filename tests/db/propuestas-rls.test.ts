@@ -7,7 +7,8 @@ import {
   deleteTestUser,
   requireLocalDb,
   signInTestUser,
-  unwrap
+  unwrap,
+  usernameDesdeEmail
 } from './env'
 
 // F011 (PRO-01/PRO-04/PRO-06): acceso de propuestas.
@@ -48,8 +49,16 @@ beforeAll(async () => {
 
   await unwrap(
     dbAdmin.from('usuario').insert([
-      { id: normalId, rol: 'user' },
-      { id: modId, rol: 'mod' }
+      {
+        id: normalId,
+        rol: 'user',
+        username: usernameDesdeEmail(`prop-rls-user-${runId}@iswdb.local`, normalId)
+      },
+      {
+        id: modId,
+        rol: 'mod',
+        username: usernameDesdeEmail(`prop-rls-mod-${runId}@iswdb.local`, modId)
+      }
     ])
   )
 

@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { createTestUser, dbAdmin, deleteTestUser, requireLocalDb, unwrap } from './env'
+import { createTestUser, dbAdmin, deleteTestUser, requireLocalDb, unwrap, usernameDesdeEmail } from './env'
 
 requireLocalDb()
 
@@ -40,7 +40,11 @@ beforeAll(async () => {
   userIdB = await createTestUser(`social-b-${runId}@iswdb.local`, TEST_PASSWORD)
   createdAuthUserIds.push(userIdA, userIdB)
 
-  await unwrap(dbAdmin.from('usuario').insert({ id: userIdA }))
+  await unwrap(
+    dbAdmin
+      .from('usuario')
+      .insert({ id: userIdA, username: usernameDesdeEmail(`social-a-${runId}@iswdb.local`, userIdA) })
+  )
   serieId = await seedSerie(runSlug)
 }, 60_000)
 
@@ -70,14 +74,23 @@ describe('M2 social — invariants', () => {
   })
 
   it('usuario: FK a auth.users con id inexistente → error de BD', async () => {
+    const idInexistente = crypto.randomUUID()
     await expect(
-      unwrap(dbAdmin.from('usuario').insert({ id: crypto.randomUUID() }))
+      unwrap(
+        dbAdmin
+          .from('usuario')
+          .insert({ id: idInexistente, username: usernameDesdeEmail('', idInexistente) })
+      )
     ).rejects.toThrow(/foreign key/)
   })
 
   it('usuario: rol fuera de CHECK → error de BD', async () => {
     await expect(
-      unwrap(dbAdmin.from('usuario').insert({ id: userIdB, rol: 'superadmin' }))
+      unwrap(
+        dbAdmin
+          .from('usuario')
+          .insert({ id: userIdB, rol: 'superadmin', username: usernameDesdeEmail('', userIdB) })
+      )
     ).rejects.toThrow(/check constraint/)
   })
 })

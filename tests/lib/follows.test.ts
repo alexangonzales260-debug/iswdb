@@ -21,7 +21,8 @@ import {
   deleteTestUser,
   requireLocalDb,
   signInTestUser,
-  unwrap
+  unwrap,
+  usernameDesdeEmail
 } from '../db/env'
 
 requireLocalDb()
@@ -53,7 +54,9 @@ beforeAll(async () => {
 
   userId = await createTestUser(emailDe('user'), TEST_PASSWORD)
   createdAuthUserIds.push(userId)
-  await unwrap(dbAdmin.from('usuario').insert({ id: userId }))
+  await unwrap(
+    dbAdmin.from('usuario').insert({ id: userId, username: usernameDesdeEmail(emailDe('user'), userId) })
+  )
   client = await signInTestUser(emailDe('user'), TEST_PASSWORD)
 
   const categoria = await unwrap(

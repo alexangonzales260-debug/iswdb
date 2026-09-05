@@ -12,7 +12,7 @@ vi.hoisted(() => {
 })
 
 import { getRecomendaciones, getSeriesSimilares } from '@/lib/recomendaciones'
-import { createTestUser, dbAdmin, deleteTestUser, requireLocalDb, signInTestUser, unwrap } from '../db/env'
+import { createTestUser, dbAdmin, deleteTestUser, requireLocalDb, signInTestUser, unwrap, usernameDesdeEmail } from '../db/env'
 
 requireLocalDb()
 
@@ -63,25 +63,35 @@ beforeAll(async () => {
 
   userId = await createTestUser(emailDe('owner'), TEST_PASSWORD)
   createdAuthUserIds.push(userId)
-  await unwrap(dbAdmin.from('usuario').insert({ id: userId }))
+  await unwrap(
+    dbAdmin.from('usuario').insert({ id: userId, username: usernameDesdeEmail(emailDe('owner'), userId) })
+  )
   client = await signInTestUser(emailDe('owner'), TEST_PASSWORD)
 
   userNadaId = await createTestUser(emailDe('nada'), TEST_PASSWORD)
   createdAuthUserIds.push(userNadaId)
-  await unwrap(dbAdmin.from('usuario').insert({ id: userNadaId }))
+  await unwrap(
+    dbAdmin.from('usuario').insert({ id: userNadaId, username: usernameDesdeEmail(emailDe('nada'), userNadaId) })
+  )
   clientNada = await signInTestUser(emailDe('nada'), TEST_PASSWORD)
 
   u2Id = await createTestUser(emailDe('u2'), TEST_PASSWORD)
   createdAuthUserIds.push(u2Id)
-  await unwrap(dbAdmin.from('usuario').insert({ id: u2Id }))
+  await unwrap(
+    dbAdmin.from('usuario').insert({ id: u2Id, username: usernameDesdeEmail(emailDe('u2'), u2Id) })
+  )
 
   u3Id = await createTestUser(emailDe('u3'), TEST_PASSWORD)
   createdAuthUserIds.push(u3Id)
-  await unwrap(dbAdmin.from('usuario').insert({ id: u3Id }))
+  await unwrap(
+    dbAdmin.from('usuario').insert({ id: u3Id, username: usernameDesdeEmail(emailDe('u3'), u3Id) })
+  )
 
   u4Id = await createTestUser(emailDe('u4'), TEST_PASSWORD)
   createdAuthUserIds.push(u4Id)
-  await unwrap(dbAdmin.from('usuario').insert({ id: u4Id }))
+  await unwrap(
+    dbAdmin.from('usuario').insert({ id: u4Id, username: usernameDesdeEmail(emailDe('u4'), u4Id) })
+  )
 
   const cats = await unwrap(
     dbAdmin

@@ -31,7 +31,8 @@ import {
   deleteTestUser,
   requireLocalDb,
   signInTestUser,
-  unwrap
+  unwrap,
+  usernameDesdeEmail
 } from '../db/env'
 
 requireLocalDb()
@@ -70,8 +71,8 @@ beforeAll(async () => {
   createdAuthUserIds.push(modId, userId)
   await unwrap(
     dbAdmin.from('usuario').insert([
-      { id: modId, rol: 'mod' },
-      { id: userId, rol: 'user' }
+      { id: modId, rol: 'mod', username: usernameDesdeEmail(`adm-mod-${runId}@iswdb.local`, modId) },
+      { id: userId, rol: 'user', username: usernameDesdeEmail(`adm-user-${runId}@iswdb.local`, userId) }
     ])
   )
   clientMod = await signInTestUser(`adm-mod-${runId}@iswdb.local`, TEST_PASSWORD)

@@ -9,7 +9,7 @@ vi.hoisted(() => {
 })
 
 import { buscarCanales, buscarSeries } from '@/lib/busqueda'
-import { createTestUser, dbAdmin, deleteTestUser, requireLocalDb, unwrap } from '../db/env'
+import { createTestUser, dbAdmin, deleteTestUser, requireLocalDb, unwrap, usernameDesdeEmail } from '../db/env'
 
 requireLocalDb()
 
@@ -94,7 +94,9 @@ describe('búsqueda con datos (cliente anon, RLS de lectura pública)', () => {
   beforeAll(async () => {
     const runId = Date.now()
     userId = await createTestUser(`bs-u1-${runId}@iswdb.local`, TEST_PASSWORD)
-    await unwrap(dbAdmin.from('usuario').insert({ id: userId }))
+    await unwrap(
+      dbAdmin.from('usuario').insert({ id: userId, username: usernameDesdeEmail(`bs-u1-${runId}@iswdb.local`, userId) })
+    )
 
     const categorias = await unwrap(dbAdmin.from('categoria').insert(CATEGORIA).select('id, slug'))
     const categoriaId = categorias[0].id

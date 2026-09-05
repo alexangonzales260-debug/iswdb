@@ -17,7 +17,7 @@ import {
   registrarUsuario
 } from '@/lib/auth'
 import type { Database } from '@/types/database'
-import { createTestUser, dbAdmin, deleteTestUser, requireLocalDb, unwrap } from './env'
+import { createTestUser, dbAdmin, deleteTestUser, requireLocalDb, unwrap, usernameDesdeEmail } from './env'
 
 requireLocalDb()
 
@@ -134,7 +134,11 @@ describe('F008 perfil (AUTH-03)', () => {
     const email = emailDe('perfil-fila')
     const userId = await createTestUser(email, TEST_PASSWORD)
     createdAuthUserIds.push(userId)
-    await unwrap(dbAdmin.from('usuario').insert({ id: userId, rol: 'user' }))
+    await unwrap(
+      dbAdmin
+        .from('usuario')
+        .insert({ id: userId, rol: 'user', username: usernameDesdeEmail(email, userId) })
+    )
 
     const client = nuevoCliente()
     await iniciarSesion(client, email, TEST_PASSWORD)
