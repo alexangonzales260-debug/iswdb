@@ -265,6 +265,8 @@ export async function getUserIdByEmail(email: string): Promise<string | null> {
 }
 
 async function wipe(db: SupabaseClient): Promise<void> {
+  // usuario_usuario primero (F022): limpieza defensiva de follows residuales.
+  await unwrap(db.from('usuario_usuario').delete().not('seguidor_id', 'is', null))
   // reseña primero (F012): depende de usuario y serie.
   await unwrap(db.from('reseña').delete().not('id', 'is', null))
   await unwrap(db.from('valoracion').delete().not('id', 'is', null))
