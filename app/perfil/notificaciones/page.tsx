@@ -44,13 +44,17 @@ export default async function NotificacionesPage() {
               }`}
             >
               <div className="min-w-0">
-                <p className="font-medium">
-                  Nuevo episodio en {notificacion.serie.titulo}
-                </p>
-                <p className="mt-0.5 text-sm text-muted-foreground">
-                  T{notificacion.episodio.temporada} E{notificacion.episodio.numero}
-                  {notificacion.episodio.titulo ? ` — ${notificacion.episodio.titulo}` : ''}
-                </p>
+                {notificacion.tipo === 'nuevo_episodio' && (
+                  <>
+                    <p className="font-medium">
+                      Nuevo episodio en {notificacion.serie.titulo}
+                    </p>
+                    <p className="mt-0.5 text-sm text-muted-foreground">
+                      T{notificacion.episodio.temporada} E{notificacion.episodio.numero}
+                      {notificacion.episodio.titulo ? ` — ${notificacion.episodio.titulo}` : ''}
+                    </p>
+                  </>
+                )}
                 <p className="mt-0.5 text-xs text-muted-foreground">
                   {new Intl.DateTimeFormat('es-ES', {
                     day: 'numeric',

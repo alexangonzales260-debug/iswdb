@@ -1,4 +1,5 @@
 import type { AuthClient } from './auth'
+import { createServiceRoleClient } from './supabase'
 
 // F019 · Notificaciones de nuevos episodios: servicios inyectables.
 // Mismo patrón que lib/follows.ts (F018): todas las funciones reciben el
@@ -9,50 +10,87 @@ import type { AuthClient } from './auth'
 // service-role por parámetro porque el RLS de insert está restringido a
 // service_role.
 
-export interface Notificacion {
+export interface NotificacionEpisodio {
   id: string
   leida: boolean
   created_at: string
+  tipo: 'nuevo_episodio'
   serie: { titulo: string; slug: string }
   episodio: { temporada: number; numero: number; titulo: string }
 }
+
+export interface NotificacionSeguidor {
+  id: string
+  leida: boolean
+  created_at: string
+  tipo: 'nuevo_seguidor'
+  seguidor: { username: string }
+}
+
+export type Notificacion = NotificacionEpisodio | NotificacionSeguidor
 
 function notificacionesQuery(client: AuthClient, userId: string) {
   return client
     .from('notificacion')
-    .select('id, leida, created_at, serie ( titulo, slug ), episodio ( temporada, numero, titulo )')
+    .select(
+      'id, leida, created_at, tipo, seguidor_id, serie ( titulo, slug ), episodio ( temporada, numero, titulo )'
+    )
     .eq('usuario_id', userId)
     .order('created_at', { ascending: false })
 }
 
-type NotificacionFila = NonNullable<Awaited<ReturnType<typeof notificacionesQuery>>['data']>[number]
-
-// Las FKs serie_id y episodio_id son NOT NULL, pero PostgREST tipa los embeds
-// como nullable; se filtran los null por defensa (patrón lib/valoraciones.ts).
-function conRelaciones(
-  fila: NotificacionFila
-): fila is NotificacionFila & {
-  serie: { titulo: string; slug: string }
-  episodio: { temporada: number; numero: number; titulo: string }
-} {
-  return fila.serie !== null && fila.episodio !== null
-}
-
-// Notificaciones del usuario (/perfil/notificaciones, NOT-03): join con serie
-// (titulo, slug) y episodio (temporada, numero, titulo), más recientes primero.
 export async function listMisNotificaciones(
   client: AuthClient,
   userId: string
 ): Promise<Notificacion[]> {
   const { data, error } = await notificacionesQuery(client, userId)
   if (error) throw new Error(`listMisNotificaciones: ${error.message}`)
-  return (data ?? []).filter(conRelaciones).map((fila) => ({
-    id: fila.id,
-    leida: fila.leida,
-    created_at: fila.created_at,
-    serie: fila.serie,
-    episodio: fila.episodio
-  }))
+
+  const filas = data ?? []
+  const seguidorIds = filas
+    .filter((fila) => fila.tipo === 'nuevo_seguidor')
+    .map((fila) => fila.seguidor_id)
+    .filter((id): id is string => id !== null)
+
+  const usernames = new Map<string, string>()
+  if (seguidorIds.length > 0) {
+    const { data: usuarios, error: errorUsuarios } = await createServiceRoleClient()
+      .from('usuario')
+      .select('id, username')
+      .in('id', seguidorIds)
+    if (errorUsuarios) throw new Error(`listMisNotificaciones: ${errorUsuarios.message}`)
+    for (const usuario of usuarios ?? []) {
+      usernames.set(usuario.id, usuario.username)
+    }
+  }
+
+  return filas
+    .map((fila): Notificacion | null => {
+      if (fila.tipo === 'nuevo_seguidor') {
+        const username =
+          fila.seguidor_id !== null ? usernames.get(fila.seguidor_id) : undefined
+        if (username === undefined) return null
+        return {
+          id: fila.id,
+          leida: fila.leida,
+          created_at: fila.created_at,
+          tipo: 'nuevo_seguidor',
+          seguidor: { username }
+        }
+      }
+      if (fila.tipo === 'nuevo_episodio' && fila.serie !== null && fila.episodio !== null) {
+        return {
+          id: fila.id,
+          leida: fila.leida,
+          created_at: fila.created_at,
+          tipo: 'nuevo_episodio',
+          serie: fila.serie,
+          episodio: fila.episodio
+        }
+      }
+      return null
+    })
+    .filter((n): n is Notificacion => n !== null)
 }
 
 // Marcar una notificación como leída (NOT-04). El filtro usuario_id garantiza
@@ -120,4 +158,21 @@ export async function notificarNuevoEpisodio(
     .from('notificacion')
     .upsert(notificaciones, { onConflict: 'usuario_id,episodio_id', ignoreDuplicates: true })
   if (error) throw new Error(`notificarNuevoEpisodio: ${error.message}`)
+}
+
+export async function notificarNuevoSeguidor(
+  serviceRoleClient: AuthClient,
+  seguidoId: string,
+  seguidorId: string
+): Promise<void> {
+  const { error } = await serviceRoleClient
+    .from('notificacion')
+    .insert({
+      usuario_id: seguidoId,
+      seguidor_id: seguidorId,
+      tipo: 'nuevo_seguidor',
+      episodio_id: null,
+      serie_id: null
+    })
+  if (error) throw new Error(`notificarNuevoSeguidor: ${error.message}`)
 }

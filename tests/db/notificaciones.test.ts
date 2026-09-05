@@ -230,11 +230,14 @@ describe('consulta y conteo (listMisNotificaciones, contarNoLeidas)', () => {
     const lista = await listMisNotificaciones(clientSeguidor, seguidorId)
     expect(lista).toHaveLength(1)
     const notif = lista[0]
-    expect(notif.serie.titulo).toBe('Serie Notificaciones')
-    expect(notif.serie.slug).toBe(slugDe('serie'))
-    expect(notif.episodio.numero).toBe(5)
-    expect(notif.episodio.temporada).toBe(2)
-    expect(notif.episodio.titulo).toBe('Episodio Nuevo')
+    expect(notif.tipo).toBe('nuevo_episodio')
+    if (notif.tipo === 'nuevo_episodio') {
+      expect(notif.serie.titulo).toBe('Serie Notificaciones')
+      expect(notif.serie.slug).toBe(slugDe('serie'))
+      expect(notif.episodio.numero).toBe(5)
+      expect(notif.episodio.temporada).toBe(2)
+      expect(notif.episodio.titulo).toBe('Episodio Nuevo')
+    }
     expect(notif.leida).toBe(false)
     expect(new Date(notif.created_at).getTime()).not.toBeNaN()
 
