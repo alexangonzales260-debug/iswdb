@@ -404,3 +404,24 @@
   (D25). UI con discriminated union por tipo: Bell (episodio) / UserPlus
   (seguidor) + link /usuarios/<username>. 407 unit + 79 E2E.
 - Cierre: D29 añadido, ROADMAP 023 ✅, validate.sh en verde, tag F23.
+
+## Sesión 27 — F24: Listas colaborativas (en curso) — T1 + T1-fix
+- F24: Listas colaborativas. Tabla lista_colaborador (M17: lista_id/usuario_id
+  FK cascade, rol CHECK editor/lector, invitado_por FK set null, UNIQUE).
+  RLS evita recursión mutua lista ↔ lista_colaborador con helpers SECURITY
+  DEFINER public.es_colaborador / public.es_owner (patrón is_admin_or_mod,
+  M3/D10), verificado en BD ("infinite recursion detected in policy" con
+  subconsulta directa). Policies adicionales en lista (select_collab,
+  update_editor) y lista_serie (select_collab, insert/update/delete_editor);
+  trigger lista_owner_fields_guard (user_id inmutable, es_publica solo dueño).
+  28 tests RLS/db en verde; typecheck limpio.
+- T1-fix (grants de anon intermitentes): las ACLs por defecto del schema
+  public varían según qué rol crea la tabla (postgres vs supabase_admin). Con
+  default ACL de supabase_admin (arwdDxtm -> anon/authenticated/service_role)
+  anon recibe grant de escritura y la única barrera es el RLS, por lo que el
+  error de denegación es "new row violates row-level security" en lugar de
+  "permission denied". Se ajustaron los 2 asserts de anon-write en
+  tests/db/listas.test.ts a /permission denied|row-level security/i (aceptar
+  ambas formas de denegación, sin debilitar la aserción). Modelo Supabase
+  estándar: grants amplios por default ACL + RLS como única barrera.
+- Pendiente: T2 servicios, T3 actions/componentes, T4 UI, T5 E2E, T6 cierre.
