@@ -121,3 +121,9 @@
      cronológico desc fusionando 3 fuentes públicas en servidor (sin
      materialización, D16). /feed protegido (AUTH-06). Sin notificaciones de
      seguidores, sin bloqueo, sin algoritmo.
+- D29: Notificaciones de seguidores en tabla notificacion existente (M16):
+      serie_id/episodio_id nullable, seguidor_id añadido, tipo discriminatorio
+      con CHECK. UNIQUE global mantenida (no índice parcial) porque rompía
+      el upsert onConflict de F019; NULLs no colisionan preservando NOT-11
+      (no idempotente). Generación en seguirUsuario con service_role y
+      log-and-continue (D25). UI con discriminated union por tipo.

@@ -22,4 +22,5 @@
 | 020 | Recomendaciones personalizadas                 | L2    | ✅     |
 | 021 | Perfil público                                  | L2    | ✅     |
 | 022 | Seguir a usuarios + feed                        | L2    | ✅     |
+| 023 | Notificaciones de seguidores                    | L2    | ✅     |
 Fases: P1 catálogo sin login (001–007) · P2 social (008–010) · P3 comunidad (011–013)

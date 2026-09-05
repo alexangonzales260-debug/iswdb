@@ -5,7 +5,7 @@ Orden atómico: una sesión de Build por tarea. Cada tarea incluye código + tes
 ---
 
 ## T1: Migración M16 (serie_id/episodio_id nullable, seguidor_id, tipo) + gen:types + tests/db
-**Estado**: Pendiente
+**Estado**: ✅ Completada
 **Objetivo**: extensión de `notificacion` para tipo `nuevo_seguidor`.
 
 **Entregables**:
@@ -43,7 +43,7 @@ verde (BD local arriba) y `npm run typecheck`.
 ---
 
 ## T2: lib/notificaciones.ts (extensión + tests de servidor)
-**Estado**: Pendiente
+**Estado**: ✅ Completada
 **Objetivo**: modelo unión por tipo y generación de `nuevo_seguidor`.
 
 **Entregables**:
@@ -65,7 +65,7 @@ tests/lib/notificaciones.test.ts tests/db/notificaciones.test.ts` verde.
 ---
 
 ## T3: Integración en seguirUsuario (lib/sigue-usuarios.ts + action + tests)
-**Estado**: Pendiente
+**Estado**: ✅ Completada
 **Objetivo**: generar notificación tras follow exitoso (log-and-continue).
 
 **Entregables**:
@@ -84,7 +84,7 @@ tests/lib/sigue-usuarios.test.ts` verde.
 ---
 
 ## T4: app/perfil/notificaciones/page.tsx (render por tipo)
-**Estado**: Pendiente
+**Estado**: ✅ Completada
 **Objetivo**: UI muestra ambos tipos con iconos distintos y link al seguidor.
 
 **Entregables**:
@@ -100,7 +100,7 @@ visual con ambos tipos de notificación.
 ---
 
 ## T5: E2E Playwright
-**Estado**: Pendiente
+**Estado**: ✅ Completada
 **Objetivo**: flujo real seguir → notificación → click → perfil del seguidor.
 
 **Entregables**:
@@ -118,7 +118,7 @@ sin regresiones en `e2e/notificaciones.spec.ts` / `e2e/sigue-usuarios.spec.ts`.
 ---
 
 ## T6: validate.sh + cierre
-**Estado**: Pendiente
+**Estado**: ✅ Completada
 **Objetivo**: puerta única y docs de cierre.
 
 **Entregables**:

@@ -393,5 +393,14 @@
   feed cross-user con service_role (D25/D27). Botón Seguir/Siguiendo en
   perfil público (solo con sesión, no en el propio). /feed protegido con
   actividad cronológica desc de seguidos (valoraciones + reseñas públicas
-  + listas públicas, union en servidor). Link Feed en header. 386 unit +
-  76 E2E.
++ listas públicas, union en servidor). Link Feed en header. 386 unit +
+   76 E2E.
+## Sesión 26 — F23: Notificaciones de nuevos seguidores
+- F23: Notificaciones de nuevos seguidores. M16 extiende notificacion:
+  serie_id/episodio_id nullable, añade seguidor_id y tipo con CHECK
+  (nuevo_episodio/nuevo_seguidor), UNIQUE global mantenida para F019
+  (NULLs no colisionan en nuevo_seguidor, NOT-11 no idempotente).
+  Generación en seguirUsuario tras insert exitoso con log-and-continue
+  (D25). UI con discriminated union por tipo: Bell (episodio) / UserPlus
+  (seguidor) + link /usuarios/<username>. 407 unit + 79 E2E.
+- Cierre: D29 añadido, ROADMAP 023 ✅, validate.sh en verde, tag F23.
