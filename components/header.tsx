@@ -83,6 +83,12 @@ export async function Header() {
                 </span>
                 <span className="hidden max-w-48 truncate sm:inline">{user.email}</span>
               </Link>
+              <Link
+                href="/feed"
+                className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              >
+                Feed
+              </Link>
               <NotificacionBadge />
               {/* AUTH-04: logout como form RSC puro (cero JS cliente). */}
               <form action={accionLogout}>
