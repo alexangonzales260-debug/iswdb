@@ -68,7 +68,7 @@ export function slugSerie(n: number): string {
   return `e2e-${String(n).padStart(2, '0')}`
 }
 
-function usernameDesdeEmail(email: string, userId: string): string {
+export function usernameDesdeEmail(email: string, userId: string): string {
   const base =
     (email.split('@')[0] ?? '')
       .normalize('NFD')

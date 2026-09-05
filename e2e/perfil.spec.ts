@@ -45,10 +45,10 @@ test('PER flujo completo: display_name → password → email', async ({ page })
 
   // 2) Cambiar display_name → visible en "Datos de la cuenta".
   const formNombre = page.locator('form').filter({
-    has: page.getByRole('button', { name: 'Cambiar nombre' })
+    has: page.getByRole('button', { name: 'Cambiar nombre', exact: true })
   })
   await formNombre.getByLabel('Nuevo nombre de usuario').fill(DISPLAY_NAME)
-  await formNombre.getByRole('button', { name: 'Cambiar nombre' }).click()
+  await formNombre.getByRole('button', { name: 'Cambiar nombre', exact: true }).click()
   await expect(formNombre.getByRole('status')).toHaveText('Nombre mostrado actualizado')
   await expect(page.locator('dd').filter({ hasText: DISPLAY_NAME })).toBeVisible()
 
