@@ -369,3 +369,12 @@
   header (Server Component) + /perfil/notificaciones con marcar leída/todas.
   326 unit + 67 E2E.
 - Cierre: D25 añadido, ROADMAP 019 ✅, validate.sh en verde, tag F19.
+
+## Sesión 23 — F20: Recomendaciones personalizadas
+- F20: Recomendaciones personalizadas. Algoritmo simple (no ML): fuentes =
+  follows ∪ valoradas ≥7; candidatas = misma categoría, aprobadas, sin
+  seguidas/valoradas (exclusión de TODAS las valoradas, REC-03); orden por
+  nº seguidores desc (conteo con service_role por RLS own de usuario_serie,
+  patrón D25); razón determinista por orden canónico de fuentes. Home
+  'Recomendado para ti' (solo con sesión) + ficha 'Series similares'. Sin
+  migración. 337 unit + 70 E2E.

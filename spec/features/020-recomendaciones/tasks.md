@@ -5,7 +5,7 @@ Orden atómico: una sesión de Build por tarea. Cada tarea incluye código + tes
 ---
 
 ## T1: lib/recomendaciones.ts + tests de servidor
-**Estado**: Pendiente
+**Estado**: ✅ Completada
 **Objetivo**: Implementar el algoritmo y cubrirlo con fixture.
 
 **Entregables**:
@@ -50,7 +50,7 @@ Orden atómico: una sesión de Build por tarea. Cada tarea incluye código + tes
 ---
 
 ## T2: Componente + integración home y ficha
-**Estado**: Pendiente
+**Estado**: ✅ Completada
 **Objetivo**: Mostrar recomendaciones en home (con sesión) y similares en la ficha.
 
 **Entregables**:
@@ -74,7 +74,7 @@ no aparece; cualquier ficha: "Series similares").
 ---
 
 ## T3: E2E Playwright
-**Estado**: Pendiente
+**Estado**: ✅ Completada
 **Objetivo**: Verificar home con/sin sesión y la ficha en el flujo real.
 
 **Entregables**:

@@ -102,3 +102,10 @@
       que hereda dynamic del header. UNIQUE(usuario_id, episodio_id) para
       idempotencia. UUIDs del seed (no-v4) validados con regex general en
       lugar de z.uuid() de Zod v4.
+- D26: Recomendaciones con collaborative filtering simple + content-based
+      (sin ML ni librerías). Cálculo en servidor sin caché (catálogo pequeño).
+      Conteo de seguidores con createServiceRoleClient() porque el RLS de
+      usuario_serie es solo-propio. Exclusión de todas las valoradas (no solo
+      ≥7) para no recomendar lo ya consumido. Razón determinista: orden
+      canónico de fuentes (follows asc → valoradas ≥7 asc) + mapa
+      categoria_id→primera fuente.
