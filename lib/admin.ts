@@ -17,6 +17,8 @@ export const ERRORES_ADMIN = {
   slugDuplicado: 'Ya existe una serie con ese slug',
   episodioDuplicado: 'Temporada y número de episodio duplicados',
   canalDuplicado: 'Canal duplicado en la serie',
+  idEpisodioInvalido: 'ID de episodio inválido',
+  idCanalInvalido: 'ID de canal inválido',
   datosInvalidos: 'Revisa los datos del formulario'
 } as const
 
@@ -283,13 +285,29 @@ function vacioANull(valor: unknown): unknown {
 const anioSchema = z.preprocess(vacioANull, z.number().int().min(1900).max(2100).nullish())
 
 export const schemaParticipa = z.object({
-  canal_id: z.uuid(),
+  // z.uuid() en Zod v4 solo acepta v4; usamos regex para aceptar cualquier UUID válido
+  // (p.ej. los UUIDs fijos del seed como 44444444-0000-0000-0000-000000000002).
+  canal_id: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, {
+    message: ERRORES_ADMIN.idCanalInvalido
+  }),
   rol: z.enum(['principal', 'colaborador', 'invitado'])
 })
 
 export const schemaEpisodio = z.object({
   // id presente solo en episodios existentes (edición); los nuevos se insertan.
-  id: z.uuid().optional(),
+  // El form envía '' para filas nuevas: se normaliza a null (episodio nuevo,
+  // la BD genera el UUID) igual que los demás campos opcionales. Un id no
+  // vacío que no sea UUID → error amigable en vez del "Invalid UUID" de Zod.
+  // z.uuid() en Zod v4 solo acepta v4; usamos regex para aceptar cualquier UUID válido.
+  id: z.preprocess(
+    vacioANull,
+    z
+      .string()
+      .regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, {
+        message: ERRORES_ADMIN.idEpisodioInvalido
+      })
+      .nullish()
+  ),
   temporada: z.number().int().min(1),
   numero: z.number().int().min(1),
   titulo: z.string().min(1, ERRORES_ADMIN.datosInvalidos),
@@ -507,15 +525,16 @@ export async function editarSerie(
   if (parsed.episodios.length > 0) {
     // defaultToNull:false → Prefer: missing=default: a las filas nuevas (sin
     // id) PostgREST les aplica gen_random_uuid() en vez de NULL en el bulk.
+    const upsertData = parsed.episodios.map((episodio) => ({
+      ...(episodio.id ? { id: episodio.id } : {}),
+      serie_id: serie.id,
+      temporada: episodio.temporada,
+      numero: episodio.numero,
+      titulo: episodio.titulo,
+      video_id: episodio.video_id
+    }))
     const { data: episodios, error: errorEpisodio } = await client.from('episodio').upsert(
-      parsed.episodios.map((episodio) => ({
-        ...(episodio.id ? { id: episodio.id } : {}),
-        serie_id: serie.id,
-        temporada: episodio.temporada,
-        numero: episodio.numero,
-        titulo: episodio.titulo,
-        video_id: episodio.video_id
-      })),
+      upsertData,
       { onConflict: 'id', defaultToNull: false }
     ).select('id')
     if (errorEpisodio) throw errorEscritura(errorEpisodio)

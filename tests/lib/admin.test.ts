@@ -550,6 +550,75 @@ describe('editarSerie (ADM-06)', () => {
     expect(episodios[1]).toMatchObject({ temporada: 2, numero: 1, titulo: 'Estreno T2 CRUD' })
   })
 
+  it('episodios mixtos (id existente + id vacío) → upsert sin error de UUID', async () => {
+    const antes = await getSerieParaEditar(clientMod, slugCrud())
+    expect(antes).not.toBeNull()
+    if (!antes) return
+
+    await expect(
+      editarSerie(
+        clientMod,
+        slugCrud(),
+        datosSerie({
+          titulo: antes.titulo,
+          estado: antes.estado as 'activa' | 'finalizada',
+          canales: antes.canales.map((c) => ({
+            canal_id: c.canal_id,
+            rol: c.rol as 'principal' | 'colaborador' | 'invitado'
+          })),
+          episodios: [
+            ...antes.episodios.map((e) => ({
+              id: e.id,
+              temporada: e.temporada,
+              numero: e.numero,
+              titulo: e.titulo,
+              video_id: e.video_id
+            })),
+            { id: '', temporada: 3, numero: 1, titulo: 'Episodio nuevo', video_id: `crud-t3e1-${runId}` }
+          ]
+        })
+      )
+    ).resolves.toBeUndefined()
+
+    const episodios = await unwrap(
+      dbAdmin
+        .from('episodio')
+        .select('id, temporada, numero, titulo')
+        .eq('serie_id', antes.id)
+        .order('temporada')
+        .order('numero')
+    )
+    expect(episodios).toHaveLength(3)
+    const nuevo = episodios.find((e) => e.temporada === 3 && e.numero === 1)
+    expect(nuevo).toBeDefined()
+    expect(nuevo?.id).toBeTruthy()
+    expect(nuevo?.titulo).toBe('Episodio nuevo')
+  })
+
+  it('episodio con id no-UUID → error amigable, no llega al upsert', async () => {
+    const antes = await getSerieParaEditar(clientMod, slugCrud())
+    expect(antes).not.toBeNull()
+    if (!antes) return
+
+    await expect(
+      editarSerie(
+        clientMod,
+        slugCrud(),
+        datosSerie({
+          episodios: [
+            { id: 'no-es-un-uuid', temporada: 1, numero: 1, titulo: 'X', video_id: `crud-bad-${runId}` }
+          ]
+        })
+      )
+    ).rejects.toThrow(ERRORES_ADMIN.idEpisodioInvalido)
+
+    // La serie queda intacta (la validación falla antes del update).
+    const despues = await getSerieParaEditar(clientMod, slugCrud())
+    expect(despues?.episodios.map((e) => `${e.temporada}x${e.numero}:${e.titulo}`)).toEqual(
+      antes.episodios.map((e) => `${e.temporada}x${e.numero}:${e.titulo}`)
+    )
+  })
+
   it('episodio duplicado (temporada,numero) → 23505 → error amigable, episodios intactos', async () => {
     const antes = await getSerieParaEditar(clientMod, slugCrud())
     expect(antes).not.toBeNull()
