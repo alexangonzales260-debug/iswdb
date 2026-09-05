@@ -20,4 +20,5 @@
 | 018 | Seguimiento de series                          | L2    | ✅     |
 | 019 | Notificaciones de episodios                    | L2    | ✅     |
 | 020 | Recomendaciones personalizadas                 | L2    | ✅     |
+| 021 | Perfil público                                  | L2    | ✅     |
 Fases: P1 catálogo sin login (001–007) · P2 social (008–010) · P3 comunidad (011–013)

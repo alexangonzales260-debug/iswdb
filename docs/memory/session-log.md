@@ -378,3 +378,12 @@
   patrón D25); razón determinista por orden canónico de fuentes. Home
   'Recomendado para ti' (solo con sesión) + ficha 'Series similares'. Sin
   migración. 337 unit + 70 E2E.
+
+## Sesión 24 — F21: Perfil público
+- F21: Perfil público. Username único (M14: backfill derivado del email +
+  sufijo del id, UNIQUE + CHECK formato, regla única SQL/TS). Edición de
+  username en /perfil con Zod y 23505 amigable. /usuarios/<username> RSC
+  force-dynamic con notFound() si inexistente; lectura cross-user con
+  service_role (D25) porque el RLS de usuario es solo-propio (M7) y
+  usuario_serie select-own (M11); sin email ni rol en el retorno; serie!inner
+  para excluir no aprobadas. 361 unit + 74 E2E.

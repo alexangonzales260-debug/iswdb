@@ -5,7 +5,7 @@ Orden atómico: una sesión de Build por tarea. Cada tarea incluye código + tes
 ---
 
 ## T1: Migración M14 (username + backfill + RLS check)
-**Estado**: Pendiente
+**Estado**: ✅ Completada
 **Objetivo**: Columna username única y poblada para todos los usuarios.
 
 **Entregables**:
@@ -34,7 +34,7 @@ arriba) y `npm run typecheck`.
 ---
 
 ## T2: Edición de username en /perfil (extensión F015)
-**Estado**: Pendiente
+**Estado**: ✅ Completada
 **Objetivo**: Username editable con validación Zod, unicidad amigable y link.
 
 **Entregables**:
@@ -64,7 +64,7 @@ arriba) y `npm run typecheck`.
 ---
 
 ## T3: lib/perfil-publico.ts + ruta /usuarios/[username]
-**Estado**: Pendiente
+**Estado**: ✅ Completada
 **Objetivo**: Perfil público cross-user sin email ni datos privados.
 
 **Entregables**:
@@ -89,7 +89,7 @@ tests/lib/perfil-publico.test.ts` verde.
 ---
 
 ## T4: E2E Playwright
-**Estado**: Pendiente
+**Estado**: ✅ Completada
 **Objetivo**: Flujo real de registro → username → perfil público → 404.
 
 **Entregables**:

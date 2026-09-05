@@ -109,3 +109,9 @@
       ≥7) para no recomendar lo ya consumido. Razón determinista: orden
       canónico de fuentes (follows asc → valoradas ≥7 asc) + mapa
       categoria_id→primera fuente.
+- D27: Username único con backfill determinista (base sanitizada del email
+     truncada a 13 + sufijo de 6 del id; regla idéntica en SQL y TS). Perfil
+     público /usuarios/<username> sin sesión, lectura cross-user vía
+     createServiceRoleClient() server-side (M7/M11 intactos, sin política
+     pública nueva ni view). Todo público por defecto (sin flags de
+     privacidad). notFound() para username inexistente.
