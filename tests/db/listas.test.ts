@@ -7,6 +7,8 @@ vi.hoisted(() => {
   process.env.NEXT_PUBLIC_SUPABASE_URL ??= 'http://127.0.0.1:54321'
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??=
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
+  process.env.SUPABASE_SERVICE_ROLE_KEY ??=
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU'
 })
 
 import {
@@ -515,11 +517,11 @@ describe('crud LIS-02..06 (renombrar/eliminar/añadir/quitar/reordenar)', () => 
     }
   }, 30_000)
 
-  it('renombrar lista ajena → error', async () => {
+  it('renombrar lista ajena → sin permiso (COL-02)', async () => {
     const { id } = await crearLista(clientOwner, { nombre: 'Lista ajena renombrar' })
     try {
       await expect(renombrarLista(clientOtro, id, 'Hackeada')).rejects.toThrow(
-        ERRORES_LISTA.listaNoEncontrada
+        ERRORES_LISTA.sinPermiso
       )
     } finally {
       await unwrap(dbAdmin.from('lista').delete().eq('id', id))

@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import type { AuthClient } from './auth'
-import { supabaseServer } from './supabase'
+import { puedeEditarLista } from './listas-colaborativas'
+import { createServiceRoleClient, supabaseServer } from './supabase'
 
 // ── F013 · Listas personalizadas: servicios inyectables ────────────────────
 // Mismo patrón que lib/valoraciones.ts (F009): las escrituras reciben el
@@ -19,7 +20,8 @@ export const ERRORES_LISTA = {
   serieNoEncontrada: 'Serie no encontrada',
   serieNoAprobada: 'Esta serie no admite añadirse a listas',
   yaEnLaLista: 'Ya está en la lista',
-  ordenInvalido: 'El orden de series no es válido'
+  ordenInvalido: 'El orden de series no es válido',
+  descripcionInvalida: 'La descripción no es válida'
 } as const
 
 // LIS-01: nombre requerido, trim 3-100. es_publica y descripcion opcionales;
@@ -50,19 +52,6 @@ async function usuarioDeSesion(client: AuthClient): Promise<string> {
   return data.user.id
 }
 
-// La lista por id: devuelve null si no accesible. Se usa con el cliente de
-// sesión para que el RLS (lista_select_own_or_public) deje ver la propia
-// privada además de las públicas.
-async function listaPorId(client: AuthClient, id: string) {
-  const { data, error } = await client
-    .from('lista')
-    .select('id, user_id')
-    .eq('id', id)
-    .maybeSingle()
-  if (error) throw new Error(error.message)
-  return data
-}
-
 // Crear una lista (LIS-01): validación Zod → sesión → insert con es_publica
 // explícito (false por defecto, aunque el DB ya lo tiene) para claridad.
 export async function crearLista(
@@ -87,6 +76,14 @@ export async function crearLista(
     .select('id')
     .single()
   if (error) throw new Error(error.message)
+
+  const { error: errorColaborador } = await client
+    .from('lista_colaborador')
+    .insert({ lista_id: data.id, usuario_id: userId, rol: 'editor', invitado_por: null })
+  if (errorColaborador) {
+    await client.from('lista').delete().eq('id', data.id)
+    throw new Error(errorColaborador.message)
+  }
   return { id: data.id }
 }
 
@@ -104,11 +101,39 @@ export async function renombrarLista(
 
   const userId = await usuarioDeSesion(client)
 
+  if (!(await puedeEditarLista(createServiceRoleClient(), id, userId))) {
+    throw new Error(ERRORES_LISTA.sinPermiso)
+  }
+
   const { data, error } = await client
     .from('lista')
     .update({ nombre: parsed.data.nombre })
     .eq('id', id)
-    .eq('user_id', userId)
+    .select('id')
+  if (error) throw new Error(error.message)
+  if ((data ?? []).length === 0) throw new Error(ERRORES_LISTA.listaNoEncontrada)
+}
+
+// Cambiar la descripción de una lista editable (COL-02): validación Zod
+// (nullable/text) → sesión → puedeEditarLista → update descripcion.
+export async function cambiarDescripcionLista(
+  client: AuthClient,
+  id: string,
+  descripcion: string | null
+): Promise<void> {
+  const parsed = z.string().trim().nullable().safeParse(descripcion)
+  if (!parsed.success) throw new Error(ERRORES_LISTA.descripcionInvalida)
+
+  const userId = await usuarioDeSesion(client)
+
+  if (!(await puedeEditarLista(createServiceRoleClient(), id, userId))) {
+    throw new Error(ERRORES_LISTA.sinPermiso)
+  }
+
+  const { data, error } = await client
+    .from('lista')
+    .update({ descripcion: parsed.data || null })
+    .eq('id', id)
     .select('id')
   if (error) throw new Error(error.message)
   if ((data ?? []).length === 0) throw new Error(ERRORES_LISTA.listaNoEncontrada)
@@ -153,8 +178,9 @@ export async function añadirSerieALista(
 ): Promise<void> {
   const userId = await usuarioDeSesion(client)
 
-  const lista = await listaPorId(client, listaId)
-  if (!lista || lista.user_id !== userId) throw new Error(ERRORES_LISTA.sinPermiso)
+  if (!(await puedeEditarLista(createServiceRoleClient(), listaId, userId))) {
+    throw new Error(ERRORES_LISTA.sinPermiso)
+  }
 
   // serie_select_public (M8/F011) deja a authenticated leer todas las series;
   // se filtra el estado de moderación explícitamente para rechazar las no
@@ -188,8 +214,9 @@ export async function quitarSerieDeLista(
 ): Promise<void> {
   const userId = await usuarioDeSesion(client)
 
-  const lista = await listaPorId(client, listaId)
-  if (!lista || lista.user_id !== userId) throw new Error(ERRORES_LISTA.sinPermiso)
+  if (!(await puedeEditarLista(createServiceRoleClient(), listaId, userId))) {
+    throw new Error(ERRORES_LISTA.sinPermiso)
+  }
 
   const { data, error } = await client
     .from('lista_serie')
@@ -211,6 +238,10 @@ export async function reordenarLista(
 ): Promise<void> {
   const userId = await usuarioDeSesion(client)
 
+  if (!(await puedeEditarLista(createServiceRoleClient(), listaId, userId))) {
+    throw new Error(ERRORES_LISTA.sinPermiso)
+  }
+
   const actuales = await seriesActuales(client, listaId)
 
   const setActual = new Set(actuales)
@@ -223,12 +254,6 @@ export async function reordenarLista(
     serieIds.length === actuales.length &&
     serieIds.every((s) => setActual.has(s))
   if (!valido) throw new Error(ERRORES_LISTA.ordenInvalido)
-
-  // Verificación explícita de propiedad: la lectura de lista_serie es
-  // own_or_public, así que de una lista pública ajena se leerían las series
-  // pero no se podría reordenar (lista_update_own / lista_serie_update_own).
-  const lista = await listaPorId(client, listaId)
-  if (!lista || lista.user_id !== userId) throw new Error(ERRORES_LISTA.sinPermiso)
 
   for (let i = 0; i < serieIds.length; i++) {
     const { error } = await client
@@ -307,6 +332,7 @@ export interface ListaConSeries {
 export interface ListaDetalle {
   lista: ListaConSeries
   esOwner: boolean
+  rol: 'owner' | 'editor' | 'lector' | null
 }
 
 // Detecta si una fila de lista_serie trae la serie embebida (defensa ante el
@@ -350,6 +376,20 @@ export async function getLista(
     slug: fila.serie.slug
   }))
 
+  let rol: 'owner' | 'editor' | 'lector' | null = null
+  if (userId !== null && data.user_id === userId) {
+    rol = 'owner'
+  } else if (userId !== null) {
+    const { data: colaboracion, error: errorColaboracion } = await client
+      .from('lista_colaborador')
+      .select('rol')
+      .eq('lista_id', id)
+      .eq('usuario_id', userId)
+      .maybeSingle()
+    if (errorColaboracion) throw new Error(`getLista: ${errorColaboracion.message}`)
+    rol = colaboracion ? (colaboracion.rol as 'editor' | 'lector') : null
+  }
+
   return {
     lista: {
       id: data.id,
@@ -359,7 +399,8 @@ export async function getLista(
       user_id: data.user_id,
       series
     },
-    esOwner: userId !== null && data.user_id === userId
+    esOwner: rol === 'owner',
+    rol
   }
 }
 
