@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 
 import { createAuthClient, requireUser } from './auth'
+import { createServiceRoleClient } from './supabase'
 import { dejarDeSeguirUsuario, seguirUsuario } from './sigue-usuarios'
 
 export interface SigueUsuarioActionState {
@@ -21,7 +22,7 @@ export async function accionSeguirUsuario(
   const client = await createAuthClient()
 
   try {
-    await seguirUsuario(client, user.id, seguidoId)
+    await seguirUsuario(client, createServiceRoleClient(), user.id, seguidoId)
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : 'No se pudo seguir al usuario'

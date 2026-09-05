@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
 
@@ -12,6 +12,14 @@ vi.hoisted(() => {
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU'
 })
 
+// lib/sigue-usuarios.ts llama a notificarNuevoSeguidor (F023). Se mockea el
+// módulo para poder forzar fallos (log-and-continue); el mock llama por defecto
+// a la implementación real para que los tests de base de datos sigan válidos.
+vi.mock('@/lib/notificaciones', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('@/lib/notificaciones')>()
+  return { ...mod, notificarNuevoSeguidor: vi.fn().mockImplementation(mod.notificarNuevoSeguidor) }
+})
+
 import {
   contadoresUsuario,
   dejarDeSeguirUsuario,
@@ -21,6 +29,7 @@ import {
   listFeed,
   seguirUsuario
 } from '@/lib/sigue-usuarios'
+import { notificarNuevoSeguidor } from '@/lib/notificaciones'
 import { createServiceRoleClient } from '@/lib/supabase'
 import {
   createTestUser,
@@ -45,6 +54,7 @@ const createdAuthUserIds: string[] = []
 
 // Cliente service_role server-side (D25/D27): contadores y feed cross-user.
 const serviceRole = createServiceRoleClient()
+const mockNotificarNuevoSeguidor = vi.mocked(notificarNuevoSeguidor)
 
 function slugDe(n: number): string {
   return `sgu-lib-${String(n).padStart(2, '0')}-${runId}`
@@ -162,6 +172,7 @@ beforeAll(async () => {
 }, 60_000)
 
 afterAll(async () => {
+  await unwrap(dbAdmin.from('notificacion').delete().eq('seguidor_id', userIdA))
   await unwrap(
     dbAdmin.from('usuario_usuario').delete().in('seguidor_id', createdAuthUserIds)
   )
@@ -177,13 +188,13 @@ afterAll(async () => {
 
 describe('seguirUsuario (SEG-01)', () => {
   it('crea el follow → estaSiguiendoUsuario true', async () => {
-    await seguirUsuario(clientA, userIdA, userIdB)
+    await seguirUsuario(clientA, serviceRole, userIdA, userIdB)
     expect(await estaSiguiendoUsuario(clientA, userIdA, userIdB)).toBe(true)
   }, 30_000)
 
   it('duplicado → 23505 silencioso (idempotente, doble click)', async () => {
-    await seguirUsuario(clientA, userIdA, userIdB)
-    await expect(seguirUsuario(clientA, userIdA, userIdB)).resolves.toBeUndefined()
+    await seguirUsuario(clientA, serviceRole, userIdA, userIdB)
+    await expect(seguirUsuario(clientA, serviceRole, userIdA, userIdB)).resolves.toBeUndefined()
     const filas = await unwrap(
       dbAdmin
         .from('usuario_usuario')
@@ -195,14 +206,14 @@ describe('seguirUsuario (SEG-01)', () => {
   }, 30_000)
 
   it('autofollow (seguidorId === seguidoId) → noPuedeSeguirse', async () => {
-    await expect(seguirUsuario(clientA, userIdA, userIdA)).rejects.toThrow(
+    await expect(seguirUsuario(clientA, serviceRole, userIdA, userIdA)).rejects.toThrow(
       ERRORES_SIGUE.noPuedeSeguirse
     )
   }, 30_000)
 
   it('destino inexistente → destinoNoEncontrado (23503)', async () => {
     const inexistente = '00000000-0000-4000-8000-000000000000'
-    await expect(seguirUsuario(clientA, userIdA, inexistente)).rejects.toThrow(
+    await expect(seguirUsuario(clientA, serviceRole, userIdA, inexistente)).rejects.toThrow(
       ERRORES_SIGUE.destinoNoEncontrado
     )
   }, 30_000)
@@ -210,7 +221,7 @@ describe('seguirUsuario (SEG-01)', () => {
 
 describe('dejarDeSeguirUsuario (SEG-02)', () => {
   it('borra el follow → estaSiguiendoUsuario false', async () => {
-    await seguirUsuario(clientA, userIdA, userIdB)
+    await seguirUsuario(clientA, serviceRole, userIdA, userIdB)
     expect(await estaSiguiendoUsuario(clientA, userIdA, userIdB)).toBe(true)
     await dejarDeSeguirUsuario(clientA, userIdA, userIdB)
     expect(await estaSiguiendoUsuario(clientA, userIdA, userIdB)).toBe(false)
@@ -225,7 +236,7 @@ describe('dejarDeSeguirUsuario (SEG-02)', () => {
 
 describe('estaSiguiendoUsuario (SEG-03)', () => {
   it('true si sigue al usuario', async () => {
-    await seguirUsuario(clientA, userIdA, userIdB)
+    await seguirUsuario(clientA, serviceRole, userIdA, userIdB)
     expect(await estaSiguiendoUsuario(clientA, userIdA, userIdB)).toBe(true)
   }, 30_000)
 
@@ -238,7 +249,7 @@ describe('estaSiguiendoUsuario (SEG-03)', () => {
 describe('contadoresUsuario (SEG-04)', () => {
   it('devuelve { seguidos, seguidores }', async () => {
     // A sigue a B y a otro; nadie sigue a A → B tiene 1 seguidor (A).
-    await seguirUsuario(clientA, userIdA, userIdB)
+    await seguirUsuario(clientA, serviceRole, userIdA, userIdB)
     const deA = await contadoresUsuario(serviceRole, userIdA)
     expect(deA.seguidos).toBe(1)
     expect(deA.seguidores).toBe(0)
@@ -274,7 +285,7 @@ describe('listFeed (SEG-06)', () => {
 
   it('union de las 3 fuentes ordenadas por created_at desc', async () => {
     await resetFollows()
-    await seguirUsuario(clientA, userIdA, userIdB)
+    await seguirUsuario(clientA, serviceRole, userIdA, userIdB)
 
     const feed = await listFeed(serviceRole, userIdA)
 
@@ -318,7 +329,7 @@ describe('listFeed (SEG-06)', () => {
 
   it('listas privadas y series no aprobadas excluidas del feed', async () => {
     await resetFollows()
-    await seguirUsuario(clientA, userIdA, userIdB)
+    await seguirUsuario(clientA, serviceRole, userIdA, userIdB)
 
     const feed = await listFeed(serviceRole, userIdA)
     expect(feed.some((i) => i.tipo === 'lista' && i.lista.nombre === 'Lista privada de B')).toBe(false)
@@ -327,5 +338,99 @@ describe('listFeed (SEG-06)', () => {
         expect(item.serie.slug).not.toBe(slugDe(3))
       }
     }
+  }, 30_000)
+})
+
+describe('seguirUsuario + notificación de nuevo seguidor (F023)', () => {
+  beforeEach(() => {
+    mockNotificarNuevoSeguidor.mockClear()
+  })
+
+  const inexistente = '00000000-0000-4000-8000-000000000000'
+
+  async function contarNotifSeguidor(): Promise<number> {
+    const filas = await unwrap(
+      dbAdmin
+        .from('notificacion')
+        .select('id')
+        .eq('usuario_id', userIdB)
+        .eq('tipo', 'nuevo_seguidor')
+    )
+    return filas.length
+  }
+
+  async function limpiarEstado(): Promise<void> {
+    await unwrap(
+      dbAdmin.from('usuario_usuario').delete().eq('seguidor_id', userIdA).eq('seguido_id', userIdB)
+    )
+    await unwrap(
+      dbAdmin.from('notificacion').delete().eq('usuario_id', userIdB).eq('seguidor_id', userIdA)
+    )
+  }
+
+  it('seguir genera notificación nuevo_seguidor para el seguido', async () => {
+    await limpiarEstado()
+    await seguirUsuario(clientA, serviceRole, userIdA, userIdB)
+
+    const filas = await unwrap(
+      dbAdmin
+        .from('notificacion')
+        .select('usuario_id, seguidor_id, tipo, serie_id, episodio_id')
+        .eq('usuario_id', userIdB)
+        .eq('tipo', 'nuevo_seguidor')
+        .eq('seguidor_id', userIdA)
+    )
+    expect(filas).toHaveLength(1)
+    expect(filas[0]).toMatchObject({
+      usuario_id: userIdB,
+      seguidor_id: userIdA,
+      tipo: 'nuevo_seguidor',
+      serie_id: null,
+      episodio_id: null
+    })
+  }, 30_000)
+
+  it('dejar de seguir NO genera notificación', async () => {
+    await limpiarEstado()
+    await seguirUsuario(clientA, serviceRole, userIdA, userIdB)
+    const antes = await contarNotifSeguidor()
+    await dejarDeSeguirUsuario(clientA, userIdA, userIdB)
+    expect(await contarNotifSeguidor()).toBe(antes)
+  }, 30_000)
+
+  it('seguir de nuevo genera OTRA notificación (no idempotente, NOT-11)', async () => {
+    await limpiarEstado()
+    await seguirUsuario(clientA, serviceRole, userIdA, userIdB)
+    await dejarDeSeguirUsuario(clientA, userIdA, userIdB)
+    await seguirUsuario(clientA, serviceRole, userIdA, userIdB)
+    expect(await contarNotifSeguidor()).toBe(2)
+  }, 30_000)
+
+  it('autofollow y destino inexistente (23503) no generan notificación', async () => {
+    await limpiarEstado()
+    await expect(seguirUsuario(clientA, serviceRole, userIdA, userIdA)).rejects.toThrow(
+      ERRORES_SIGUE.noPuedeSeguirse
+    )
+    await expect(seguirUsuario(clientA, serviceRole, userIdA, inexistente)).rejects.toThrow(
+      ERRORES_SIGUE.destinoNoEncontrado
+    )
+    expect(await contarNotifSeguidor()).toBe(0)
+    expect(mockNotificarNuevoSeguidor).not.toHaveBeenCalled()
+  }, 30_000)
+
+  it('23505 (follow ya existía) no genera notificación duplicada', async () => {
+    await limpiarEstado()
+    await seguirUsuario(clientA, serviceRole, userIdA, userIdB)
+    expect(mockNotificarNuevoSeguidor).toHaveBeenCalledTimes(1)
+    await expect(seguirUsuario(clientA, serviceRole, userIdA, userIdB)).resolves.toBeUndefined()
+    expect(mockNotificarNuevoSeguidor).toHaveBeenCalledTimes(1)
+    expect(await contarNotifSeguidor()).toBe(1)
+  }, 30_000)
+
+  it('fallo de notificación no rompe el follow (log-and-continue, D25)', async () => {
+    await limpiarEstado()
+    mockNotificarNuevoSeguidor.mockRejectedValueOnce(new Error('BD de notificaciones caída'))
+    await expect(seguirUsuario(clientA, serviceRole, userIdA, userIdB)).resolves.toBeUndefined()
+    expect(await estaSiguiendoUsuario(clientA, userIdA, userIdB)).toBe(true)
   }, 30_000)
 })

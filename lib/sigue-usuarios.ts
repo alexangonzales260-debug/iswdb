@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
+import { notificarNuevoSeguidor } from './notificaciones'
 
 export type ServiceRoleClient = SupabaseClient<Database>
 
@@ -52,9 +53,15 @@ export interface ContadoresUsuario {
 // rechaza app-side con mensaje amigable; el CHECK 23514 queda de backstop. Un
 // 23503 (seguido_id sin fila en public.usuario) → destinoNoEncontrado. El 23505
 // (UNIQUE seguidor_id, seguido_id) se trata como éxito idempotente (doble click
-// / carrera, patrón D24 seguirSerie). El RLS insert_own garantiza el alcance.
+// / carrera, patrón D24 seguirSerie): el follow ya existía, no se notifica. El
+// RLS insert_own garantiza el alcance.
+// Tras un insert realmente nuevo genera la notificación nuevo_seguidor (F023)
+// con el cliente service_role (el insert de notificacion exige service_role,
+// M12). Si la notificación falla se loguea y el follow se conserva
+// (log-and-continue, D25).
 export async function seguirUsuario(
   client: SupabaseClient<Database>,
+  serviceRoleClient: ServiceRoleClient,
   seguidorId: string,
   seguidoId: string
 ): Promise<void> {
@@ -68,6 +75,12 @@ export async function seguirUsuario(
     throw new Error(ERRORES_SIGUE.destinoNoEncontrado)
   }
   if (error && error.code !== '23505') throw new Error(error.message)
+  if (error) return
+  try {
+    await notificarNuevoSeguidor(serviceRoleClient, seguidoId, seguidorId)
+  } catch (errorNotificacion) {
+    console.error('seguirUsuario: no se pudo notificar el nuevo seguidor', errorNotificacion)
+  }
 }
 
 // Dejar de seguir a un usuario (SEG-02). Idempotente: borrar 0 filas (no estaba
