@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
-import { Bell } from 'lucide-react'
+import Link from 'next/link'
+import { Bell, UserPlus } from 'lucide-react'
 
 import { EmptyState } from '@/components/empty-state'
 import { MarcarLeidaButton, MarcarTodasLeidaButton } from '@/components/marcar-leida-button'
@@ -43,25 +44,45 @@ export default async function NotificacionesPage() {
                 notificacion.leida ? 'opacity-60' : ''
               }`}
             >
-              <div className="min-w-0">
-                {notificacion.tipo === 'nuevo_episodio' && (
-                  <>
+              <div className="flex min-w-0 items-start gap-3">
+                <div className="mt-0.5 shrink-0">
+                  {notificacion.tipo === 'nuevo_episodio' ? (
+                    <Bell className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <UserPlus className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  {notificacion.tipo === 'nuevo_episodio' && (
+                    <>
+                      <p className="font-medium">
+                        Nuevo episodio en {notificacion.serie.titulo}
+                      </p>
+                      <p className="mt-0.5 text-sm text-muted-foreground">
+                        T{notificacion.episodio.temporada} E{notificacion.episodio.numero}
+                        {notificacion.episodio.titulo ? ` — ${notificacion.episodio.titulo}` : ''}
+                      </p>
+                    </>
+                  )}
+                  {notificacion.tipo === 'nuevo_seguidor' && (
                     <p className="font-medium">
-                      Nuevo episodio en {notificacion.serie.titulo}
+                      <Link
+                        href={`/usuarios/${notificacion.seguidor.username}`}
+                        className="hover:underline"
+                      >
+                        @{notificacion.seguidor.username}
+                      </Link>{' '}
+                      ahora te sigue
                     </p>
-                    <p className="mt-0.5 text-sm text-muted-foreground">
-                      T{notificacion.episodio.temporada} E{notificacion.episodio.numero}
-                      {notificacion.episodio.titulo ? ` — ${notificacion.episodio.titulo}` : ''}
-                    </p>
-                  </>
-                )}
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {new Intl.DateTimeFormat('es-ES', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric'
-                  }).format(new Date(notificacion.created_at))}
-                </p>
+                  )}
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {new Intl.DateTimeFormat('es-ES', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric'
+                    }).format(new Date(notificacion.created_at))}
+                  </p>
+                </div>
               </div>
               {!notificacion.leida && (
                 <MarcarLeidaButton notificacionId={notificacion.id} />
