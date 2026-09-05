@@ -40,7 +40,7 @@ y RLS own.
 ---
 
 ## T2: lib/sigue-usuarios.ts (servicios) + tests de servidor
-**Estado**: Pendiente
+**Estado**: ✅ Completada
 **Objetivo**: Servicios inyectables de follow/unfollow, contadores y feed.
 
 **Entregables**:
@@ -74,7 +74,7 @@ tests/lib/sigue-usuarios.test.ts` verde.
 ---
 
 ## T3: Actions + botón + contadores en el perfil público
-**Estado**: Pendiente
+**Estado**: ✅ Completada
 **Objetivo**: Seguir/dejar de seguir desde `/usuarios/<username>` con estado
 inicial correcto y contadores visibles.
 
@@ -99,7 +99,7 @@ inicial correcto y contadores visibles.
 ---
 
 ## T4: /feed (RSC protegida) + link "Feed" en el header
-**Estado**: Pendiente
+**Estado**: ✅ Completada
 **Objetivo**: Feed cronológico de actividad de seguidos.
 
 **Entregables**:
@@ -119,7 +119,7 @@ visual de `/feed` con un usuario que sigue a otro con actividad.
 ---
 
 ## T5: E2E Playwright
-**Estado**: Pendiente
+**Estado**: ✅ Completada
 **Objetivo**: Flujo real seguir → feed → dejar de seguir + guardas.
 
 **Entregables**:

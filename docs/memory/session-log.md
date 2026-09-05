@@ -387,3 +387,11 @@
   service_role (D25) porque el RLS de usuario es solo-propio (M7) y
   usuario_serie select-own (M11); sin email ni rol en el retorno; serie!inner
   para excluir no aprobadas. 361 unit + 74 E2E.
+## Sesión 25 — F22: Seguir a usuarios + feed
+- F22: Seguir a usuarios + feed. Tabla usuario_usuario (M15: UNIQUE,
+  CHECK anti-autofollow, FK cascade, RLS own seguidor_id). Contadores y
+  feed cross-user con service_role (D25/D27). Botón Seguir/Siguiendo en
+  perfil público (solo con sesión, no en el propio). /feed protegido con
+  actividad cronológica desc de seguidos (valoraciones + reseñas públicas
+  + listas públicas, union en servidor). Link Feed en header. 386 unit +
+  76 E2E.

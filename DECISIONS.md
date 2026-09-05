@@ -115,3 +115,9 @@
      createServiceRoleClient() server-side (M7/M11 intactos, sin política
      pública nueva ni view). Todo público por defecto (sin flags de
      privacidad). notFound() para username inexistente.
+- D28: Follows entre usuarios con tabla usuario_usuario (M15): UNIQUE
+     (seguidor_id, seguido_id), CHECK anti-autofollow, RLS own para gestión
+     propia y service_role para contadores/feed cross-user (D25). Feed
+     cronológico desc fusionando 3 fuentes públicas en servidor (sin
+     materialización, D16). /feed protegido (AUTH-06). Sin notificaciones de
+     seguidores, sin bloqueo, sin algoritmo.
