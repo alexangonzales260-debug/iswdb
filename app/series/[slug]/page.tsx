@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { createAuthClient, getUser } from "@/lib/auth";
 import { estaSiguiendo } from "@/lib/follows";
 import { ratingTexto, truncateDescripcion } from "@/lib/format";
-import { listMisListas } from "@/lib/listas";
+import { listListasParaAnadir } from "@/lib/listas";
 import { getSeriesSimilares } from "@/lib/recomendaciones";
 import { getSerieBySlug, type SerieFicha } from "@/lib/series";
 import { getValoracionUsuario } from "@/lib/valoraciones";
@@ -162,15 +162,16 @@ async function Valoraciones({ serie }: { serie: SerieFicha }) {
   );
 }
 
-// Sección "Añadir a lista" (F013, LIS-10): dropdown con mis listas solo con
-// sesión; las listas se pasan por prop (server-side, RSC) para que el
-// componente cliente no haga fetch.
+// Sección "Añadir a lista" (F013, LIS-10): dropdown con las listas editables
+// solo con sesión (propias + colaboraciones como editor, COL-02); las listas
+// se pasan por prop (server-side, RSC) para que el componente cliente no haga
+// fetch.
 async function AñadirALista({ serie }: { serie: SerieFicha }) {
   const user = await getUser();
-  let listas: Awaited<ReturnType<typeof listMisListas>> = [];
+  let listas: Awaited<ReturnType<typeof listListasParaAnadir>> = [];
   if (user) {
     const client = await createAuthClient();
-    listas = await listMisListas(client, user.id);
+    listas = await listListasParaAnadir(client, user.id);
   }
 
   return (

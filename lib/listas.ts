@@ -314,6 +314,55 @@ export async function listMisListas(
   return listas.map((l) => ({ ...l, numSeries: numSeries.get(l.id) ?? 0 }))
 }
 
+// Listas a las que el usuario puede añadir series (dropdown "Añadir a lista"
+// de la ficha, LIS-10 + COL-02): las propias (dueño) + las de lista_colaborador
+// donde es editor. Sin sustituir a listMisListas: el grid /listas y el feed de
+// actividad siguen siendo "mis listas propias" (fuera de alcance, plan T2).
+export async function listListasParaAnadir(
+  client: AuthClient,
+  userId: string
+): Promise<MisLista[]> {
+  const propias = await listMisListas(client, userId)
+  const propiasIds = new Set(propias.map((l) => l.id))
+
+  const { data: colaboraciones, error: errorColab } = await client
+    .from('lista_colaborador')
+    .select('lista_id')
+    .eq('usuario_id', userId)
+    .eq('rol', 'editor')
+  if (errorColab) throw new Error(`listListasParaAnadir: ${errorColab.message}`)
+
+  const faltantes = [...new Set((colaboraciones ?? []).map((c) => c.lista_id))].filter(
+    (id) => !propiasIds.has(id)
+  )
+  if (faltantes.length === 0) return propias
+
+  const { data: colaborativas, error: errorListas } = await client
+    .from('lista')
+    .select('id, nombre, descripcion, es_publica, updated_at')
+    .in('id', faltantes)
+  if (errorListas) throw new Error(`listListasParaAnadir: ${errorListas.message}`)
+
+  const listas = [...propias, ...(colaborativas ?? [])]
+  const { data: conteos, error: errorConteos } = await client
+    .from('lista_serie')
+    .select('lista_id')
+    .in(
+      'lista_id',
+      listas.map((l) => l.id)
+    )
+  if (errorConteos) throw new Error(`listListasParaAnadir: ${errorConteos.message}`)
+
+  const numSeries = new Map<string, number>()
+  for (const fila of conteos ?? []) {
+    numSeries.set(fila.lista_id, (numSeries.get(fila.lista_id) ?? 0) + 1)
+  }
+
+  return listas
+    .map((l) => ({ ...l, numSeries: numSeries.get(l.id) ?? 0 }))
+    .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
+}
+
 export interface ListaSerieDetalle {
   serieId: string
   titulo: string

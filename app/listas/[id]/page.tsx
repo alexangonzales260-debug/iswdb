@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { ColaboradoresLista } from "@/components/colaboradores-lista";
 import { ListaDetalle } from "@/components/lista-detalle";
 import type { AuthClient } from "@/lib/auth";
 import { createAuthClient, getUser } from "@/lib/auth";
 import { getLista } from "@/lib/listas";
 import { supabaseServer } from "@/lib/supabase";
-import { listColaboradores } from "@/lib/listas-colaborativas";
+import { listColaboradores, type ColaboradorLista } from "@/lib/listas-colaborativas";
 import { createServiceRoleClient } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
@@ -47,7 +48,7 @@ export default async function ListaDetallePage({
   // lista si el cliente puede leerla (own_or_public por RLS).
   if (!detalle) notFound();
 
-  let colaboradores = []
+  let colaboradores: ColaboradorLista[] = []
   let numEditores = 0
   if (detalle.esOwner) {
     colaboradores = await listColaboradores(createServiceRoleClient(), id)
@@ -65,6 +66,15 @@ export default async function ListaDetallePage({
         series={detalle.lista.series}
         numEditores={numEditores}
       />
+      {detalle.esOwner ? (
+        <div className="mt-6">
+          <ColaboradoresLista
+            listaId={detalle.lista.id}
+            colaboradores={colaboradores}
+            ownerId={detalle.lista.user_id}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }
