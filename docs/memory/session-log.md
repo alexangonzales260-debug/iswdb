@@ -439,3 +439,14 @@
   con sección Colaboradores (solo dueño), indicador 'lista colaborativa'
   si >1 editor. 467 unit + 80 E2E.
 - Cierre: D30 añadido, ROADMAP 024 ✅, validate.sh en verde, tag F24.
+
+## Sesión 29 — F25: Comentarios en reseñas (cierre)
+- F25: Comentarios en reseñas. M19 crea comentario (CHECK 1-1000, sin
+  updated_at, RLS select público + write own). Página /resenas/[id]
+  (ruta con ñ no enruta en Next 16.3.3 → fallback /resenas refrendado).
+  CRUD simple: crear/editar/borrar propio; anon solo lectura. Username
+  del autor con service_role (M7). getReseña = reseña pública (serie
+  aprobada). Links COM-07/08 desde ficha y perfil público. Fix de form:
+  ids únicos con useId y bind estable con useMemo (re-submit tras
+  revalidate). 500 unit + 84 E2E.
+- Cierre: D31 añadido, ROADMAP 025 ✅, validate.sh en verde, tag F25.

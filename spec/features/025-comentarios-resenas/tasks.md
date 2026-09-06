@@ -1,6 +1,6 @@
 # 025 — Comentarios en reseñas · Tareas
 
-- [ ] T1 — Migración M19 + tipos + tests DB/RLS
+- [x] T1 — Migración M19 + tipos + tests DB/RLS
   supabase/migrations/20260905170000_create_comentario.sql (M19): tabla
   comentario (id uuid PK gen_random_uuid() · "reseña_id" FK reseña on delete
   cascade · user_id FK usuario on delete cascade · contenido text not null
@@ -26,7 +26,7 @@
   Criterio: npm test -- --run tests/db/comentarios-rls.test.ts verde (BD
   local arriba).
 
-- [ ] T2 — Servicios en lib/comentarios.ts + tests
+- [x] T2 — Servicios en lib/comentarios.ts + tests
   lib/comentarios.ts (nuevo): ERRORES_COMENTARIO (sinSesion, reseñaNoEncontrada,
   comentarioNoEncontrado, sinPermiso, contenidoVacio, contenidoMuyLargo) ·
   contenidoSchema Zod trim min 1 max 1000 ·
@@ -53,7 +53,7 @@
   inexistente en listar → reseñaNoEncontrada.
   Criterio: npm test -- --run verde.
 
-- [ ] T3 — Server Actions + página /reseñas/[id] + componentes + links
+- [x] T3 — Server Actions + página /reseñas/[id] + componentes + links
   lib/comentarios-actions.ts (nuevo, "use server"): accionCrearComentario
   (reseñaId, prev, formData) y accionEditarComentario (reseñaId, comentarioId,
   prev, formData) con useActionState + accionBorrarComentario (reseñaId,
@@ -83,7 +83,7 @@
   /reseñas/<id> desde ficha y perfil, añadir/editar/borrar con sesión, anon
   solo lectura, ruta con ñ OK.
 
-- [ ] T4 — E2E Playwright
+- [x] T4 — E2E Playwright
   e2e/global-setup.ts: wipe() añade delete de comentario ANTES de reseña.
   e2e/comentarios.spec.ts (nuevo; usuarios únicos por ejecución, cleanup
   deleteAuthUserByEmail → cascade): setup de A (createAuthUserWithUsuario) +

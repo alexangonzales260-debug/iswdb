@@ -136,3 +136,11 @@
       propias + colaborativas como editor para el dropdown de ficha. Sección
       Colaboradores visible solo al dueño (RLS select_access). Indicador
       'lista colaborativa' si >1 editor (COL-08).
+- D31: Comentarios en reseñas (F025): tabla comentario (M19) con RLS
+      select público / write own, sin updated_at ni UNIQUE (múltiples
+      comentarios por usuario). Ruta /resenas/<id> (el segmento ñ no enruta
+      en Next 16.3.3). 'Reseña pública' = serie aprobada (criterio
+      getPerfilPublico) en getReseña y crearComentario. Errores sinPermiso vs
+      comentarioNoEncontrado por select de discriminación. Forms con useId
+      para ids únicos y useMemo para bind estable de server actions
+      (useActionState requiere identidad estable).

@@ -192,6 +192,12 @@ sin updated_at; página /reseñas/<id>; lectura de username con service-role
 (D25/M7); getReseña como "reseña pública" = serie aprobada; errores sinPermiso
 vs comentarioNoEncontrado.
 
+### 11. Ruta /resenas/<id> (fallback refrendado)
+El segmento con ñ no enruta en Next 16.3.3 (matcher 404 verificado en dev y
+prod); se adopta `/resenas/<id>` como ruta oficial (fallback aprobado en
+plan). Todas las referencias del repo (página app/resenas/[id], links
+COM-07/08, revalidación, requireUser next) usan la ruta ASCII.
+
 ## Contexto del repo (breve)
 - Patrón servicios inyectables + Server Actions + RSC como F012/F024.
 - Patrón embed con service-role: listReseñasSerie (lib/reseñas.ts, D25).
