@@ -200,3 +200,42 @@ export async function listReseñasSerie(
     autor: { id: fila.usuario.id, email: fila.usuario.email }
   }))
 }
+
+// ── F025 · Página de reseña individual ─────────────────────────────────────
+
+export interface ReseñaDetalle {
+  id: string
+  contenido: string
+  created_at: string
+  autor: { id: string; username: string | null }
+  serie: { id: string; titulo: string; slug: string }
+}
+
+// Reseña por id para la página /reseñas/<id> (F025). "Pública" = existe y su
+// serie está aprobada (criterio compartido con getPerfilPublico): serie!inner
+// con moderation_status filtrado descarta reseñas de series no aprobadas.
+// Requiere un cliente service-role server-side: el embed usuario(username)
+// está oculto por usuario_select_own (M7). null → notFound() en la página.
+export async function getReseña(
+  clientServiceRole: AuthClient,
+  reseñaId: string
+): Promise<ReseñaDetalle | null> {
+  const { data, error } = await clientServiceRole
+    .from('reseña')
+    .select(
+      'id, contenido, created_at, usuario ( id, username ), serie!inner ( id, titulo, slug, moderation_status )'
+    )
+    .eq('id', reseñaId)
+    .eq('serie.moderation_status', 'aprobada')
+    .maybeSingle()
+  if (error) throw new Error(`getReseña: ${error.message}`)
+  if (!data || !data.usuario || !data.serie) return null
+
+  return {
+    id: data.id,
+    contenido: data.contenido,
+    created_at: data.created_at,
+    autor: { id: data.usuario.id, username: data.usuario.username },
+    serie: { id: data.serie.id, titulo: data.serie.titulo, slug: data.serie.slug }
+  }
+}

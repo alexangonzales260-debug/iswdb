@@ -54,6 +54,45 @@ export type Database = {
         }
         Relationships: []
       }
+      comentario: {
+        Row: {
+          contenido: string
+          created_at: string
+          id: string
+          reseña_id: string
+          user_id: string
+        }
+        Insert: {
+          contenido: string
+          created_at?: string
+          id?: string
+          reseña_id: string
+          user_id: string
+        }
+        Update: {
+          contenido?: string
+          created_at?: string
+          id?: string
+          reseña_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comentario_reseña_id_fkey"
+            columns: ["reseña_id"]
+            isOneToOne: false
+            referencedRelation: "reseña"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comentario_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "usuario"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       episodio: {
         Row: {
           created_at: string
