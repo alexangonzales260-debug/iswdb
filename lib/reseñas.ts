@@ -211,7 +211,7 @@ export interface ReseñaDetalle {
   serie: { id: string; titulo: string; slug: string }
 }
 
-// Reseña por id para la página /reseñas/<id> (F025). "Pública" = existe y su
+// Reseña por id para la página /resenas/<id> (F025). "Pública" = existe y su
 // serie está aprobada (criterio compartido con getPerfilPublico): serie!inner
 // con moderation_status filtrado descarta reseñas de series no aprobadas.
 // Requiere un cliente service-role server-side: el embed usuario(username)

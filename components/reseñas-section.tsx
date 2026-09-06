@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { MessageSquareText } from 'lucide-react'
 
 import { EmptyState } from '@/components/empty-state'
@@ -94,6 +95,13 @@ export async function ReseñasSection({
                     ) : null}
                   </header>
                   <p className="whitespace-pre-wrap text-sm">{reseña.contenido}</p>
+                  <Link
+                    href={`/resenas/${reseña.id}`}
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-accessible underline-offset-4 hover:underline dark:text-brand"
+                  >
+                    <MessageSquareText className="size-4" aria-hidden="true" />
+                    Comentar
+                  </Link>
                 </article>
               </li>
             )

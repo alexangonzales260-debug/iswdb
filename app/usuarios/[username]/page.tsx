@@ -173,6 +173,13 @@ function SeccionReseñas({ reseñas }: { reseñas: ReseñaPublica[] }) {
                 </span>
               </div>
               <p className="mt-2 text-sm">{reseña.contenido}</p>
+              <Link
+                href={`/resenas/${reseña.id}`}
+                className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-brand-accessible underline-offset-4 hover:underline dark:text-brand"
+              >
+                <MessageSquareText className="size-4" aria-hidden="true" />
+                Comentar
+              </Link>
             </li>
           ))}
         </ul>

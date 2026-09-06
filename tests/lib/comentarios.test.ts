@@ -308,7 +308,7 @@ describe('listComentariosPorReseña (COM-04)', () => {
   }, 30_000)
 })
 
-describe('getReseña (página /reseñas/<id>)', () => {
+describe('getReseña (página /resenas/<id>)', () => {
   it('devuelve la reseña con autor (username) y serie', async () => {
     const reseña = await getReseña(dbAdmin, reseñaAId)
     expect(reseña).not.toBeNull()
