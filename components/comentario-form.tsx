@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useEffect, useRef, useState } from 'react'
+import { useActionState, useEffect, useId, useMemo, useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -25,11 +25,11 @@ export interface ComentarioFormProps {
 
 // Formulario de comentarios (COM-01/COM-02, "use client" justificado:
 // useActionState + contador de caracteres). Modo 'crear' (página) o 'editar'
-// (prefilled dentro de comentario-item, con cancelar). El _prev tecleado se
-// conserva tras publicar (la lista se refresca por revalidatePath de la
-// action), mismo criterio que ReseñaForm. El borde pending→false sin error
-// detecta el fin del submit: en modo editar avisa a comentario-item para
-// colapsar el form (onGuardado); en modo crear no hace falta limpiar nada.
+// (prefilled dentro de comentario-item, con cancelar). El borde pending→false
+// sin error detecta el fin del submit: en modo editar avisa a comentario-item
+// para colapsar el form (onGuardado); en modo crear limpia el textarea para
+// que el siguiente comentario empiece en blanco (sin reload, el campo queda
+// listo para un nuevo POST).
 export function ComentarioForm({
   reseñaId,
   modo,
@@ -38,29 +38,37 @@ export function ComentarioForm({
   onCancelar,
   onGuardado
 }: ComentarioFormProps) {
-  const [state, formAction, pending] = useActionState(
-    modo === 'editar' && comentarioId
-      ? accionEditarComentario.bind(null, reseñaId, comentarioId)
-      : accionCrearComentario.bind(null, reseñaId),
-    ESTADO_INICIAL
+  const id = useId()
+  const textareaId = modo === 'editar' ? `comentario-contenido-${comentarioId}` : `comentario-contenido-nuevo-${id}`
+
+  const action = useMemo(
+    () =>
+      modo === 'editar' && comentarioId
+        ? accionEditarComentario.bind(null, reseñaId, comentarioId)
+        : accionCrearComentario.bind(null, reseñaId),
+    [modo, reseñaId, comentarioId]
   )
+  const [state, formAction, pending] = useActionState(action, ESTADO_INICIAL)
   const [contenido, setContenido] = useState(contenidoInicial)
   const prevPending = useRef(pending)
 
   useEffect(() => {
     const termino = prevPending.current && !pending
     prevPending.current = pending
-    if (modo === 'editar' && termino && !state.error) onGuardado?.()
+    if (!termino || state.error) return
+    if (modo === 'editar') onGuardado?.()
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    else setContenido('')
   }, [pending, state.error, modo, onGuardado])
 
   return (
     <form action={formAction} className="space-y-3">
       <div className="space-y-2">
         {modo === 'editar' ? (
-          <Label htmlFor="comentario-contenido">Edita tu comentario</Label>
+          <Label htmlFor={textareaId}>Edita tu comentario</Label>
         ) : null}
         <Textarea
-          id="comentario-contenido"
+          id={textareaId}
           name="contenido"
           value={contenido}
           onChange={(event) => setContenido(event.target.value)}
@@ -86,8 +94,8 @@ export function ComentarioForm({
               ? 'Guardando…'
               : 'Publicando…'
             : modo === 'editar'
-              ? 'Guardar'
-              : 'Comentar'}
+            ? 'Guardar'
+            : 'Comentar'}
         </Button>
         {modo === 'editar' && onCancelar ? (
           <Button type="button" variant="ghost" onClick={onCancelar} disabled={pending}>
