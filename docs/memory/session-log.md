@@ -425,3 +425,17 @@
   ambas formas de denegación, sin debilitar la aserción). Modelo Supabase
   estándar: grants amplios por default ACL + RLS como única barrera.
 - Pendiente: T2 servicios, T3 actions/componentes, T4 UI, T5 E2E, T6 cierre.
+
+## Sesión 28 — F24: Listas colaborativas (cierre)
+- F24: Listas colaborativas. M17 crea lista_colaborador (roles editor/
+  lector, UNIQUE, FK cascade); M18 añade policy anon select using (false).
+  RLS con helpers SECURITY DEFINER es_colaborador/es_owner (evita
+  recursión mutua lista↔lista_colaborador). Dueño explícito como
+  colaborador (fila al crear lista). Permisos granulares: dueño (todo),
+  editor (añadir/quitar/reordenar/renombrar/descripción), lector (solo
+  ver privada). Invitación por username vía service_role (F022). Trigger
+  lista_owner_fields_guard protege user_id/es_publica. listListasParaAnadir
+  muestra propias + colaborativas como editor en dropdown de ficha. UI
+  con sección Colaboradores (solo dueño), indicador 'lista colaborativa'
+  si >1 editor. 467 unit + 80 E2E.
+- Cierre: D30 añadido, ROADMAP 024 ✅, validate.sh en verde, tag F24.

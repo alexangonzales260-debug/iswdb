@@ -127,3 +127,12 @@
       el upsert onConflict de F019; NULLs no colisionan preservando NOT-11
       (no idempotente). Generación en seguirUsuario con service_role y
       log-and-continue (D25). UI con discriminated union por tipo.
+- D30: Listas colaborativas (F024): tabla lista_colaborador (M17) con
+      roles editor/lector, dueño como colaborador explícito (fila al crear),
+      RLS con helpers SECURITY DEFINER es_colaborador/es_owner para evitar
+      recursión mutua lista↔lista_colaborador. Trigger lista_owner_fields_guard
+      protege user_id (inalienable) y es_publica (solo dueño). Invitación por
+      username vía service_role (F022/D27). listListasParaAnadir unifica
+      propias + colaborativas como editor para el dropdown de ficha. Sección
+      Colaboradores visible solo al dueño (RLS select_access). Indicador
+      'lista colaborativa' si >1 editor (COL-08).

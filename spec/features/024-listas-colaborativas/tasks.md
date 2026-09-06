@@ -5,7 +5,7 @@ Orden atómico: una sesión de Build por tarea. Cada tarea incluye código + tes
 ---
 
 ## T1: Migración M17 (lista_colaborador) + tipos + tests DB/RLS
-**Estado**: Pendiente
+**Estado**: Completada
 **Objetivo**: Tabla de colaboración con UNIQUE, CHECK rol, FKs cascade y RLS
 por dueño + colaboradores, sin romper M9.
 
@@ -44,7 +44,7 @@ por dueño + colaboradores, sin romper M9.
 ---
 
 ## T2: lib/listas-colaborativas.ts + ajustes en lib/listas.ts + tests
-**Estado**: Pendiente
+**Estado**: Completada
 **Objetivo**: Servicios inyectables de colaboración + permisos; escrituras de
 F013 abiertas a editores.
 
@@ -81,7 +81,7 @@ tests/db/listas.test.ts` (sin regresiones F013).
 ---
 
 ## T3: Server Actions + componentes (colaboradores + indicador)
-**Estado**: Pendiente
+**Estado**: Completada
 **Objetivo**: Invitar/quitar/cambiar rol desde el cliente; validación por rol
 en las actions de F013.
 
@@ -108,7 +108,7 @@ smoke manual de la sección Colaboradores en dev.
 ---
 
 ## T4: app/listas/[id]/page.tsx (visibilidad + sección)
-**Estado**: Pendiente
+**Estado**: Completada
 **Objetivo**: Render condicional por rol; 404 ajenos (COL-07); datos de
 colaboradores para el dueño.
 
@@ -126,7 +126,7 @@ lector ve privada sin editar; ajeno → 404; anon ve pública sin editar.
 ---
 
 ## T5: E2E Playwright
-**Estado**: Pendiente
+**Estado**: Completada
 **Objetivo**: Flujo invitar → editar → quitar + lectores + ajenos.
 
 **Entregables**:
