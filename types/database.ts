@@ -363,6 +363,7 @@ export type Database = {
         Row: {
           comentario_id: string | null
           created_at: string
+          descripcion: string | null
           episodio_id: string | null
           estado: string
           id: string
@@ -375,6 +376,7 @@ export type Database = {
         Insert: {
           comentario_id?: string | null
           created_at?: string
+          descripcion?: string | null
           episodio_id?: string | null
           estado?: string
           id?: string
@@ -387,6 +389,7 @@ export type Database = {
         Update: {
           comentario_id?: string | null
           created_at?: string
+          descripcion?: string | null
           episodio_id?: string | null
           estado?: string
           id?: string
