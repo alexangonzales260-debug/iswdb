@@ -280,6 +280,9 @@ async function wipe(db: SupabaseClient): Promise<void> {
   // lista_colaborador (F024): limpieza defensiva de colaboraciones residuales
   // (si una corrida e2e muere, el cascade de usuario/lista no las limpia).
   await unwrap(db.from('lista_colaborador').delete().not('lista_id', 'is', null))
+  // reseña_like antes que reseña (F027): FK de reseña_like → reseña on delete
+  // cascade; se borra primero por orden del wipe (T4).
+  await unwrap(db.from('reseña_like').delete().not('reseña_id', 'is', null))
   // comentario antes que reseña (F025): FK de comentario → reseña (on delete
   // cascade); se borra primero por orden del wipe.
   await unwrap(db.from('comentario').delete().not('id', 'is', null))
