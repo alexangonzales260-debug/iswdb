@@ -54,7 +54,7 @@
   yaDisteLike false · getReseña con/sin userId.
   Criterio: npm test -- --run verde.
 
-- [ ] T3 — Server Actions + like-button.tsx + integración UI
+- [x] T3 — Server Actions + like-button.tsx + integración UI
   lib/likes-actions.ts (nuevo, "use server"): accionToggleLike(reseñaId,
   serieSlug, reseñaPageId?, prev, formData) o accionDarLike/accionQuitarLike.
   requireUser({ next: /resenas/<id> o /series/<slug>, message: 'Inicia

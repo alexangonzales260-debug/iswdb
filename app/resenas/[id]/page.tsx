@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, MessageSquareText } from "lucide-react";
 
 import { ComentarioForm } from "@/components/comentario-form";
+import { LikeButton } from "@/components/like-button";
 import { ListaComentarios } from "@/components/lista-comentarios";
 import { getUser } from "@/lib/auth";
 import { listComentariosPorReseña } from "@/lib/comentarios";
@@ -65,13 +66,11 @@ function AutorConLink({ autor }: { autor: ReseñaDetalle["autor"] }) {
 
 export default async function ReseñaPage({ params }: ReseñaPageProps) {
   const { id } = await params;
-  const reseña = await getReseña(createServiceRoleClient(), id);
+  const user = await getUser();
+  const reseña = await getReseña(createServiceRoleClient(), id, user?.id);
   if (!reseña) notFound();
 
-  const [user, comentarios] = await Promise.all([
-    getUser(),
-    listComentariosPorReseña(createServiceRoleClient(), id, 50),
-  ]);
+  const comentarios = await listComentariosPorReseña(createServiceRoleClient(), id, 50);
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-8 px-4 py-10">
@@ -97,6 +96,15 @@ export default async function ReseñaPage({ params }: ReseñaPageProps) {
         </header>
         <p className="whitespace-pre-wrap text-sm leading-relaxed">{reseña.contenido}</p>
       </article>
+
+      <LikeButton
+        reseñaId={reseña.id}
+        serieSlug={reseña.serie.slug}
+        reseñaPageId={reseña.id}
+        numLikesInicial={reseña.numLikes}
+        yaDisteLikeInicial={reseña.yaDisteLike}
+        conSesion={user !== null}
+      />
 
       <section className="space-y-4" aria-labelledby="comentarios-heading">
         <h2

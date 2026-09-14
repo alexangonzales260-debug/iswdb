@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { MessageSquareText } from 'lucide-react'
 
 import { EmptyState } from '@/components/empty-state'
+import { LikeButton } from '@/components/like-button'
 import { ReseñaDeleteButton } from '@/components/reseña-delete-button'
 import { ReseñaForm } from '@/components/reseña-form'
 import { getRolUsuario } from '@/lib/admin'
@@ -50,7 +51,7 @@ export async function ReseñasSection({
     esMod = rol === 'mod' || rol === 'admin'
   }
 
-  const reseñas = await listReseñasSerie(createServiceRoleClient(), serieId)
+  const reseñas = await listReseñasSerie(createServiceRoleClient(), serieId, user?.id)
 
   return (
     <section className="space-y-4" aria-labelledby="resenas-heading">
@@ -102,6 +103,14 @@ export async function ReseñasSection({
                     <MessageSquareText className="size-4" aria-hidden="true" />
                     Comentar
                   </Link>
+                  <LikeButton
+                    reseñaId={reseña.id}
+                    serieSlug={serieSlug}
+                    reseñaPageId={reseña.id}
+                    numLikesInicial={reseña.numLikes}
+                    yaDisteLikeInicial={reseña.yaDisteLike}
+                    conSesion={user !== null}
+                  />
                 </article>
               </li>
             )
