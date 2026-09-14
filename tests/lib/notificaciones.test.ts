@@ -17,6 +17,7 @@ import {
   listMisNotificaciones,
   marcarLeida,
   marcarTodasLeidas,
+  notificarNuevoComentario,
   notificarNuevoEpisodio,
   notificarNuevoSeguidor
 } from '@/lib/notificaciones'
@@ -45,6 +46,8 @@ let clientSeguido: SupabaseClient<Database>
 let categoriaId: string
 let serieId: string
 let episodioId: string
+let reseñaId: string
+let comentarioId: string
 
 function emailDe(nombre: string): string {
   return `notif-lib-${nombre}-${runId}@iswdb.local`
@@ -119,6 +122,24 @@ beforeAll(async () => {
       .single()
   )
   episodioId = episodio.id
+
+  const reseña = await unwrap(
+    dbAdmin
+      .from('reseña')
+      .insert({ user_id: seguidoId, serie_id: serieId, contenido: 'a'.repeat(70) })
+      .select('id')
+      .single()
+  )
+  reseñaId = reseña.id
+
+  const comentario = await unwrap(
+    dbAdmin
+      .from('comentario')
+      .insert({ reseña_id: reseñaId, user_id: seguidorId, contenido: 'Comentario lib notif' })
+      .select('id')
+      .single()
+  )
+  comentarioId = comentario.id
 }, 60_000)
 
 afterAll(async () => {
@@ -166,6 +187,48 @@ describe('generación notificarNuevoSeguidor (NOT-09)', () => {
         .select('id')
         .eq('usuario_id', seguidoId)
         .eq('tipo', 'nuevo_seguidor')
+    )
+    expect(filas).toHaveLength(2)
+
+    await limpiarNotificaciones()
+  }, 30_000)
+})
+
+describe('generación notificarNuevoComentario (NOTC-01/NOTC-04)', () => {
+  it('genera fila nuevo_comentario para el autor de la reseña con campos correctos', async () => {
+    await notificarNuevoComentario(dbAdmin, seguidoId, comentarioId)
+
+    const filas = await unwrap(
+      dbAdmin
+        .from('notificacion')
+        .select('usuario_id, comentario_id, tipo, serie_id, episodio_id, seguidor_id, leida')
+        .eq('usuario_id', seguidoId)
+        .eq('tipo', 'nuevo_comentario')
+    )
+    expect(filas).toHaveLength(1)
+    expect(filas[0]).toMatchObject({
+      usuario_id: seguidoId,
+      comentario_id: comentarioId,
+      tipo: 'nuevo_comentario',
+      serie_id: null,
+      episodio_id: null,
+      seguidor_id: null,
+      leida: false
+    })
+
+    await limpiarNotificaciones()
+  }, 30_000)
+
+  it('sin UNIQUE: dos llamadas → 2 filas (NOTC-04)', async () => {
+    await notificarNuevoComentario(dbAdmin, seguidoId, comentarioId)
+    await notificarNuevoComentario(dbAdmin, seguidoId, comentarioId)
+
+    const filas = await unwrap(
+      dbAdmin
+        .from('notificacion')
+        .select('id')
+        .eq('usuario_id', seguidoId)
+        .eq('tipo', 'nuevo_comentario')
     )
     expect(filas).toHaveLength(2)
 
@@ -243,15 +306,64 @@ describe('listMisNotificaciones (unión por tipo)', () => {
   }, 30_000)
 })
 
-describe('escritura (marcarLeida) con ambos tipos', () => {
-  it('marcarLeida funciona sobre nuevo_episodio y nuevo_seguidor', async () => {
+describe('listMisNotificaciones con 3 tipos (+ nuevo_comentario)', () => {
+  it('discrimina los 3 tipos y resuelve comentarista, serie y reseña (NOTC-02)', async () => {
+    await unwrap(
+      dbAdmin.from('notificacion').insert([
+        {
+          usuario_id: seguidoId,
+          tipo: 'nuevo_episodio',
+          serie_id: serieId,
+          episodio_id: episodioId,
+          created_at: '2026-03-01T10:00:00+00'
+        },
+        {
+          usuario_id: seguidoId,
+          tipo: 'nuevo_seguidor',
+          seguidor_id: seguidorId,
+          created_at: '2026-02-01T10:00:00+00'
+        },
+        {
+          usuario_id: seguidoId,
+          tipo: 'nuevo_comentario',
+          comentario_id: comentarioId,
+          created_at: '2026-01-01T10:00:00+00'
+        }
+      ])
+    )
+
+    const lista = await listMisNotificaciones(clientSeguido, seguidoId)
+
+    expect(lista).toHaveLength(3)
+    expect(lista.map((n) => n.tipo)).toEqual(['nuevo_episodio', 'nuevo_seguidor', 'nuevo_comentario'])
+
+    const nuevoComentario = lista[2]
+    expect(nuevoComentario.tipo).toBe('nuevo_comentario')
+    if (nuevoComentario.tipo === 'nuevo_comentario') {
+      expect(nuevoComentario.comentario.id).toBe(comentarioId)
+      expect(nuevoComentario.reseña.id).toBe(reseñaId)
+      expect(nuevoComentario.serie).toEqual({
+        titulo: 'Serie Notificaciones Lib',
+        slug: slugDe('serie')
+      })
+      expect(nuevoComentario.comentarista.username).toBe(usernameA)
+      expect(nuevoComentario.leida).toBe(false)
+      expect(new Date(nuevoComentario.created_at).getTime()).not.toBeNaN()
+    }
+
+    await limpiarNotificaciones()
+  }, 30_000)
+})
+
+describe('escritura (marcarLeida) con los 3 tipos', () => {
+  it('marcarLeida funciona sobre nuevo_episodio, nuevo_seguidor y nuevo_comentario', async () => {
     await notificarNuevoSeguidor(dbAdmin, seguidoId, seguidorId)
     await unwrap(dbAdmin.from('usuario_serie').insert({ usuario_id: seguidoId, serie_id: serieId }))
     await notificarNuevoEpisodio(dbAdmin, serieId, episodioId)
+    await notificarNuevoComentario(dbAdmin, seguidoId, comentarioId)
 
     const lista = await listMisNotificaciones(clientSeguido, seguidoId)
-    expect(lista).toHaveLength(2)
-    expect(lista.every((n) => n.tipo === 'nuevo_episodio' || n.tipo === 'nuevo_seguidor')).toBe(true)
+    expect(lista).toHaveLength(3)
 
     for (const n of lista) {
       await marcarLeida(clientSeguido, seguidoId, n.id)
@@ -260,7 +372,7 @@ describe('escritura (marcarLeida) con ambos tipos', () => {
     const restantes = await unwrap(
       dbAdmin.from('notificacion').select('leida').eq('usuario_id', seguidoId)
     )
-    expect(restantes).toHaveLength(2)
+    expect(restantes).toHaveLength(3)
     expect(restantes.every((n) => n.leida === true)).toBe(true)
 
     await limpiarNotificaciones()
@@ -269,12 +381,13 @@ describe('escritura (marcarLeida) con ambos tipos', () => {
 })
 
 describe('contarNoLeidas (NOT-02)', () => {
-  it('cuenta ambos tipos y llega a 0 tras marcarTodasLeidas', async () => {
+  it('cuenta los 3 tipos y llega a 0 tras marcarTodasLeidas', async () => {
     await notificarNuevoSeguidor(dbAdmin, seguidoId, seguidorId)
     await unwrap(dbAdmin.from('usuario_serie').insert({ usuario_id: seguidoId, serie_id: serieId }))
     await notificarNuevoEpisodio(dbAdmin, serieId, episodioId)
+    await notificarNuevoComentario(dbAdmin, seguidoId, comentarioId)
 
-    expect(await contarNoLeidas(clientSeguido, seguidoId)).toBe(2)
+    expect(await contarNoLeidas(clientSeguido, seguidoId)).toBe(3)
 
     await marcarTodasLeidas(clientSeguido, seguidoId)
 

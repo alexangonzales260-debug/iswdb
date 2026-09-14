@@ -27,13 +27,27 @@ export interface NotificacionSeguidor {
   seguidor: { username: string }
 }
 
-export type Notificacion = NotificacionEpisodio | NotificacionSeguidor
+export interface NotificacionComentario {
+  id: string
+  leida: boolean
+  created_at: string
+  tipo: 'nuevo_comentario'
+  comentario: { id: string }
+  reseña: { id: string }
+  serie: { titulo: string; slug: string }
+  comentarista: { username: string }
+}
+
+export type Notificacion =
+  | NotificacionEpisodio
+  | NotificacionSeguidor
+  | NotificacionComentario
 
 function notificacionesQuery(client: AuthClient, userId: string) {
   return client
     .from('notificacion')
     .select(
-      'id, leida, created_at, tipo, seguidor_id, serie ( titulo, slug ), episodio ( temporada, numero, titulo )'
+      'id, leida, created_at, tipo, seguidor_id, comentario_id, serie ( titulo, slug ), episodio ( temporada, numero, titulo )'
     )
     .eq('usuario_id', userId)
     .order('created_at', { ascending: false })
@@ -52,7 +66,16 @@ export async function listMisNotificaciones(
     .map((fila) => fila.seguidor_id)
     .filter((id): id is string => id !== null)
 
+  const comentarioIds = filas
+    .filter((fila) => fila.tipo === 'nuevo_comentario')
+    .map((fila) => fila.comentario_id)
+    .filter((id): id is string => id !== null)
+
   const usernames = new Map<string, string>()
+  const comentarios = new Map<string, { reseña_id: string; user_id: string }>()
+  const reseñas = new Map<string, { serie_id: string }>()
+  const series = new Map<string, { titulo: string; slug: string }>()
+
   if (seguidorIds.length > 0) {
     const { data: usuarios, error: errorUsuarios } = await createServiceRoleClient()
       .from('usuario')
@@ -61,6 +84,57 @@ export async function listMisNotificaciones(
     if (errorUsuarios) throw new Error(`listMisNotificaciones: ${errorUsuarios.message}`)
     for (const usuario of usuarios ?? []) {
       usernames.set(usuario.id, usuario.username)
+    }
+  }
+
+  if (comentarioIds.length > 0) {
+    const serviceRole = createServiceRoleClient()
+    const { data: dataComentarios, error: errorComentarios } = await serviceRole
+      .from('comentario')
+      .select('*')
+      .in('id', comentarioIds)
+    if (errorComentarios) throw new Error(`listMisNotificaciones: ${errorComentarios.message}`)
+
+    const reseñaIds = (dataComentarios ?? []).map((comentario) => comentario.reseña_id)
+    for (const comentario of dataComentarios ?? []) {
+      comentarios.set(comentario.id, { reseña_id: comentario.reseña_id, user_id: comentario.user_id })
+    }
+
+    if (reseñaIds.length > 0) {
+      const { data: dataReseñas, error: errorReseñas } = await serviceRole
+        .from('reseña')
+        .select('*')
+        .in('id', reseñaIds)
+      if (errorReseñas) throw new Error(`listMisNotificaciones: ${errorReseñas.message}`)
+
+      const serieIds = (dataReseñas ?? []).map((reseña) => reseña.serie_id)
+      for (const reseña of dataReseñas ?? []) {
+        reseñas.set(reseña.id, { serie_id: reseña.serie_id })
+      }
+
+      if (serieIds.length > 0) {
+        const { data: dataSeries, error: errorSeries } = await serviceRole
+          .from('serie')
+          .select('id, titulo, slug')
+          .in('id', serieIds)
+        if (errorSeries) throw new Error(`listMisNotificaciones: ${errorSeries.message}`)
+        for (const serie of dataSeries ?? []) {
+          series.set(serie.id, { titulo: serie.titulo, slug: serie.slug })
+        }
+      }
+    }
+
+    const comentaristaIds = (dataComentarios ?? []).map((comentario) => comentario.user_id)
+    if (comentaristaIds.length > 0) {
+      const { data: dataUsuarios, error: errorUsuariosComentario } = await serviceRole
+        .from('usuario')
+        .select('id, username')
+        .in('id', comentaristaIds)
+      if (errorUsuariosComentario)
+        throw new Error(`listMisNotificaciones: ${errorUsuariosComentario.message}`)
+      for (const usuario of dataUsuarios ?? []) {
+        usernames.set(usuario.id, usuario.username)
+      }
     }
   }
 
@@ -86,6 +160,28 @@ export async function listMisNotificaciones(
           tipo: 'nuevo_episodio',
           serie: fila.serie,
           episodio: fila.episodio
+        }
+      }
+      if (fila.tipo === 'nuevo_comentario') {
+        const comentarioId = fila.comentario_id
+        if (comentarioId === null) return null
+        const comentario = comentarios.get(comentarioId)
+        if (!comentario) return null
+        const reseña = reseñas.get(comentario.reseña_id)
+        if (!reseña) return null
+        const serie = series.get(reseña.serie_id)
+        if (!serie) return null
+        const username = usernames.get(comentario.user_id)
+        if (username === undefined) return null
+        return {
+          id: fila.id,
+          leida: fila.leida,
+          created_at: fila.created_at,
+          tipo: 'nuevo_comentario',
+          comentario: { id: comentarioId },
+          reseña: { id: comentario.reseña_id },
+          serie,
+          comentarista: { username }
         }
       }
       return null
@@ -175,4 +271,20 @@ export async function notificarNuevoSeguidor(
       serie_id: null
     })
   if (error) throw new Error(`notificarNuevoSeguidor: ${error.message}`)
+}
+
+export async function notificarNuevoComentario(
+  serviceRoleClient: AuthClient,
+  autorResenaId: string,
+  comentarioId: string
+): Promise<void> {
+  const { error } = await serviceRoleClient.from('notificacion').insert({
+    usuario_id: autorResenaId,
+    comentario_id: comentarioId,
+    tipo: 'nuevo_comentario',
+    serie_id: null,
+    episodio_id: null,
+    seguidor_id: null
+  })
+  if (error) throw new Error(`notificarNuevoComentario: ${error.message}`)
 }
