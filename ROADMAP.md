@@ -26,4 +26,5 @@
 | 024 | Listas colaborativas                             | L2    | ✅     |
 | 025 | Comentarios en reseñas                            | L2    | ✅     |
 | 026 | Notificaciones de comentarios                     | L2    | ✅     |
+| 027 | Likes en reseñas                                  | L2    | ✅     |
 Fases: P1 catálogo sin login (001–007) · P2 social (008–010) · P3 comunidad (011–013)

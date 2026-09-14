@@ -1,6 +1,6 @@
 # 027 — Likes en reseñas · Tareas
 
-- [ ] T1 — Migración M21 + tipos + tests DB/RLS
+- [x] T1 — Migración M21 + tipos + tests DB/RLS
   supabase/migrations/20260910120000_create_resena_like.sql (M21): tabla
   "reseña_like" ("reseña_id" FK reseña on delete cascade · user_id FK
   usuario on delete cascade · created_at timestamptz not null default now()
@@ -24,7 +24,7 @@
   Criterio: npm test -- --run tests/db/likes-rls.test.ts verde (BD local
   arriba).
 
-- [ ] T2 — Servicios en lib/likes.ts + integración en lib/reseñas.ts + tests
+- [x] T2 — Servicios en lib/likes.ts + integración en lib/reseñas.ts + tests
   lib/likes.ts (nuevo): servicios inyectables (patrón F012/F018).
   darLike(client, reseñaId, userId): insert reseña_like; 23505 →
   idempotente (silenciado, patrón D24 seguirSerie).
@@ -90,7 +90,7 @@
   duplica (UNIQUE idempotente).
   Criterio: npm run test:e2e verde; sin regresiones.
 
-- [ ] T5 — validate.sh + cierre
+- [x] T5 — validate.sh + cierre
   ./validate.sh completo (salida real pegada, DoD) · ROADMAP.md (027 ✅) ·
   DECISIONS.md (D33: tabla reseña_like M21, RLS select público / insert+delete
   own, numLikes/yaDisteLike con parámetro opcional userId, auto-like

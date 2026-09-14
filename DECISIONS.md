@@ -152,3 +152,10 @@
       comentarioId) y enriquecimiento on-read (patrón F023/D29). Auto-
       notificación bloqueada por lógica. Anchor #comentario-<id> en
       comentario-item para scroll nativo.
+- D33: Likes en reseñas (F027): tabla reseña_like (M21) con clave natural
+      compuesta UNIQUE(reseña_id, user_id) y RLS select público / insert+
+      delete own sin update. Conteos on-read sin N+1 (likesPorReseñas con
+      in() + group by; likesPropios con Set). yaDisteLike siempre boolean
+      (false sin sesión). Auto-like permitido; doble click idempotente vía
+      23505 (D24). Sin notificaciones de likes, sin orden por likes, sin
+      downvote.

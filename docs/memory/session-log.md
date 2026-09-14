@@ -462,3 +462,13 @@
   username). Anchor #comentario-<id> server-rendered. 3 tipos de
   notificación con iconos Bell/UserPlus/MessageSquareText. 518 unit + 88 E2E.
 - Cierre: D32 añadido, ROADMAP 026 ✅, validate.sh en verde, tag F26.
+
+## Sesión 31 — F27: Likes en reseñas (cierre)
+- F27: Likes en reseñas. M21 crea reseña_like (clave natural compuesta
+  UNIQUE(reseña_id, user_id), FK cascade, RLS select público +
+  insert/delete own, sin update). Botón 'Útil' con ThumbsUp + contador en
+  ficha y /resenas/<id>; toggle optimista con revert; disabled sin sesión
+  (LIKE-06). numLikes/yaDisteLike en listReseñasSerie y getReseña con
+  userId opcional, conteo sin N+1 (in() + group by). Auto-like permitido;
+  23505 idempotente (D24). 544 unit + 93 E2E.
+- Cierre: D33 añadido, ROADMAP 027 ✅, validate.sh en verde, tag F27.
