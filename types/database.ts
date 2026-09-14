@@ -253,6 +253,7 @@ export type Database = {
       }
       notificacion: {
         Row: {
+          comentario_id: string | null
           created_at: string
           episodio_id: string | null
           id: string
@@ -263,6 +264,7 @@ export type Database = {
           usuario_id: string
         }
         Insert: {
+          comentario_id?: string | null
           created_at?: string
           episodio_id?: string | null
           id?: string
@@ -273,6 +275,7 @@ export type Database = {
           usuario_id: string
         }
         Update: {
+          comentario_id?: string | null
           created_at?: string
           episodio_id?: string | null
           id?: string
@@ -283,6 +286,13 @@ export type Database = {
           usuario_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "notificacion_comentario_id_fkey"
+            columns: ["comentario_id"]
+            isOneToOne: false
+            referencedRelation: "comentario"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "notificacion_episodio_id_fkey"
             columns: ["episodio_id"]
