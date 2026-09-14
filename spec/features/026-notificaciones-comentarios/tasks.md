@@ -5,7 +5,7 @@ Orden atómico: una sesión de Build por tarea. Cada tarea incluye código + tes
 ---
 
 ## T1: Migración M20 (comentario_id + CHECK 3 tipos) + gen:types + tests/db
-**Estado**: ⏳ Pendiente
+**Estado**: ✅ Completada
 **Objetivo**: extensión de `notificacion` para tipo `nuevo_comentario`.
 
 **Entregables**:
@@ -38,7 +38,7 @@ tests/db/notificaciones-seguidores-rls.test.ts` verde (BD local arriba) y `npm r
 ---
 
 ## T2: lib/notificaciones.ts (extensión + tests de servidor)
-**Estado**: ⏳ Pendiente
+**Estado**: ✅ Completada
 **Objetivo**: tercer variant del union y generación de `nuevo_comentario`.
 
 **Entregables**:
@@ -64,7 +64,7 @@ tests/lib/notificaciones.test.ts tests/db/notificaciones.test.ts` verde.
 ---
 
 ## T3: Integración en crearComentario (lib/comentarios.ts + action + tests)
-**Estado**: ⏳ Pendiente
+**Estado**: ✅ Completada
 **Objetivo**: generar notificación tras comentar reseña ajena (log-and-continue).
 
 **Entregables**:
@@ -87,7 +87,7 @@ tests/lib/comentarios.test.ts` verde.
 ---
 
 ## T4: UI + E2E Playwright
-**Estado**: ⏳ Pendiente
+**Estado**: ✅ Completada
 **Objetivo**: anchor en el comentario, tercer render en notificaciones y E2E.
 
 **Entregables**:
@@ -114,7 +114,7 @@ test:e2e e2e/notificaciones-comentarios.spec.ts` verde; sin regresiones en
 ---
 
 ## T5: validate.sh + cierre
-**Estado**: ⏳ Pendiente
+**Estado**: ✅ Completada
 **Objetivo**: puerta única y docs de cierre.
 
 **Entregables**:

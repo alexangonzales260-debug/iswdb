@@ -144,3 +144,11 @@
       comentarioNoEncontrado por select de discriminación. Forms con useId
       para ids únicos y useMemo para bind estable de server actions
       (useActionState requiere identidad estable).
+- D32: Notificaciones de comentarios (F026): M20 añade comentario_id y
+      extiende el CHECK de tipo a nuevo_comentario con consistencia 3 vías
+      (drop+re-add de ambos constraints con backfill previo). Sin UNIQUE para
+      nuevo_comentario (NOTC-04). Generación en crearComentario con firma
+      mínima notificarNuevoComentario(serviceRole, autorResenaId,
+      comentarioId) y enriquecimiento on-read (patrón F023/D29). Auto-
+      notificación bloqueada por lógica. Anchor #comentario-<id> en
+      comentario-item para scroll nativo.

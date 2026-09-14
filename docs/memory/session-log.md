@@ -450,3 +450,15 @@
   ids únicos con useId y bind estable con useMemo (re-submit tras
   revalidate). 500 unit + 84 E2E.
 - Cierre: D31 añadido, ROADMAP 025 ✅, validate.sh en verde, tag F25.
+
+## Sesión 30 — F26: Notificaciones de comentarios en reseñas (cierre)
+- F26: Notificaciones de comentarios en reseñas. M20 extiende notificacion:
+  comentario_id (FK comentario cascade) + CHECK tipo con 3 valores +
+  consistencia 3 vías; sin UNIQUE para nuevo_comentario (cada comentario
+  notifica, NOTC-04; episodio_id NULL no colisiona con la UNIQUE global).
+  Generación en crearComentario con service_role y log-and-continue (D25);
+  auto-notificación bloqueada (reseña.user_id !== userId). Enriquecimiento
+  on-read con 3 lookups service-role (comentario → reseña → serie +
+  username). Anchor #comentario-<id> server-rendered. 3 tipos de
+  notificación con iconos Bell/UserPlus/MessageSquareText. 518 unit + 88 E2E.
+- Cierre: D32 añadido, ROADMAP 026 ✅, validate.sh en verde, tag F26.
