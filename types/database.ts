@@ -401,6 +401,39 @@ export type Database = {
           },
         ]
       }
+      reseña_like: {
+        Row: {
+          created_at: string
+          reseña_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          reseña_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          reseña_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reseña_like_reseña_id_fkey"
+            columns: ["reseña_id"]
+            isOneToOne: false
+            referencedRelation: "reseña"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reseña_like_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "usuario"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       serie: {
         Row: {
           anio_fin: number | null
