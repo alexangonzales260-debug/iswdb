@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { AuthClient } from './auth'
+import { notificarNuevoComentario } from './notificaciones'
 
 export const ERRORES_COMENTARIO = {
   sinSesion: 'Debes iniciar sesión para comentar',
@@ -42,18 +43,23 @@ function conAutor(
   return fila.usuario !== null
 }
 
-async function reseñaPublicaExiste(client: AuthClient, reseñaId: string): Promise<boolean> {
+async function reseñaPublicaConAutor(
+  client: AuthClient,
+  reseñaId: string
+): Promise<{ id: string; user_id: string } | null> {
   const { data } = await client
     .from('reseña')
-    .select('id, serie!inner ( moderation_status )')
+    .select('id, user_id, serie!inner ( moderation_status )')
     .eq('id', reseñaId)
     .eq('serie.moderation_status', 'aprobada')
     .maybeSingle()
-  return data !== null
+  if (!data) return null
+  return { id: data.id, user_id: data.user_id }
 }
 
 export async function crearComentario(
   client: AuthClient,
+  serviceRoleClient: AuthClient,
   reseñaId: string,
   userId: string,
   contenido: string
@@ -63,8 +69,8 @@ export async function crearComentario(
     throw new Error(parsed.error.issues[0]?.message ?? ERRORES_COMENTARIO.contenidoVacio)
   }
 
-  const existe = await reseñaPublicaExiste(client, reseñaId)
-  if (!existe) throw new Error(ERRORES_COMENTARIO.reseñaNoEncontrada)
+  const reseña = await reseñaPublicaConAutor(client, reseñaId)
+  if (!reseña) throw new Error(ERRORES_COMENTARIO.reseñaNoEncontrada)
 
   const { data, error } = await client
     .from('comentario')
@@ -73,6 +79,14 @@ export async function crearComentario(
     .single()
   if (error) throw new Error(error.message)
   if (!data) throw new Error(ERRORES_COMENTARIO.reseñaNoEncontrada)
+
+  if (reseña.user_id !== userId) {
+    try {
+      await notificarNuevoComentario(serviceRoleClient, reseña.user_id, data.id)
+    } catch (err) {
+      console.error('notificarNuevoComentario falló:', err)
+    }
+  }
 
   const autor = data.usuario as { id: string; username: string | null } | null
   return {
@@ -140,8 +154,8 @@ export async function listComentariosPorReseña(
   reseñaId: string,
   limit = 50
 ): Promise<ComentarioPublico[]> {
-  const existe = await reseñaPublicaExiste(client, reseñaId)
-  if (!existe) throw new Error(ERRORES_COMENTARIO.reseñaNoEncontrada)
+  const reseña = await reseñaPublicaConAutor(client, reseñaId)
+  if (!reseña) throw new Error(ERRORES_COMENTARIO.reseñaNoEncontrada)
 
   const { data, error } = await comentariosDeReseñaQuery(client, reseñaId, limit)
   if (error) throw new Error(`listComentariosPorReseña: ${error.message}`)

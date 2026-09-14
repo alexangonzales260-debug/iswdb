@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 
 import { createAuthClient, requireUser } from './auth'
 import { borrarComentario, crearComentario, editarComentario, ERRORES_COMENTARIO } from './comentarios'
+import { createServiceRoleClient } from './supabase'
 
 export interface ComentarioActionState {
   error?: string
@@ -24,8 +25,9 @@ export async function accionCrearComentario(
     message: ERRORES_COMENTARIO.sinSesion
   })
   const client = await createAuthClient()
+  const serviceRoleClient = createServiceRoleClient()
   try {
-    await crearComentario(client, reseñaId, user.id, String(formData.get('contenido') ?? ''))
+    await crearComentario(client, serviceRoleClient, reseñaId, user.id, String(formData.get('contenido') ?? ''))
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : 'No se pudo publicar el comentario'
