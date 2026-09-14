@@ -359,6 +359,81 @@ export type Database = {
           },
         ]
       }
+      reporte: {
+        Row: {
+          comentario_id: string | null
+          created_at: string
+          episodio_id: string | null
+          estado: string
+          id: string
+          motivo: string
+          reportador_id: string
+          reseña_id: string | null
+          serie_id: string | null
+          tipo: string
+        }
+        Insert: {
+          comentario_id?: string | null
+          created_at?: string
+          episodio_id?: string | null
+          estado?: string
+          id?: string
+          motivo: string
+          reportador_id: string
+          reseña_id?: string | null
+          serie_id?: string | null
+          tipo: string
+        }
+        Update: {
+          comentario_id?: string | null
+          created_at?: string
+          episodio_id?: string | null
+          estado?: string
+          id?: string
+          motivo?: string
+          reportador_id?: string
+          reseña_id?: string | null
+          serie_id?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reporte_comentario_id_fkey"
+            columns: ["comentario_id"]
+            isOneToOne: false
+            referencedRelation: "comentario"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reporte_episodio_id_fkey"
+            columns: ["episodio_id"]
+            isOneToOne: false
+            referencedRelation: "episodio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reporte_reportador_id_fkey"
+            columns: ["reportador_id"]
+            isOneToOne: false
+            referencedRelation: "usuario"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reporte_reseña_id_fkey"
+            columns: ["reseña_id"]
+            isOneToOne: false
+            referencedRelation: "reseña"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reporte_serie_id_fkey"
+            columns: ["serie_id"]
+            isOneToOne: false
+            referencedRelation: "serie"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reseña: {
         Row: {
           contenido: string
