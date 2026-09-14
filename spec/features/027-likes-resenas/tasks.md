@@ -78,7 +78,7 @@
   "Útil" visible con contador en ficha y en /resenas/<id>, toggle con
   sesión, deshabilitado sin sesión.
 
-- [ ] T4 — E2E Playwright
+- [x] T4 — E2E Playwright
   e2e/global-setup.ts: wipe() añade delete de reseña_like ANTES de reseña.
   e2e/likes-resenas.spec.ts (nuevo; usuarios únicos por ejecución, cleanup
   deleteAuthUserByEmail → cascade): setup de A (createAuthUserWithUsuario)
