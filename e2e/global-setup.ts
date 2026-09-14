@@ -269,6 +269,12 @@ async function wipe(db: SupabaseClient): Promise<void> {
   // serie/episodio), así que el cascade de serie no las limpia si una corrida
   // muere; las de nuevo_episodio caen por el cascade de serie/episodio.
   await unwrap(db.from('notificacion').delete().eq('tipo', 'nuevo_seguidor'))
+  // notificacion de comentarios (F026): referencian comentario (FK cascade),
+  // pero si una corrida muere después de borrar el comentario la notificación
+  // queda huérfana si el cascade no se dispara; se borran antes de comentario.
+  await unwrap(
+    db.from('notificacion').delete().not('comentario_id', 'is', null)
+  )
   // usuario_usuario primero (F022): limpieza defensiva de follows residuales.
   await unwrap(db.from('usuario_usuario').delete().not('seguidor_id', 'is', null))
   // lista_colaborador (F024): limpieza defensiva de colaboraciones residuales

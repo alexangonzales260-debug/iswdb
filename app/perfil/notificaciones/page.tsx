@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Bell, UserPlus } from 'lucide-react'
+import { Bell, MessageSquareText, UserPlus } from 'lucide-react'
 
 import { EmptyState } from '@/components/empty-state'
 import { MarcarLeidaButton, MarcarTodasLeidaButton } from '@/components/marcar-leida-button'
@@ -46,10 +46,14 @@ export default async function NotificacionesPage() {
             >
               <div className="flex min-w-0 items-start gap-3">
                 <div className="mt-0.5 shrink-0">
-                  {notificacion.tipo === 'nuevo_episodio' ? (
+                  {notificacion.tipo === 'nuevo_episodio' && (
                     <Bell className="h-4 w-4 text-muted-foreground" />
-                  ) : (
+                  )}
+                  {notificacion.tipo === 'nuevo_seguidor' && (
                     <UserPlus className="h-4 w-4 text-muted-foreground" />
+                  )}
+                  {notificacion.tipo === 'nuevo_comentario' && (
+                    <MessageSquareText className="h-4 w-4 text-muted-foreground" />
                   )}
                 </div>
                 <div className="min-w-0">
@@ -73,6 +77,23 @@ export default async function NotificacionesPage() {
                         @{notificacion.seguidor.username}
                       </Link>{' '}
                       ahora te sigue
+                    </p>
+                  )}
+                  {notificacion.tipo === 'nuevo_comentario' && (
+                    <p className="font-medium">
+                      <Link
+                        href={`/usuarios/${notificacion.comentarista.username}`}
+                        className="hover:underline"
+                      >
+                        {notificacion.comentarista.username}
+                      </Link>{' '}
+                      comentó tu reseña en{' '}
+                      <Link
+                        href={`/resenas/${notificacion.reseña.id}#comentario-${notificacion.comentario.id}`}
+                        className="hover:underline"
+                      >
+                        {notificacion.serie.titulo}
+                      </Link>
                     </p>
                   )}
                   <p className="mt-0.5 text-xs text-muted-foreground">

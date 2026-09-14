@@ -56,7 +56,7 @@ export function ComentarioItem({
   }
 
   return (
-    <li className="rounded-xl border bg-card p-4">
+    <li id={`comentario-${comentario.id}`} className="rounded-xl border bg-card p-4">
       <div className="space-y-1">
         <p className="text-sm">
           {comentario.autor.username ? (
