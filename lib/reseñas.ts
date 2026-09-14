@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { AuthClient } from './auth'
+import { likesPorReseñas, likesPropios } from './likes'
 
 // ── F012 · Reseñas: servicios inyectables ──────────────────────────────────
 // Mismo patrón que lib/valoraciones.ts (F009): las escrituras reciben el
@@ -160,6 +161,8 @@ export interface ReseñaPublica {
   created_at: string
   updated_at: string
   autor: { id: string; email: string | null }
+  numLikes: number
+  yaDisteLike: boolean
 }
 
 function reseñasDeSerieQuery(client: AuthClient, serieId: string) {
@@ -188,16 +191,27 @@ function conAutor(
 // lo trunca con truncarEmail (lib/format.ts).
 export async function listReseñasSerie(
   clientServiceRole: AuthClient,
-  serieId: string
+  serieId: string,
+  userId?: string
 ): Promise<ReseñaPublica[]> {
   const { data, error } = await reseñasDeSerieQuery(clientServiceRole, serieId)
   if (error) throw new Error(`listReseñasSerie: ${error.message}`)
-  return (data ?? []).filter(conAutor).map((fila) => ({
+  const reseñas = (data ?? []).filter(conAutor).map((fila) => ({
     id: fila.id,
     contenido: fila.contenido,
     created_at: fila.created_at,
     updated_at: fila.updated_at,
     autor: { id: fila.usuario.id, email: fila.usuario.email }
+  }))
+  const reseñaIds = reseñas.map((reseña) => reseña.id)
+  const [conteos, propios] = await Promise.all([
+    likesPorReseñas(clientServiceRole, reseñaIds),
+    likesPropios(clientServiceRole, reseñaIds, userId ?? null)
+  ])
+  return reseñas.map((reseña) => ({
+    ...reseña,
+    numLikes: conteos.get(reseña.id) ?? 0,
+    yaDisteLike: propios.has(reseña.id)
   }))
 }
 
@@ -209,6 +223,8 @@ export interface ReseñaDetalle {
   created_at: string
   autor: { id: string; username: string | null }
   serie: { id: string; titulo: string; slug: string }
+  numLikes: number
+  yaDisteLike: boolean
 }
 
 // Reseña por id para la página /resenas/<id> (F025). "Pública" = existe y su
@@ -218,7 +234,8 @@ export interface ReseñaDetalle {
 // está oculto por usuario_select_own (M7). null → notFound() en la página.
 export async function getReseña(
   clientServiceRole: AuthClient,
-  reseñaId: string
+  reseñaId: string,
+  userId?: string
 ): Promise<ReseñaDetalle | null> {
   const { data, error } = await clientServiceRole
     .from('reseña')
@@ -231,11 +248,18 @@ export async function getReseña(
   if (error) throw new Error(`getReseña: ${error.message}`)
   if (!data || !data.usuario || !data.serie) return null
 
+  const [conteos, propios] = await Promise.all([
+    likesPorReseñas(clientServiceRole, [reseñaId]),
+    likesPropios(clientServiceRole, [reseñaId], userId ?? null)
+  ])
+
   return {
     id: data.id,
     contenido: data.contenido,
     created_at: data.created_at,
     autor: { id: data.usuario.id, username: data.usuario.username },
-    serie: { id: data.serie.id, titulo: data.serie.titulo, slug: data.serie.slug }
+    serie: { id: data.serie.id, titulo: data.serie.titulo, slug: data.serie.slug },
+    numLikes: conteos.get(data.id) ?? 0,
+    yaDisteLike: propios.has(data.id)
   }
 }
