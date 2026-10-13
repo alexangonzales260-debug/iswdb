@@ -9,7 +9,8 @@ vi.hoisted(() => {
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU'
 })
 
-import { ERRORES_REPORTE, reportarComentario, reportarReseña } from '@/lib/reportes'
+import { ERRORES_REPORTE, reportarComentario, reportarReseña, crearReporte, listMisReportes, listReportesPendientes, actualizarEstadoReporte, eliminarReporte } from '@/lib/reportes'
+import type { MotivoReporte } from '@/lib/reportes'
 import type { Database } from '@/types/database'
 import {
   createTestUser,
@@ -40,6 +41,8 @@ let clientB: SupabaseClient<Database>
 let reseñaR1: string
 let reseñaR2: string
 let comentarioC1: string
+let serieS1: string
+let episodioE1: string
 
 function slugDe(nombre: string): string {
   return `rptsvc-${nombre}-${runId}`
@@ -126,6 +129,16 @@ beforeAll(async () => {
       .single()
   )
   comentarioC1 = filaC1.id
+
+  serieS1 = filaS1.id
+  const filaE1 = await unwrap(
+    dbAdmin
+      .from('episodio')
+      .insert({ serie_id: filaS1.id, titulo: 'Ep RptSvc Uno', numero: 1, temporada: 1, video_id: `video-ep1-${runId}` })
+      .select('id')
+      .single()
+  )
+  episodioE1 = filaE1.id
 }, 120_000)
 
 afterAll(async () => {
@@ -225,5 +238,146 @@ describe('Propio contenido y duplicado (REP-02/REP-03)', () => {
     await expect(reportarComentario(clientB, userB, comentarioC1, 'spoiler')).rejects.toThrow(
       ERRORES_REPORTE.yaReportado
     )
+  }, 30_000)
+})
+
+describe('crearReporte - serie', () => {
+  it('crea reporte de serie con motivo válido → fila pendiente', async () => {
+    const { data, error } = await crearReporte(clientB, { tipo: 'serie', idObjetivo: serieS1, motivo: 'spam' }, userB)
+    expect(error).toBeNull()
+    expect(data).not.toBeNull()
+    expect(data!.id).toBeDefined()
+
+    const filas = await unwrap(
+      dbAdmin
+        .from('reporte')
+        .select('tipo, serie_id, episodio_id, motivo, descripcion, estado, reportador_id')
+        .eq('id', data!.id)
+    )
+    expect(filas).toHaveLength(1)
+    expect(filas[0]).toEqual({
+      tipo: 'serie',
+      serie_id: serieS1,
+      episodio_id: null,
+      motivo: 'spam',
+      descripcion: null,
+      estado: 'pendiente',
+      reportador_id: userB
+    })
+  }, 30_000)
+
+  it('crea reporte de serie con descripcion → fila con texto', async () => {
+    const { data, error } = await crearReporte(clientB, { tipo: 'serie', idObjetivo: serieS1, motivo: 'otro', descripcion: 'Spam masivo' }, userB)
+    expect(error).toBeNull()
+    expect(data).not.toBeNull()
+
+    const filas = await unwrap(
+      dbAdmin.from('reporte').select('descripcion').eq('id', data!.id)
+    )
+    expect(filas[0].descripcion).toBe('Spam masivo')
+  }, 30_000)
+
+  it('motivo inválido → motivoInvalido', async () => {
+    const { error } = await crearReporte(clientB, { tipo: 'serie', idObjetivo: serieS1, motivo: 'falso' as unknown as MotivoReporte }, userB)
+    expect(error).not.toBeNull()
+    expect(error!.message).toBe(ERRORES_REPORTE.motivoInvalido)
+  }, 30_000)
+
+  it('descripcion > 500 → descripcionMuyLarga', async () => {
+    const { error } = await crearReporte(clientB, { tipo: 'serie', idObjetivo: serieS1, motivo: 'spam', descripcion: contenido(501) }, userB)
+    expect(error).not.toBeNull()
+    expect(error!.message).toBe(ERRORES_REPORTE.descripcionMuyLarga)
+  }, 30_000)
+})
+
+describe('crearReporte - episodio', () => {
+  it('crea reporte de episodio con motivo válido → fila pendiente', async () => {
+    const { data, error } = await crearReporte(clientB, { tipo: 'episodio', idObjetivo: episodioE1, motivo: 'spoiler' }, userB)
+    expect(error).toBeNull()
+    expect(data).not.toBeNull()
+    expect(data!.id).toBeDefined()
+
+    const filas = await unwrap(
+      dbAdmin
+        .from('reporte')
+        .select('tipo, serie_id, episodio_id, motivo, descripcion, estado, reportador_id')
+        .eq('id', data!.id)
+    )
+    expect(filas).toHaveLength(1)
+    expect(filas[0]).toEqual({
+      tipo: 'episodio',
+      serie_id: null,
+      episodio_id: episodioE1,
+      motivo: 'spoiler',
+      descripcion: null,
+      estado: 'pendiente',
+      reportador_id: userB
+    })
+  }, 30_000)
+})
+
+describe('listMisReportes', () => {
+  it('devuelve los reportes del usuario ordenados por created_at desc', async () => {
+    const { data, error } = await listMisReportes(dbAdmin, userB)
+    expect(error).toBeNull()
+    expect(data).not.toBeNull()
+    expect(data!.length).toBeGreaterThan(0)
+    // Debe incluir los reportes creados por userB en esta sesión
+    // Los reportes de userB deben estar presentes (reseña y comentario creados antes)
+    const reportesUserB = data!.filter((r) => r.reportador_id === userB)
+    expect(reportesUserB.length).toBeGreaterThan(0)
+    // Orden descendente: el primero debe tener created_at >= el segundo
+    if (reportesUserB.length >= 2) {
+      expect(new Date(reportesUserB[0].created_at) >= new Date(reportesUserB[1].created_at)).toBe(true)
+    }
+  }, 30_000)
+})
+
+describe('listReportesPendientes', () => {
+  it('lista reportes pendientes', async () => {
+    const { data, error } = await listReportesPendientes(dbAdmin)
+    expect(error).toBeNull()
+    expect(data).not.toBeNull()
+    expect(data!.length).toBeGreaterThan(0)
+    // Todos deben tener estado pendiente
+    for (const reporte of data!) {
+      expect(reporte.estado).toBe('pendiente')
+    }
+    // Debe incluir los reportes creados por userB
+    const tieneReportesUserB = data!.some((r) => r.reportador_id === userB)
+    expect(tieneReportesUserB).toBe(true)
+  }, 30_000)
+})
+
+describe('actualizarEstadoReporte', () => {
+  it('actualiza estado a revisado', async () => {
+    // Crear un reporte de serie para probar
+    const { data: creado } = await crearReporte(clientA, { tipo: 'serie', idObjetivo: serieS1, motivo: 'spam' }, userA)
+    expect(creado).not.toBeNull()
+    const idReporte = creado!.id
+
+    const { error } = await actualizarEstadoReporte(dbAdmin, idReporte, 'revisado')
+    expect(error).toBeNull()
+
+    const filas = await unwrap(
+      dbAdmin.from('reporte').select('estado').eq('id', idReporte)
+    )
+    expect(filas[0].estado).toBe('revisado')
+  }, 30_000)
+})
+
+describe('eliminarReporte', () => {
+  it('elimina un reporte', async () => {
+    const { data: creado } = await crearReporte(clientA, { tipo: 'serie', idObjetivo: serieS1, motivo: 'otro' }, userA)
+    expect(creado).not.toBeNull()
+    const idReporte = creado!.id
+
+    const { error } = await eliminarReporte(dbAdmin, idReporte)
+    expect(error).toBeNull()
+
+    const filas = await unwrap(
+      dbAdmin.from('reporte').select('id').eq('id', idReporte)
+    )
+    expect(filas).toHaveLength(0)
   }, 30_000)
 })

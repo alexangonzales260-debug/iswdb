@@ -33,7 +33,7 @@
   Criterio: npm test -- --run tests/db/reporte-rls.test.ts verde (BD local
   arriba).
 
-- [ ] T2 — Servicios lib/reportes.ts + tests
+- [x] T2 — Servicios lib/reportes.ts + tests
   lib/reportes.ts (nuevo, patrón F012/F018 inyectable):
   crearReporte(client, { tipo, idObjetivo, motivo }, usuarioId): insert
   reporte con reportador_id = auth.uid().
