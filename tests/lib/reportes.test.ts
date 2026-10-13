@@ -10,7 +10,6 @@ vi.hoisted(() => {
 })
 
 import { ERRORES_REPORTE, reportarComentario, reportarReseña, crearReporte, listMisReportes, listReportesPendientes, actualizarEstadoReporte, eliminarReporte } from '@/lib/reportes'
-import type { MotivoReporte } from '@/lib/reportes'
 import type { Database } from '@/types/database'
 import {
   createTestUser,
@@ -172,14 +171,20 @@ describe('reportarReseña (REP-01)', () => {
     })
   }, 30_000)
 
-  it('motivo inválido → motivoInvalido (antes de tocar BD)', async () => {
-    await expect(reportarReseña(clientB, userB, reseñaR2, 'falso')).rejects.toThrow(
+  it('motivo vacío → motivoInvalido (antes de tocar BD)', async () => {
+    await expect(reportarReseña(clientB, userB, reseñaR2, '')).rejects.toThrow(
+      ERRORES_REPORTE.motivoInvalido
+    )
+  }, 30_000)
+
+  it('motivo > 2000 → motivoInvalido (antes de tocar BD)', async () => {
+    await expect(reportarReseña(clientB, userB, reseñaR2, contenido(2001))).rejects.toThrow(
       ERRORES_REPORTE.motivoInvalido
     )
   }, 30_000)
 
   it('descripcion > 500 → descripcionMuyLarga', async () => {
-    await expect(reportarReseña(clientB, userB, reseñaR2, 'otro', contenido(501))).rejects.toThrow(
+    await expect(reportarReseña(clientB, userB, reseñaR2, 'spam', contenido(501))).rejects.toThrow(
       ERRORES_REPORTE.descripcionMuyLarga
     )
   }, 30_000)
@@ -277,8 +282,14 @@ describe('crearReporte - serie', () => {
     expect(filas[0].descripcion).toBe('Spam masivo')
   }, 30_000)
 
-  it('motivo inválido → motivoInvalido', async () => {
-    const { error } = await crearReporte(clientB, { tipo: 'serie', idObjetivo: serieS1, motivo: 'falso' as unknown as MotivoReporte }, userB)
+  it('motivo vacío → motivoInvalido', async () => {
+    const { error } = await crearReporte(clientB, { tipo: 'serie', idObjetivo: serieS1, motivo: '' }, userB)
+    expect(error).not.toBeNull()
+    expect(error!.message).toBe(ERRORES_REPORTE.motivoInvalido)
+  }, 30_000)
+
+  it('motivo > 2000 → motivoInvalido', async () => {
+    const { error } = await crearReporte(clientB, { tipo: 'serie', idObjetivo: serieS1, motivo: contenido(2001) }, userB)
     expect(error).not.toBeNull()
     expect(error!.message).toBe(ERRORES_REPORTE.motivoInvalido)
   }, 30_000)

@@ -6,6 +6,7 @@ import { ArrowLeft, MessageSquareText } from "lucide-react";
 import { ComentarioForm } from "@/components/comentario-form";
 import { LikeButton } from "@/components/like-button";
 import { ListaComentarios } from "@/components/lista-comentarios";
+import { ReportarButton } from "@/components/reportar-button";
 import { getUser } from "@/lib/auth";
 import { listComentariosPorReseña } from "@/lib/comentarios";
 import { getReseña, type ReseñaDetalle } from "@/lib/reseñas";
@@ -105,6 +106,8 @@ export default async function ReseñaPage({ params }: ReseñaPageProps) {
         yaDisteLikeInicial={reseña.yaDisteLike}
         conSesion={user !== null}
       />
+
+      <ReportarButton tipo="reseña" idObjetivo={reseña.id} conSesion={user !== null} />
 
       <section className="space-y-4" aria-labelledby="comentarios-heading">
         <h2

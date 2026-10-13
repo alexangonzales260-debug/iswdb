@@ -7,14 +7,16 @@ export const ERRORES_REPORTE = {
   sinSesion: 'Debes iniciar sesión para reportar contenido',
   propioContenido: 'No puedes reportar tu propio contenido',
   yaReportado: 'Ya has reportado este contenido',
-  motivoInvalido: 'El motivo seleccionado no es válido',
+  motivoInvalido: 'El motivo no puede estar vacío ni superar los 2000 caracteres',
   contenidoNoEncontrado: 'El contenido no fue encontrado',
   descripcionMuyLarga: 'La descripción no puede superar los 500 caracteres'
 } as const
 
-export const MOTIVOS_REPORTE = ['spam', 'ofensivo', 'spoiler', 'otro'] as const
-
-export const motivoReporteSchema = z.enum(['spam', 'ofensivo', 'spoiler', 'otro'])
+export const motivoReporteSchema = z
+  .string()
+  .trim()
+  .min(1, ERRORES_REPORTE.motivoInvalido)
+  .max(2000, ERRORES_REPORTE.motivoInvalido)
 
 export const reporteSchema = z.object({
   motivo: motivoReporteSchema,
@@ -31,6 +33,8 @@ export type MotivoReporte = z.infer<typeof motivoReporteSchema>
 export type TipoReporte = 'serie' | 'episodio' | 'reseña' | 'comentario'
 export type EstadoReporte = 'pendiente' | 'revisado' | 'descartado'
 
+export const tipoReporteSchema = z.enum(['serie', 'episodio', 'reseña', 'comentario'])
+
 export async function reportarReseña(
   client: AuthClient,
   reportadorId: string,
@@ -40,12 +44,7 @@ export async function reportarReseña(
 ): Promise<void> {
   const parsed = reporteSchema.safeParse({ motivo, descripcion })
   if (!parsed.success) {
-    const issue = parsed.error.issues[0]
-    throw new Error(
-      issue?.path.includes('descripcion')
-        ? ERRORES_REPORTE.descripcionMuyLarga
-        : ERRORES_REPORTE.motivoInvalido
-    )
+    throw new Error(parsed.error.issues[0]?.message ?? ERRORES_REPORTE.motivoInvalido)
   }
 
   const { data: reseña, error: reseñaError } = await client
@@ -85,12 +84,7 @@ export async function reportarComentario(
 ): Promise<void> {
   const parsed = reporteSchema.safeParse({ motivo, descripcion })
   if (!parsed.success) {
-    const issue = parsed.error.issues[0]
-    throw new Error(
-      issue?.path.includes('descripcion')
-        ? ERRORES_REPORTE.descripcionMuyLarga
-        : ERRORES_REPORTE.motivoInvalido
-    )
+    throw new Error(parsed.error.issues[0]?.message ?? ERRORES_REPORTE.motivoInvalido)
   }
 
   const { data: comentario, error: comentarioError } = await client
@@ -123,7 +117,7 @@ export async function reportarComentario(
 
 export async function crearReporte(
   client: SupabaseClient<Database>,
-  params: { tipo: TipoReporte; idObjetivo: string; motivo: MotivoReporte; descripcion?: string | null },
+  params: { tipo: TipoReporte; idObjetivo: string; motivo: string; descripcion?: string | null },
   usuarioId: string
 ): Promise<{ data: { id: string } | null; error: Error | null }> {
   if (params.tipo === 'reseña') {
@@ -144,7 +138,7 @@ export async function crearReporte(
     }
   }
 
-  const motivoValido = (MOTIVOS_REPORTE as readonly string[]).includes(params.motivo as string)
+  const motivoValido = params.motivo.length >= 1 && params.motivo.length <= 2000
   if (!motivoValido) {
     return { data: null, error: new Error(ERRORES_REPORTE.motivoInvalido) }
   }

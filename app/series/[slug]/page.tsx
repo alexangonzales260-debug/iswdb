@@ -10,6 +10,7 @@ import { FollowButton } from "@/components/follow-button";
 import { RatingHistogram } from "@/components/rating-histogram";
 import { RatingSelector } from "@/components/rating-selector";
 import { RecomendacionCard } from "@/components/recomendacion-card";
+import { ReportarButton } from "@/components/reportar-button";
 import { ReseñasSection } from "@/components/reseñas-section";
 import { SeasonList } from "@/components/season-list";
 import { Badge } from "@/components/ui/badge";
@@ -141,6 +142,20 @@ async function SeguirSerie({ serie }: { serie: SerieFicha }) {
   );
 }
 
+async function ReportarSerie({ serie }: { serie: SerieFicha }) {
+  const user = await getUser();
+  if (!user) return null;
+
+  return (
+    <ReportarButton tipo="serie" idObjetivo={serie.id} conSesion={true} />
+  );
+}
+
+async function SeasonListWrapper({ serie }: { serie: SerieFicha }) {
+  const user = await getUser();
+  return <SeasonList temporadas={serie.temporadas} conSesion={user !== null} />;
+}
+
 // Sección "Valoraciones" (F009, VAL-04): histograma + selector. El AVG y el
 // conteo se conservan en la cabecera (VAL-06). getUser() está cacheado con
 // cache() de React (el header del layout lo llama en el mismo request); la
@@ -209,6 +224,7 @@ async function ContenidoFicha({ serie }: { serie: SerieFicha }) {
       <Cabecera serie={serie} />
 
       <SeguirSerie serie={serie} />
+      <ReportarSerie serie={serie} />
 
       <Valoraciones serie={serie} />
 
@@ -230,7 +246,7 @@ async function ContenidoFicha({ serie }: { serie: SerieFicha }) {
           Episodios
         </h2>
         {serie.temporadas.length > 0 ? (
-          <SeasonList temporadas={serie.temporadas} />
+          <SeasonListWrapper serie={serie} />
         ) : (
           <EmptyState
             icon={Film}

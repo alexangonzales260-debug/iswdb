@@ -50,7 +50,7 @@
   (0 filas) · no-mod no lee ajenos · cascade.
   Criterio: npm test -- --run tests/lib/reportes.test.ts verde.
 
-- [ ] T3 — Server Actions + componente Reportar + cola /admin
+- [x] T3 — Server Actions + componente Reportar + cola /admin
   lib/reportes-actions.ts (nuevo, "use server"): accionCrearReporte(tipo,
   idObjetivo, motivo, prev, formData) con requireUser + Zod motivo 1-2000
   → crearReporte → revalidatePath acotado. accionActualizarEstadoReporte

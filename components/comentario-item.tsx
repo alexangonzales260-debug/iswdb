@@ -5,6 +5,7 @@ import { useState, useTransition } from 'react'
 
 import { ComentarioForm } from '@/components/comentario-form'
 import { Button } from '@/components/ui/button'
+import { ReportarButton } from '@/components/reportar-button'
 import type { ComentarioPublico } from '@/lib/comentarios'
 import { accionBorrarComentario } from '@/lib/comentarios-actions'
 
@@ -19,14 +20,18 @@ const formatoFecha = new Intl.DateTimeFormat('es-ES', {
 // Editar/Borrar (esAutor); ajeno/anon sin botones. La edición usa
 // ComentarioForm en modo 'editar' (prefilled) y se colapsa al guardar o
 // cancelar; el borrado es llamada directa a la action con useTransition.
+// El botón Reportar (F028 REP-01) se muestra para usuarios autenticados que NO
+// son el autor del comentario.
 export function ComentarioItem({
   comentario,
   reseñaId,
-  esAutor
+  esAutor,
+  conSesion
 }: {
   comentario: ComentarioPublico
   reseñaId: string
   esAutor: boolean
+  conSesion: boolean
 }) {
   const [editando, setEditando] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -98,6 +103,10 @@ export function ComentarioItem({
               {error}
             </p>
           ) : null}
+        </div>
+      ) : conSesion ? (
+        <div className="mt-2">
+          <ReportarButton tipo="comentario" idObjetivo={comentario.id} conSesion={conSesion} />
         </div>
       ) : null}
     </li>

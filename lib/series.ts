@@ -168,10 +168,11 @@ const SERIE_FICHA_SELECT = `
   categoria ( nombre, slug ),
   participa ( rol, canal ( nombre, handle, avatar_url ) ),
   valoracion ( nota ),
-  episodio ( temporada, numero, titulo, video_id )
+  episodio ( id, temporada, numero, titulo, video_id )
 ` as const
 
 export interface EpisodioFicha {
+  id: string
   numero: number
   titulo: string
   video_id: string
@@ -236,7 +237,7 @@ function toTemporadas(filas: SerieFichaRow['episodio']): TemporadaFicha[] {
   const porTemporada = new Map<number, EpisodioFicha[]>()
   for (const fila of filas) {
     const episodios = porTemporada.get(fila.temporada) ?? []
-    episodios.push({ numero: fila.numero, titulo: fila.titulo, video_id: fila.video_id })
+    episodios.push({ id: fila.id, numero: fila.numero, titulo: fila.titulo, video_id: fila.video_id })
     porTemporada.set(fila.temporada, episodios)
   }
   return [...porTemporada.entries()]

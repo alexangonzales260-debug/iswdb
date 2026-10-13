@@ -36,6 +36,7 @@ export function ListaComentarios({
           comentario={comentario}
           reseñaId={reseñaId}
           esAutor={userId !== null && comentario.autor.id === userId}
+          conSesion={userId !== null}
         />
       ))}
     </ul>

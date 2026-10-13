@@ -3,6 +3,7 @@ import { MessageSquareText } from 'lucide-react'
 
 import { EmptyState } from '@/components/empty-state'
 import { LikeButton } from '@/components/like-button'
+import { ReportarButton } from '@/components/reportar-button'
 import { ReseñaDeleteButton } from '@/components/reseña-delete-button'
 import { ReseñaForm } from '@/components/reseña-form'
 import { getRolUsuario } from '@/lib/admin'
@@ -111,6 +112,7 @@ export async function ReseñasSection({
                     yaDisteLikeInicial={reseña.yaDisteLike}
                     conSesion={user !== null}
                   />
+                  <ReportarButton tipo="reseña" idObjetivo={reseña.id} conSesion={user !== null} />
                 </article>
               </li>
             )

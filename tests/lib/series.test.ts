@@ -394,14 +394,14 @@ describe('queries de catálogo con datos (cliente anon, RLS de lectura pública)
         {
           numero: 1,
           episodios: [
-            { numero: 1, titulo: 'Piloto', video_id: 'ql01t01e001' },
-            { numero: 2, titulo: 'Segundo episodio', video_id: 'ql01t01e002' }
+            { id: expect.any(String), numero: 1, titulo: 'Piloto', video_id: 'ql01t01e001' },
+            { id: expect.any(String), numero: 2, titulo: 'Segundo episodio', video_id: 'ql01t01e002' }
           ]
         },
         {
           numero: 2,
           episodios: [
-            { numero: 1, titulo: 'Estreno de la segunda temporada', video_id: 'ql01t02e001' }
+            { id: expect.any(String), numero: 1, titulo: 'Estreno de la segunda temporada', video_id: 'ql01t02e001' }
           ]
         }
       ]
@@ -414,7 +414,7 @@ describe('queries de catálogo con datos (cliente anon, RLS de lectura pública)
     expect(ficha?.temporadas).toEqual([
       {
         numero: 1,
-        episodios: [{ numero: 1, titulo: 'Episodio único', video_id: 'ql10t01e001' }]
+        episodios: [{ id: expect.any(String), numero: 1, titulo: 'Episodio único', video_id: 'ql10t01e001' }]
       }
     ])
   })

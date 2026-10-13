@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import { ExternalLink } from 'lucide-react'
 
+import { ReportarButton } from '@/components/reportar-button'
 import type { TemporadaFicha } from '@/lib/series'
 
 // Link externo (FIC-02/D5): sin embeds ni iframes, solo <a> nativo que abre
@@ -9,7 +10,13 @@ function youtubeUrl(videoId: string): string {
   return `https://www.youtube.com/watch?v=${videoId}`
 }
 
-export function SeasonList({ temporadas }: { temporadas: TemporadaFicha[] }) {
+export function SeasonList({
+  temporadas,
+  conSesion
+}: {
+  temporadas: TemporadaFicha[]
+  conSesion: boolean
+}) {
   return (
     <div className="space-y-8">
       {temporadas.map((temporada) => (
@@ -49,6 +56,9 @@ export function SeasonList({ temporadas }: { temporadas: TemporadaFicha[] }) {
                     </span>
                   </div>
                 </a>
+                <div className="mt-2">
+                  <ReportarButton tipo="episodio" idObjetivo={episodio.id} conSesion={conSesion} />
+                </div>
               </li>
             ))}
           </ul>
