@@ -65,7 +65,7 @@
   y cada comentario.
   Criterio: lint + typecheck + build verdes; smoke manual.
 
-- [ ] T4 — E2E Playwright
+- [x] T4 — E2E Playwright
   e2e/global-setup.ts: wipe() añade delete de reporte (o se cubre por
   cascade al borrar contenido origen; revisar y dejar explícito).
   e2e/reportes-contenido.spec.ts (nuevo; usuarios únicos por ejecución,
