@@ -1,6 +1,8 @@
 # Session Log
 
-## Sesión 1 — Constitución y bootstrap (F001)
+## Sesión — F028: Reportes de Contenido
+- F028: Reportes de contenido completada. Migraciones M22 (tabla `reporte` con tipo y FKs condicionales) y M23 (descripción opcional y constraints UNIQUE). Servicios en `lib/reportes.ts` y Server Actions en `lib/reportes-actions.ts`. Componente interactivo `components/reportar-button.tsx` integrado en fichas de serie, episodios, reseñas y comentarios. Panel de moderación en `/admin/reportes` con acciones de moderación (revisar, descartar, eliminar). Test unitarios (`tests/lib/reportes.test.ts`), tests de base de datos RLS (`tests/db/reporte-rls.test.ts`) y suite E2E en `e2e/reportes-contenido.spec.ts` con limpieza explícita en `wipe()`. ROADMAP actualizado con 028 ✅, ADR D34 registrado en `DECISIONS.md`. validate.sh y compilación en verde.
+
 - Elegimos nombre ISWDB y stack: Next.js 15 + Supabase/Postgres + Tailwind 4.
 - Scaffold con create-next-app; añadidos scripts `typecheck` y `test`.
 - Instalado Vitest y creado test de salud para que la suite arranque verde.

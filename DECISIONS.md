@@ -159,3 +159,10 @@
       (false sin sesión). Auto-like permitido; doble click idempotente vía
       23505 (D24). Sin notificaciones de likes, sin orden por likes, sin
       downvote.
+- D34: Reportes de contenido (F028): M22/M23 añaden tabla `reporte` con
+      discriminador `tipo` ('serie' | 'episodio' | 'reseña' | 'comentario') y
+      FKs parciales con CHECK de consistencia tipo↔FK. RLS con 5 políticas:
+      select propio (reportador) y select mod-all; insert autenticado (con
+      validación de propiedad ajena y constraint unique); update/delete
+      exclusivos de moderadores (mod-only, sin ruta own). Sin notificaciones,
+      sin historial de moderación, sin rate-limiting.
