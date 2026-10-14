@@ -76,17 +76,7 @@ export function ReportarButton({
 
   return (
     <div className="flex flex-col gap-1.5">
-      {!abierto ? (
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => setAbierto(true)}
-          aria-label="Reportar contenido"
-        >
-          Reportar
-        </Button>
-      ) : (
+      {abierto ? (
         <div className="flex w-full flex-col gap-2 rounded-lg border bg-card p-3 text-sm">
           <div className="flex flex-col gap-1.5">
             <label htmlFor="motivo-reporte" className="text-xs font-medium">
@@ -134,12 +124,23 @@ export function ReportarButton({
               {resultado.error}
             </p>
           ) : null}
-          {resultado?.success ? (
-            <p role="status" className="text-xs font-medium text-green-600 dark:text-green-400">
-              Reporte enviado correctamente. Gracias por ayudar a mantener la comunidad segura.
-            </p>
-          ) : null}
         </div>
+      ) : (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => setAbierto(true)}
+          aria-label="Reportar contenido"
+        >
+          Reportar
+        </Button>
+      )}
+
+      {resultado?.success && (
+        <p role="status" className="text-xs font-medium text-green-600 dark:text-green-400">
+          Reporte enviado correctamente
+        </p>
       )}
     </div>
   )

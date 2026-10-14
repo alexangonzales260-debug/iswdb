@@ -144,10 +144,10 @@ async function SeguirSerie({ serie }: { serie: SerieFicha }) {
 
 async function ReportarSerie({ serie }: { serie: SerieFicha }) {
   const user = await getUser();
-  if (!user) return null;
+  const conSesion = user !== null;
 
   return (
-    <ReportarButton tipo="serie" idObjetivo={serie.id} conSesion={true} />
+    <ReportarButton tipo="serie" idObjetivo={serie.id} conSesion={conSesion} />
   );
 }
 

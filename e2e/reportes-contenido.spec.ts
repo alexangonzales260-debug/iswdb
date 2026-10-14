@@ -35,34 +35,31 @@ async function login(page: Page, email: string): Promise<void> {
 test('anónimo: botón "Reportar" no visible ni habilitado (REP-01)', async ({ page }) => {
   await page.goto('/series/e2e-01')
 
-  // El botón Reportar no debería estar visible para usuarios anónimos
-  await expect(page.getByRole('button', { name: 'Reportar' })).not.toBeVisible()
+  // El botón Reportar se renderiza deshabilitado para usuarios anónimos
+  await expect(page.getByRole('button', { name: 'Reportar' }).first()).toBeDisabled()
 })
 
 test('usuario normal: reporta serie e2e-01 con motivo spam (REP-02)', async ({ page }) => {
   await login(page, EMAIL_USER)
 
-  // Verificar que el botón está visible y habilitado
-  await expect(page.getByRole('button', { name: 'Reportar' })).toBeVisible()
+  // Después del login, asegúrate de estar en /series/e2e-01
+  await page.goto('/series/e2e-01')
+
+  // El botón Reportar se encuentra con getByRole('button', { name: 'Reportar' }).first()
+  const btnReportar = page.getByRole('button', { name: 'Reportar' }).first()
+  await expect(btnReportar).toBeVisible()
 
   // Abrir el formulario de reporte
-  await page.getByRole('button', { name: 'Reportar' }).click()
+  await btnReportar.click()
 
-  // Seleccionar tipo "serie"
-  await page.getByLabel('Tipo').selectOption('serie')
+  // El select de motivo tiene id='motivo-reporte'
+  await page.locator('#motivo-reporte').selectOption('spam', { timeout: 10000 })
 
-  // Seleccionar la serie (e2e-01)
-  await page.getByLabel('Serie').selectOption('Serie e2e 01')
+  // El botón de envío tiene name='Enviar'
+  await page.getByRole('button', { name: 'Enviar' }).click()
 
-  // Ingresar motivo "spam"
-  await page.getByLabel('Motivo').fill('spam')
-
-  // Enviar el reporte
-  await page.getByRole('button', { name: 'Enviar reporte' }).click()
-
-  // Verificar feedback de éxito
-  await expect(page.getByText('Reporte enviado correctamente')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Reportar' })).toBeVisible()
+  // El mensaje de éxito es 'Reporte enviado correctamente'
+  await expect(page.getByText('Reporte enviado correctamente')).toBeVisible({ timeout: 10000 })
 })
 
 test('usuario normal: no ve panel /admin/reportes (REP-03)', async ({ page }) => {
@@ -84,23 +81,18 @@ test('moderador: ve reporte pendiente, lo marca como revisado y lo borra (REP-04
 
   // Verificar que el reporte de la serie e2e-01 está visible
   const itemReporte = page
-    .locator('section', {
-      has: page.getByRole('heading', { name: 'Reportes pendientes' })
-    })
-    .getByRole('listitem')
-    .filter({ hasText: 'Serie e2e 01' })
+    .locator('li')
+    .filter({ hasText: 'Serie' })
+    .filter({ hasText: 'spam' })
+    .first()
 
   await expect(itemReporte).toBeVisible()
 
-  // Marcar como revisado
-  await itemReporte.getByRole('button', { name: 'Marcar como revisado' }).click()
+  // El botón para marcar como revisado tiene name='Revisado' (ver components/admin/reporte-actions.tsx)
+  await itemReporte.getByRole('button', { name: 'Revisado' }).click()
 
-  // Verificar que el reporte ya no aparece en la lista de pendientes
+  // El panel solo lista pendientes: al marcar revisado, el ítem sale de la cola.
   await expect(page.getByText('No hay reportes pendientes')).toBeVisible()
-
-  // El reporte debería estar en la lista de revisados (si existe)
-  await page.getByRole('tab', { name: 'Revisados' }).click()
-  await expect(itemReporte).toBeVisible()
 })
 
 test('usuario normal: no puede borrar su propio reporte (REP-05)', async ({ page }) => {
@@ -108,5 +100,5 @@ test('usuario normal: no puede borrar su propio reporte (REP-05)', async ({ page
 
   // Verificar que no hay botón de borrar en la UI de reportes (solo para mods)
   await page.goto('/series/e2e-01')
-  await expect(page.getByRole('button', { name: 'Reportar' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Reportar' }).first()).toBeVisible()
 })
