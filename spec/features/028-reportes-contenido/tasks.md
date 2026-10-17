@@ -77,7 +77,7 @@
   reporte pendiente, lo marca revisado · mod borra reporte.
   Criterio: npm run test:e2e verde; sin regresiones.
 
-- [ ] T5 — validate.sh + cierre
+- [x] T5 — validate.sh + cierre
   ./validate.sh completo (salida real pegada, DoD) · ROADMAP.md (028 ✅) ·
   DECISIONS.md (D34: tabla reporte M22, RLS flag 5 own/mods, update/
   delete mod-only sin camino own, discriminador tipo + FK parcial con
