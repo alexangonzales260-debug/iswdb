@@ -131,6 +131,59 @@ export type Database = {
           },
         ]
       }
+      episodio_sugerencia: {
+        Row: {
+          created_at: string
+          descripcion: string | null
+          detectado_por: string
+          estado: string
+          fecha_deteccion: string
+          id: string
+          numero_detectado: number | null
+          serie_id: string
+          temporada_detectada: number
+          titulo_detectado: string
+          updated_at: string
+          video_id_youtube: string
+        }
+        Insert: {
+          created_at?: string
+          descripcion?: string | null
+          detectado_por?: string
+          estado?: string
+          fecha_deteccion?: string
+          id?: string
+          numero_detectado?: number | null
+          serie_id: string
+          temporada_detectada?: number
+          titulo_detectado: string
+          updated_at?: string
+          video_id_youtube: string
+        }
+        Update: {
+          created_at?: string
+          descripcion?: string | null
+          detectado_por?: string
+          estado?: string
+          fecha_deteccion?: string
+          id?: string
+          numero_detectado?: number | null
+          serie_id?: string
+          temporada_detectada?: number
+          titulo_detectado?: string
+          updated_at?: string
+          video_id_youtube?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "episodio_sugerencia_serie_id_fkey"
+            columns: ["serie_id"]
+            isOneToOne: false
+            referencedRelation: "serie"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lista: {
         Row: {
           created_at: string
