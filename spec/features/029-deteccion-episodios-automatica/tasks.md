@@ -31,7 +31,7 @@
   Criterio: npm test -- --run tests/db/episodio-sugerencia-rls.test.ts verde
   (BD local arriba).
 
-- [ ] T2 — Lógica de matching lib/episodio-deteccion.ts + lib/youtube.ts + tests
+- [x] T2 — Lógica de matching lib/episodio-deteccion.ts + lib/youtube.ts + tests
   lib/episodio-deteccion.ts (nuevo, funciones puras y servicios):
   detectarPatronEpisodio(titulo, descripcion): extrae temporada, número y
   título limpio soportando S01E02, 1x02, Capítulo 3, Cap. 3, Ep. 4, Episodio 5
@@ -51,7 +51,7 @@
   rechazado · usuario no-mod no puede gestionar sugerencias.
   Criterio: npm test -- --run tests/lib/episodio-deteccion.test.ts verde.
 
-- [ ] T3 — Server Actions + cola /admin/sugerencias + navegación
+- [x] T3 — Server Actions + cola /admin/sugerencias + navegación
   lib/episodio-deteccion-actions.ts (nuevo, "use server"):
   accionAprobarSugerencia(sugerenciaId, formData) con requireMod →
   aprobarSugerencia → revalidatePath('/admin/sugerencias') y ficha de serie.

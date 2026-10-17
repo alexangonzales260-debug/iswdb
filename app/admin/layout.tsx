@@ -54,6 +54,12 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
           >
             Reportes
           </Link>
+          <Link
+            href="/admin/sugerencias-episodios"
+            className="text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Sugerencias
+          </Link>
         </nav>
       </div>
       <div className="mt-8">{children}</div>
