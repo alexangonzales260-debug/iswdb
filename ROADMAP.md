@@ -28,4 +28,5 @@
 | 026 | Notificaciones de comentarios                     | L2    | ✅     |
 | 027 | Likes en reseñas                                  | L2    | ✅     |
 | 028 | Reportes de contenido                             | L2    | ✅     |
+| 029 | Detección y sugerencia automática de episodios   | L3    | ✅     |
 Fases: P1 catálogo sin login (001–007) · P2 social (008–010) · P3 comunidad (011–013)

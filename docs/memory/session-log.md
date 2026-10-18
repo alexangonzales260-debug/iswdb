@@ -1,5 +1,8 @@
 # Session Log
 
+## Sesión — F029: Detección y sugerencia automática de episodios
+- F029: Detección y sugerencia automática de episodios completada. Migración M24 (`episodio_sugerencia`, UNIQUE por serie/video y RLS mod-only). Parser y servicios en `lib/episodio-deteccion.ts`; cliente server-side de YouTube Data API v3 en `lib/youtube.ts`, sin ingesta ni cron. Server Actions y cola en `/admin/sugerencias-episodios`. Tests DB/RLS (`tests/db/episodio-sugerencia-rls.test.ts`), unitarios (`tests/lib/episodio-deteccion.test.ts`) y E2E (`e2e/deteccion-episodios.spec.ts`) con limpieza defensiva en `wipe()`. ROADMAP actualizado con 029 ✅, ADR D35 registrado en `DECISIONS.md`. validate.sh en verde (594 tests y 100 E2E).
+
 ## Sesión — F028: Reportes de Contenido
 - F028: Reportes de contenido completada. Migraciones M22 (tabla `reporte` con tipo y FKs condicionales) y M23 (descripción opcional y constraints UNIQUE). Servicios en `lib/reportes.ts` y Server Actions en `lib/reportes-actions.ts`. Componente interactivo `components/reportar-button.tsx` integrado en fichas de serie, episodios, reseñas y comentarios. Panel de moderación en `/admin/reportes` con acciones de moderación (revisar, descartar, eliminar). Test unitarios (`tests/lib/reportes.test.ts`), tests de base de datos RLS (`tests/db/reporte-rls.test.ts`) y suite E2E en `e2e/reportes-contenido.spec.ts` con limpieza explícita en `wipe()`. ROADMAP actualizado con 028 ✅, ADR D34 registrado en `DECISIONS.md`. validate.sh y compilación en verde.
 

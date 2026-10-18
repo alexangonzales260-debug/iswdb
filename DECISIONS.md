@@ -166,3 +166,9 @@
       validación de propiedad ajena y constraint unique); update/delete
       exclusivos de moderadores (mod-only, sin ruta own). Sin notificaciones,
       sin historial de moderación, sin rate-limiting.
+- D35: Detección de episodios (F029): M24 añade `episodio_sugerencia` con
+      UNIQUE(serie_id, video_id_youtube), parser en `lib/episodio-deteccion.ts`
+      y cola `/admin/sugerencias-episodios`. RLS mod-only para select/update/
+      delete; el insert autenticado también exige `is_admin_or_mod()`. Cliente
+      YouTube Data API v3 server-side en `lib/youtube.ts`, sin ingesta ni cron.
+      Sin notificaciones, historial ni rate-limiting.

@@ -79,7 +79,7 @@
   sugerencia → queda rechazada sin crear episodio.
   Criterio: npm run test:e2e verde; sin regresiones.
 
-- [ ] T5 — validate.sh + cierre
+- [x] T5 — validate.sh + cierre
   ./validate.sh completo (salida real pegada, DoD) · ROADMAP.md (029 ✅) ·
   DECISIONS.md (D35: tabla episodio_sugerencia M24, RLS mod-only, parser de
   patrones lib/episodio-deteccion.ts, extensión server-side lib/youtube.ts,
