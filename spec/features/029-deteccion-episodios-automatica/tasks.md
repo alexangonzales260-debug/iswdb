@@ -68,7 +68,7 @@
   de moderación.
   Criterio: lint + typecheck + build verdes; smoke manual.
 
-- [ ] T4 — E2E Playwright
+- [x] T4 — E2E Playwright
   e2e/global-setup.ts: wipe() añade delete de episodio_sugerencia antes de
   serie por FK cascade.
   e2e/deteccion-episodios.spec.ts (nuevo; usuarios únicos por ejecución):

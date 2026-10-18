@@ -288,6 +288,8 @@ async function wipe(db: SupabaseClient): Promise<void> {
   await unwrap(db.from('comentario').delete().not('id', 'is', null))
   // reseña primero (F012): depende de usuario y serie.
   await unwrap(db.from('reseña').delete().not('id', 'is', null))
+  // episodio_sugerencia (F029): depende de serie. Borrado defensivo antes de serie por cascade.
+  await unwrap(db.from('episodio_sugerencia').delete().not('id', 'is', null))
   // reporte (F028): depende de contenido (serie/episodio/reseña/comentario).
   await unwrap(db.from('reporte').delete().not('id', 'is', null))
   await unwrap(db.from('valoracion').delete().not('id', 'is', null))
