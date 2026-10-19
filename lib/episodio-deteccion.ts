@@ -23,7 +23,10 @@ export function detectarPatronEpisodio(titulo: string): DatosEpisodio {
   
   // Regex para "Capítulo X", "Cap. X", "Episodio X", "Ep. X"
   const reSecuencial = /(?:cap[ií]tulo|cap|episodio|ep)\.?\s*(\d+)/i
-  
+
+  // Regex para "#N" al final o precedido de separador
+  const reNumerado = /#(\d+)\b/i
+
   const matchPatron = titulo.match(rePatron)
   if (matchPatron) {
     const t = parseInt(matchPatron[1] || matchPatron[3])
@@ -35,6 +38,12 @@ export function detectarPatronEpisodio(titulo: string): DatosEpisodio {
   if (matchSecuencial) {
     const n = parseInt(matchSecuencial[1])
     return { temporada: 1, numero: n, titulo: extraerTituloLimpio(titulo, matchSecuencial[0]) }
+  }
+
+  const matchNumerado = titulo.match(reNumerado)
+  if (matchNumerado) {
+    const n = parseInt(matchNumerado[1])
+    return { temporada: 1, numero: n, titulo: extraerTituloLimpio(titulo, matchNumerado[0]) }
   }
 
   // Fallback simple: busca número al final si no hay nada más claro

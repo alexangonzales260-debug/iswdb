@@ -40,7 +40,8 @@ export interface IngestaDeps {
 export function tienePatronClaro(titulo: string): boolean {
   const rePatron = /(?:S(\d+)E(\d+))|(?:(\d+)[xX](\d+))/i
   const reSecuencial = /(?:cap[ií]tulo|cap|episodio|ep)\.?\s*(\d+)/i
-  return rePatron.test(titulo) || reSecuencial.test(titulo)
+  const reNumerado = /#(\d+)\b/i
+  return rePatron.test(titulo) || reSecuencial.test(titulo) || reNumerado.test(titulo)
 }
 
 export function extraerPlaylistId(url: string): string | null {

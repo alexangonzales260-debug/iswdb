@@ -15,6 +15,18 @@ describe('episodio-deteccion lógica', () => {
   it('detecta Capítulo X', () => {
     expect(detectarPatronEpisodio('Serie - Capítulo 3')).toEqual({ temporada: 1, numero: 3, titulo: 'Serie' })
   })
+  it('detecta #N al final', () => {
+    expect(detectarPatronEpisodio('Karmaland #1')).toEqual({ temporada: 1, numero: 1, titulo: 'Karmaland' })
+  })
+  it('detecta #N con separador previo', () => {
+    expect(detectarPatronEpisodio('Serie - #5')).toEqual({ temporada: 1, numero: 5, titulo: 'Serie' })
+  })
+  it('detecta Episodio #N', () => {
+    expect(detectarPatronEpisodio('Episodio #12')).toEqual({ temporada: 1, numero: 12, titulo: 'Episodio' })
+  })
+  it('detecta #N con subtítulo después', () => {
+    expect(detectarPatronEpisodio('Título #3 - Extras')).toEqual({ temporada: 1, numero: 3, titulo: 'Extras' })
+  })
 })
 
 describe('episodio-deteccion DB', () => {
