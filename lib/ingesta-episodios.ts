@@ -122,22 +122,27 @@ export async function procesarSeries(
   return resumenes
 }
 
-export async function ingestNuevosEpisodios(client: SupabaseClient<Database>): Promise<IngestaResumen[]> {
-  return procesarSeries({
-    obtenerSeriesActivas: async () => {
-      const { data: series, error } = await client
-        .from('serie')
-        .select('id, titulo, playlist_url')
-        .eq('estado', 'activa')
-        .eq('moderation_status', 'aprobada')
-        .not('playlist_url', 'is', null)
-      if (error) throw new Error(`Error leer series: ${error.message}`)
-      return series
-    },
-    obtenerVideos: getVideosRecientes,
-    crearSugerencia: async (sugerencia) => {
-      const { error } = await client.from('episodio_sugerencia').insert(sugerencia)
-      return { error }
-    },
-  })
+export async function ingestNuevosEpisodios(
+  client: SupabaseClient<Database>,
+  deps?: IngestaDeps
+): Promise<IngestaResumen[]> {
+  return procesarSeries(
+    deps ?? {
+      obtenerSeriesActivas: async () => {
+        const { data: series, error } = await client
+          .from('serie')
+          .select('id, titulo, playlist_url')
+          .eq('estado', 'activa')
+          .eq('moderation_status', 'aprobada')
+          .not('playlist_url', 'is', null)
+        if (error) throw new Error(`Error leer series: ${error.message}`)
+        return series
+      },
+      obtenerVideos: getVideosRecientes,
+      crearSugerencia: async (sugerencia) => {
+        const { error } = await client.from('episodio_sugerencia').insert(sugerencia)
+        return { error }
+      },
+    }
+  )
 }

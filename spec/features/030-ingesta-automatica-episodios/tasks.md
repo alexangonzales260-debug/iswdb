@@ -19,12 +19,18 @@
   - Llamar a ingestNuevosEpisodios y devolver resumen (procesadas, creadas, omitidas).
   Criterio: lint + typecheck + build verdes; smoke manual.
 
-- [ ] T3 — E2E Playwright
-  e2e/ingesta-episodios.spec.ts (nuevo):
-  - mod dispara ingesta y ve sugerencias creadas.
+- [x] T3 — E2E Playwright + DB-backed
+  e2e/ingesta-episodios.spec.ts:
+  - mod dispara ingesta y ve sugerencias creadas (auth flow).
   - usuario normal/no-mod no puede acceder al endpoint.
-  - reejecución no crea duplicados.
   Criterio: npm run test:e2e verde; sin regresiones.
+  tests/lib/ingesta-episodios.test.ts (añadido T3):
+  - ingestNuevosEpisodios con proveedores falsos de videos y Supabase local real.
+  - Prueba determinista de inserción de sugerencia pendiente.
+  - Prueba de idempotencia real: reejecución genera 23505 (UNIQUE de M24) → omitidos.
+  Nota: Playwright no puede interceptar fetch() server-side; la idempotencia se
+  prueba en vitest inyectando IngestaDeps (mínima extensión de signatura, production
+  default preservado). Endpoint productivo sin cambios.
 
 - [ ] T4 — Cierre documental
   ROADMAP.md (030 ✅) ·

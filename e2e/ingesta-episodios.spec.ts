@@ -53,6 +53,9 @@ test.beforeAll(async () => {
       moderation_status: 'aprobada',
       estado: 'activa',
       // Null playlist_url → no YouTube call → deterministic result.
+  // La idempotencia real (UNIQUE 23505) se prueba en
+  // tests/lib/ingesta-episodios.test.ts con proveedor falso de videos +
+  // Supabase local real, sin tocar el endpoint.
       playlist_url: null,
     })
     .select('id')
@@ -135,53 +138,10 @@ test('mod con sesión activa acepta la petición y retorna resumen vacío (sin p
   expect(Array.isArray(body.errores)).toBe(true)
 })
 
-test('reeejecución con mod es idempotente (sin playlist_url): mismo resultado 200', async ({
-  page,
-}) => {
-  await login(page, EMAIL_MOD)
-
-  // First call.
-  const res1 = await page.request.post('/api/ingesta-episodios')
-  expect(res1.status()).toBe(200)
-  const body1 = await res1.json()
-
-  // Second call.
-  const res2 = await page.request.post('/api/ingesta-episodios')
-  expect(res2.status()).toBe(200)
-  const body2 = await res2.json()
-
-  // Both calls return identical empty summaries.
-  expect(body1).toEqual(body2)
-})
-
-// ── Diagnóstico: limitación para probar creación/idempotencia real ───────────
+// ── Diagnóstico: idempotencia real probada en tests/lib/ingesta-episodios.test.ts
 //
-// Para probar la creación de sugerencias y la idempotencia con videos reales
-// se necesita que el endpoint invoque a YouTube Data API. Sin embargo:
-//
-// 1. `lib/youtube.ts:getVideosRecientes()` hace `fetch()` desde el servidor
-//    Node.js, NO desde el navegador.
-// 2. Playwright `page.route()` / `context.route()` solo intercepta peticiones
-//    iniciadas por el navegador (client-side), no las feitas por el servidor.
-// 3. El endpoint no tiene modo test ni inyección de dependencias que permita
-//    sustituir `getVideosRecientes` por un mock.
-//
-// Por tanto, con el contrato actual del endpoint y los fixtures, es IMPOSIBLE
-// probar determinísticamente:
-//   - La creación de sugerencias a partir de videos de YouTube.
-//   - La idempotencia real (re-ejecución que encuentra videos ya procesados).
-//
-// Mínima decisión/cambio de alcance requerido:
-//   Opción A (recomendada): añadir un parámetro de query `?test_mode=true` que
-//     haga que `ingestNuevosEpisodios()` use una lista hardcoded de videos de
-//     prueba en vez de llamar a YouTube. Así el E2E podría mockear la serie
-//     con playlist_url y probar creación + idempotencia sin depender de red.
-//   Opción B: inyectar `getVideosRecientes` como dependencia (inyección de
-//     deps) para que los tests puedan pasar un mock. Requiere cambiar la
-//     signatura de `ingestNuevosEpisodios` y del endpoint.
-//   Opción C:acceptar que este caso solo se prueba con integación real (no
-//     determinista) o mediante unit tests que mockeen `getVideosRecientes`.
-//
-// Los tests arriba cubren los criterios deterministas posibles: rechazo sin
-// auth, rechazo usuario normal, rechazo token inválido, y aceptación de sesión
-// mod/admin con respuesta 200.
+// La idempotencia (UNIQUE 23505) y la creación de sugerencias se prueban
+// determinísticamente en el suite vitest con proveedor falso de videos y
+// Supabase local real (ver ingestNuevosEpisodios — DB real, videos mock).
+// Playwright no puede interceptar fetch() server-side desde Node.js, por lo
+// que el E2E se limita a auth/autorización.
