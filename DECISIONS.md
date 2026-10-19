@@ -172,3 +172,16 @@
       delete; el insert autenticado también exige `is_admin_or_mod()`. Cliente
       YouTube Data API v3 server-side en `lib/youtube.ts`, sin ingesta ni cron.
       Sin notificaciones, historial ni rate-limiting.
+- D36: Ingesta automática de episodios (F030): Endpoint POST
+      `/api/ingesta-episodios` protegido con `Authorization: Bearer <CRON_SECRET>`
+      o sesión admin/mod activa. Escritura en `episodio_sugerencia` vía cliente
+      service-role desde el backend (bypass de RLS); no se relajan ni modifican
+      las políticas RLS de M24. Las sugerencias quedan en estado `pendiente`;
+      nunca se publica automáticamente sin aprobación de moderador.
+      `ingestNuevosEpisodios(client, deps?)` acepta `IngestaDeps` opcional con
+      defaults reales (YouTube + service-role); el parámetro opcional existe
+      únicamente para pruebas deterministas con proveedor de videos mockeado y
+      Supabase local. No hay modo de prueba en producción ni `test_mode`.
+      La ejecución periódica es externa (cron/GitHub Actions/Vercel Cron no
+      implementados en la app). M24 ya provee tabla, UNIQUE y RLS; no nueva
+      migración.

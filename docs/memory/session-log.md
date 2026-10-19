@@ -1,5 +1,11 @@
 # Session Log
 
+## Sesión — F030: Sugerencias automáticas de episodios para moderación
+- Implementación de F030 completada; cierre documental/etiquetado en curso. Ingesta basada en los servicios de F029: descubre videos recientes de playlists, detecta episodios y crea sugerencias `pendiente` para revisión humana; no publica automáticamente. Endpoint POST `/api/ingesta-episodios` protegido por Bearer/`CRON_SECRET` o sesión admin/mod; service role solo en backend y RLS de M24 intacta. Sin scheduler implementado.
+- T1: servicio de ingesta y tests. T2: endpoint y protección. T3: E2E auth y pruebas DB-backed con proveedor de videos falso, Supabase local real, inserción de sugerencias e idempotencia por UNIQUE M24. Se añadió inyección opcional `IngestaDeps` con defaults de producción, sin `test_mode` público.
+- T4: Cierre documental: ROADMAP actualizado a 030 ✅ y decisión D36 en `DECISIONS.md`. Reporte de OpenCode: Vitest 44 archivos/610 tests, E2E de ingesta 5/5, typecheck y lint en verde. `./validate.sh` no se repitió en esta sesión; validación global previa reportada por Leonardo.
+- Commits: `576afdd` T1, `85c29ea` T2, `df426ec` T3 auth inicial, `c532c02` T3 cobertura DB-backed. Pendientes commit documental, marcador F30, tag anotado F30 y verificación exacta del tag.
+
 ## Sesión — F029: Detección y sugerencia automática de episodios
 - F029: Detección y sugerencia automática de episodios completada. Migración M24 (`episodio_sugerencia`, UNIQUE por serie/video y RLS mod-only). Parser y servicios en `lib/episodio-deteccion.ts`; cliente server-side de YouTube Data API v3 en `lib/youtube.ts`, sin ingesta ni cron. Server Actions y cola en `/admin/sugerencias-episodios`. Tests DB/RLS (`tests/db/episodio-sugerencia-rls.test.ts`), unitarios (`tests/lib/episodio-deteccion.test.ts`) y E2E (`e2e/deteccion-episodios.spec.ts`) con limpieza defensiva en `wipe()`. ROADMAP actualizado con 029 ✅, ADR D35 registrado en `DECISIONS.md`. validate.sh en verde (594 tests y 100 E2E).
 
